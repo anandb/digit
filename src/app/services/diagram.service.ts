@@ -19,14 +19,16 @@ export class DiagramService {
         currentDiagram: loadedDiagram,
         diagramStack: [],
         selectedNodeId: undefined,
-        selectedTendrilId: undefined
+        selectedTendrilId: undefined,
+        selectedBoundingBoxId: undefined
       };
     }
     return {
       currentDiagram: this.createEmptyDiagram(),
       diagramStack: [],
       selectedNodeId: undefined,
-      selectedTendrilId: undefined
+      selectedTendrilId: undefined,
+      selectedBoundingBoxId: undefined
     };
   }
 
@@ -49,6 +51,7 @@ export class DiagramService {
       name: 'New Diagram',
       nodes: [],
       edges: [],
+      boundingBoxes: [],
       attributes: {}
     };
   }
@@ -75,6 +78,7 @@ export class DiagramService {
       name: 'Inner Diagram',
       nodes: [],
       edges: [],
+      boundingBoxes: [],
       attributes: {}
     };
 
@@ -111,6 +115,49 @@ export class DiagramService {
       currentDiagram: {
         ...this.state.currentDiagram,
         nodes: [...this.state.currentDiagram.nodes, newNode]
+      }
+    };
+  }
+
+  // Bounding box operations
+  addBoundingBox(position: Position): void {
+    const newBoundingBox: import('../models/diagram.model').BoundingBox = {
+      id: this.generateId(),
+      label: 'Group',
+      position,
+      size: { width: 200, height: 150 },
+      fillColor: 'rgba(255, 255, 0, 0.3)',
+      borderColor: '#666666',
+      attributes: {}
+    };
+
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        boundingBoxes: [...this.state.currentDiagram.boundingBoxes, newBoundingBox]
+      }
+    };
+  }
+
+  updateBoundingBox(boundingBoxId: string, updates: Partial<import('../models/diagram.model').BoundingBox>): void {
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        boundingBoxes: this.state.currentDiagram.boundingBoxes.map(box =>
+          box.id === boundingBoxId ? { ...box, ...updates } : box
+        )
+      }
+    };
+  }
+
+  deleteBoundingBox(boundingBoxId: string): void {
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        boundingBoxes: this.state.currentDiagram.boundingBoxes.filter(box => box.id !== boundingBoxId)
       }
     };
   }
@@ -279,7 +326,8 @@ export class DiagramService {
     this.state = {
       ...this.state,
       selectedNodeId: nodeId,
-      selectedTendrilId: undefined
+      selectedTendrilId: undefined,
+      selectedBoundingBoxId: undefined
     };
   }
 
@@ -287,7 +335,17 @@ export class DiagramService {
     this.state = {
       ...this.state,
       selectedNodeId: nodeId,
-      selectedTendrilId: tendrilId
+      selectedTendrilId: tendrilId,
+      selectedBoundingBoxId: undefined
+    };
+  }
+
+  selectBoundingBox(boundingBoxId: string | undefined): void {
+    this.state = {
+      ...this.state,
+      selectedNodeId: undefined,
+      selectedTendrilId: undefined,
+      selectedBoundingBoxId: boundingBoxId
     };
   }
 

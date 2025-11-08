@@ -44,6 +44,54 @@
     fill="none">
   </path>
 
+  <!-- Bounding boxes -->
+  <g class="bounding-boxes">
+    <g
+      *ngFor="let box of state.currentDiagram.boundingBoxes"
+      class="bounding-box-group"
+      cdkDrag
+      (cdkDragStarted)="onBoundingBoxDragStarted(box)"
+      (cdkDragMoved)="onBoundingBoxDragMoved($event, box)"
+      (cdkDragEnded)="onBoundingBoxDragEnd($event, box)"
+      (click)="onBoundingBoxClick($event, box)"
+      (contextmenu)="onBoundingBoxContextMenu($event, box)">
+
+      <!-- Bounding box rectangle -->
+      <rect
+        [attr.x]="box.position.x"
+        [attr.y]="box.position.y"
+        [attr.width]="box.size.width"
+        [attr.height]="box.size.height"
+        [attr.fill]="box.fillColor"
+        [attr.stroke]="box.borderColor"
+        stroke-width="2"
+        stroke-dasharray="8,4"
+        class="bounding-box">
+      </rect>
+
+      <!-- Resize handle -->
+      <circle
+        *ngIf="state.selectedBoundingBoxId === box.id"
+        [attr.cx]="box.position.x + box.size.width"
+        [attr.cy]="box.position.y + box.size.height"
+        r="4"
+        class="resize-handle"
+        (mousedown)="startBoundingBoxResize($event, box, 'se')"
+        style="cursor: nw-resize;">
+      </circle>
+
+      <!-- Bounding box label -->
+      <text
+        [attr.x]="box.position.x + box.size.width - 10"
+        [attr.y]="box.position.y + 20"
+        text-anchor="end"
+        dominant-baseline="hanging"
+        class="bounding-box-label">
+        {{ box.label }}
+      </text>
+    </g>
+  </g>
+
   <!-- Nodes -->
   <g class="nodes">
     <g
@@ -64,6 +112,8 @@
         [attr.fill]="node.fillColor"
         [attr.stroke]="node.borderColor"
         stroke-width="2"
+        filter="url(#dropshadow)"
+        [class.highlighted]="isHighlighted('node', node.id)"
         class="node">
       </rect>
 
@@ -75,6 +125,8 @@
         [attr.fill]="node.fillColor"
         [attr.stroke]="node.borderColor"
         stroke-width="2"
+        filter="url(#dropshadow)"
+        [class.highlighted]="isHighlighted('node', node.id)"
         class="node">
       </circle>
 
@@ -89,10 +141,12 @@
         [attr.fill]="node.fillColor"
         [attr.stroke]="node.borderColor"
         stroke-width="2"
+        filter="url(#dropshadow)"
+        [class.highlighted]="isHighlighted('node', node.id)"
         class="node">
       </rect>
 
-      <g *ngIf="node.shape === 'cylinder'" class="cylinder">
+      <g *ngIf="node.shape === 'cylinder'" [class.highlighted]="isHighlighted('node', node.id)" class="cylinder" filter="url(#dropshadow)">
         <!-- Cylinder top ellipse -->
         <ellipse
           [attr.cx]="node.position.x + node.size.width / 2"
@@ -139,9 +193,9 @@
       <!-- Node name -->
       <text
         [attr.x]="node.position.x + node.size.width / 2"
-        [attr.y]="node.position.y + node.size.height / 2"
+        [attr.y]="getNodeTextY(node)"
         text-anchor="middle"
-        dominant-baseline="middle"
+        [attr.dominant-baseline]="getNodeTextBaseline(node)"
         class="node-name">
         {{ node.name }}
       </text>
@@ -191,7 +245,7 @@
     </g>
   </g>
 
-  <!-- Arrow marker and grid pattern definitions -->
+  <!-- Arrow marker, grid pattern, and drop shadow filter definitions -->
   <defs>
     <marker
       id="arrowhead"
@@ -217,6 +271,35 @@
         fill="#cccccc">
       </circle>
     </pattern>
+
+    <filter
+      id="dropshadow"
+      x="-20%"
+      y="-20%"
+      width="140%"
+      height="140%">
+      <feDropShadow
+        dx="3"
+        dy="3"
+        stdDeviation="2"
+        flood-color="#000000"
+        flood-opacity="0.3"/>
+    </filter>
+
+    <filter
+      id="glow"
+      x="-50%"
+      y="-50%"
+      width="200%"
+      height="200%">
+      <feGaussianBlur
+        stdDeviation="3"
+        result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
 </svg>
 </div>

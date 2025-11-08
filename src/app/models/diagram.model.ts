@@ -44,11 +44,22 @@ export interface Edge {
   attributes: { [key: string]: any };
 }
 
+export interface BoundingBox {
+  id: string;
+  position: Position;
+  size: Size;
+  label: string;
+  fillColor: string;
+  borderColor: string;
+  attributes: { [key: string]: any };
+}
+
 export interface Diagram {
   id: string;
   name: string;
   nodes: Node[];
   edges: Edge[];
+  boundingBoxes: BoundingBox[];
   attributes: { [key: string]: any };
 }
 
@@ -57,4 +68,5 @@ export interface DiagramState {
   diagramStack: Diagram[]; // for navigation history
   selectedNodeId?: string;
   selectedTendrilId?: string;
+  selectedBoundingBoxId?: string;
 }

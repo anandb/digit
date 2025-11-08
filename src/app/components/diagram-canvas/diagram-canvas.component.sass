@@ -37,9 +37,14 @@
     &:hover
       stroke-width: 3
 
+    &.highlighted
+      stroke: #007bff !important
+      stroke-width: 3
+      filter: url(#glow)
+
   .node-name
     font-family: 'Purisa', Arial, sans-serif
-    font-size: 14px
+    font-size: 12px
     fill: #333
     pointer-events: none
     user-select: none
@@ -52,8 +57,23 @@
 
   .tendril-name
     font-family: 'Purisa', Arial, sans-serif
-    font-size: 14px
+    font-size: 12px
     fill: #666
+    pointer-events: none
+    user-select: none
+
+  .bounding-box
+    cursor: move
+    pointer-events: all
+
+    &:hover
+      stroke-width: 3
+
+  .bounding-box-label
+    font-family: 'Purisa', Arial, sans-serif
+    font-size: 14px
+    font-weight: bold
+    fill: #333
     pointer-events: none
     user-select: none
 

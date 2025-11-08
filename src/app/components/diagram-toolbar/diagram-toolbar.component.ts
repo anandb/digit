@@ -39,6 +39,12 @@ export class DiagramToolbarComponent {
     this.diagramService.addNode(position);
   }
 
+  addNewBoundingBox(): void {
+    // Add bounding box at a default position
+    const position = { x: 300, y: 200 };
+    this.diagramService.addBoundingBox(position);
+  }
+
   addIncomingTendril(): void {
     const selectedNodeId = this.diagramService.currentState.selectedNodeId;
     if (selectedNodeId) {
@@ -132,6 +138,10 @@ export class DiagramToolbarComponent {
 
   get selectedNodeId(): string | undefined {
     return this.diagramService.currentState.selectedNodeId;
+  }
+
+  get selectedBoundingBoxId(): string | undefined {
+    return this.diagramService.currentState.selectedBoundingBoxId;
   }
 
   get selectedTendrilId(): string | undefined {
@@ -266,6 +276,64 @@ export class DiagramToolbarComponent {
     const selectedTendrilId = this.selectedTendrilId;
     if (selectedNodeId && selectedTendrilId) {
       this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, { exposed });
+    }
+  }
+
+  getSelectedBoundingBoxLabel(): string {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      const box = this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === selectedBoundingBoxId);
+      return box?.label || '';
+    }
+    return '';
+  }
+
+  updateBoundingBoxLabel(event: Event): void {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateBoundingBox(selectedBoundingBoxId, { label: target.value });
+    }
+  }
+
+  getSelectedBoundingBoxFillColor(): string {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      const box = this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === selectedBoundingBoxId);
+      return box?.fillColor || 'rgba(255, 255, 0, 0.3)';
+    }
+    return 'rgba(255, 255, 0, 0.3)';
+  }
+
+  getSelectedBoundingBoxBorderColor(): string {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      const box = this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === selectedBoundingBoxId);
+      return box?.borderColor || '#666666';
+    }
+    return '#666666';
+  }
+
+  updateBoundingBoxFillColor(event: Event): void {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateBoundingBox(selectedBoundingBoxId, { fillColor: target.value });
+    }
+  }
+
+  updateBoundingBoxBorderColor(event: Event): void {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateBoundingBox(selectedBoundingBoxId, { borderColor: target.value });
+    }
+  }
+
+  deleteSelectedBoundingBox(): void {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      this.diagramService.deleteBoundingBox(selectedBoundingBoxId);
     }
   }
 

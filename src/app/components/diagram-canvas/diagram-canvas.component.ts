@@ -27,8 +27,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // For resizing
   private isResizing = false;
   private resizeNodeId?: string;
+  private resizeBoundingBoxId?: string;
   private resizeStartPos: Position = { x: 0, y: 0 };
   private resizeStartSize: Size = { width: 0, height: 0 };
+
+  // For drag highlighting
+  private isDraggingBoundingBox = false;
+  private highlightedObjectIds: Set<string> = new Set();
 
   constructor(private diagramService: DiagramService) {}
 
@@ -44,10 +49,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Canvas click - no longer creates nodes automatically
   onCanvasClick(event: MouseEvent): void {
-    // Clear selection when clicking on empty canvas
-    if (event.target === this.canvas.nativeElement) {
-      this.diagramService.selectNode(undefined);
-    }
+    // Clear all selections when clicking on empty canvas
+    this.diagramService.selectNode(undefined);
+    this.diagramService.selectBoundingBox(undefined);
   }
 
   // Node drag handling
@@ -68,6 +72,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
       this.diagramService.updateNode(node.id, { position: newPosition });
     }
+
+    // Clear highlights
+    this.isDraggingBoundingBox = false;
+    this.highlightedObjectIds.clear();
 
     // Reset transform
     element.style.transform = '';
@@ -142,6 +150,23 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
       // Reposition tendrils to stay on borders
       this.repositionTendrilsAfterResize(this.resizeNodeId, newWidth, newHeight);
+    } else if (this.isResizing && this.resizeBoundingBoxId) {
+      const rect = this.canvas.nativeElement.getBoundingClientRect();
+      const currentPos = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+
+      const deltaX = currentPos.x - this.resizeStartPos.x;
+      const deltaY = currentPos.y - this.resizeStartPos.y;
+
+      const newWidth = Math.max(50, this.resizeStartSize.width + deltaX);
+      const newHeight = Math.max(30, this.resizeStartSize.height + deltaY);
+
+      // Update bounding box size
+      this.diagramService.updateBoundingBox(this.resizeBoundingBoxId, {
+        size: { width: newWidth, height: newHeight }
+      });
     }
   }
 
@@ -151,6 +176,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (this.isResizing) {
       this.isResizing = false;
       this.resizeNodeId = undefined;
+      this.resizeBoundingBoxId = undefined;
     }
   }
 
@@ -171,10 +197,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (event.key === 'Delete') {
       const selectedNodeId = this.state.selectedNodeId;
       const selectedTendrilId = this.state.selectedTendrilId;
+      const selectedBoundingBoxId = this.state.selectedBoundingBoxId;
 
       if (selectedTendrilId && selectedNodeId) {
         // Delete selected tendril
         this.diagramService.deleteTendril(selectedNodeId, selectedTendrilId);
+      } else if (selectedBoundingBoxId) {
+        // Delete selected bounding box
+        this.diagramService.deleteBoundingBox(selectedBoundingBoxId);
       } else if (selectedNodeId) {
         // Delete selected node
         this.diagramService.deleteNode(selectedNodeId);
@@ -210,6 +240,106 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.diagramService.selectTendril(node.id, tendril.id);
     // TODO: Show context menu
+  }
+
+  // Bounding box click to select
+  onBoundingBoxClick(event: MouseEvent, box: any): void {
+    event.stopPropagation();
+    this.diagramService.selectBoundingBox(box.id);
+  }
+
+  // Context menu for bounding boxes
+  onBoundingBoxContextMenu(event: MouseEvent, box: any): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.diagramService.selectBoundingBox(box.id);
+    // TODO: Show context menu
+  }
+
+  // Bounding box drag started - highlight contained objects
+  onBoundingBoxDragStarted(box: any): void {
+    this.isDraggingBoundingBox = true;
+    this.highlightedObjectIds.clear();
+
+    // Highlight all nodes within the bounding box
+    this.state.currentDiagram.nodes.forEach(node => {
+      if (this.isNodeInsideBoundingBox(node, box)) {
+        this.highlightedObjectIds.add(`node-${node.id}`);
+      }
+    });
+
+    // Highlight all bounding boxes within this bounding box
+    this.state.currentDiagram.boundingBoxes.forEach(otherBox => {
+      if (otherBox.id !== box.id && this.isBoundingBoxInsideBoundingBox(otherBox, box)) {
+        this.highlightedObjectIds.add(`box-${otherBox.id}`);
+      }
+    });
+  }
+
+  // Bounding box drag moved - update highlights if needed
+  onBoundingBoxDragMoved(event: any, box: any): void {
+    // Could update highlights based on current drag position if needed
+    // For now, we keep the initial highlight
+  }
+
+  // Bounding box drag handling
+  onBoundingBoxDragEnd(event: CdkDragEnd, box: any): void {
+    const element = event.source.element.nativeElement;
+    const transform = element.style.transform;
+
+    // Parse transform to get new position
+    const match = transform.match(/translate3d\(([^,]+)px, ([^,]+)px,/);
+    if (match) {
+      const deltaX = parseFloat(match[1]);
+      const deltaY = parseFloat(match[2]);
+
+      // Move the bounding box itself
+      const newBoxPosition: Position = {
+        x: box.position.x + deltaX,
+        y: box.position.y + deltaY
+      };
+      this.diagramService.updateBoundingBox(box.id, { position: newBoxPosition });
+
+      // Move all nodes within the bounding box
+      this.state.currentDiagram.nodes.forEach(node => {
+        if (this.isNodeInsideBoundingBox(node, box)) {
+          const newNodePosition: Position = {
+            x: node.position.x + deltaX,
+            y: node.position.y + deltaY
+          };
+          this.diagramService.updateNode(node.id, { position: newNodePosition });
+        }
+      });
+
+      // Move all other bounding boxes within this bounding box (nested grouping)
+      this.state.currentDiagram.boundingBoxes.forEach(otherBox => {
+        if (otherBox.id !== box.id && this.isBoundingBoxInsideBoundingBox(otherBox, box)) {
+          const newOtherBoxPosition: Position = {
+            x: otherBox.position.x + deltaX,
+            y: otherBox.position.y + deltaY
+          };
+          this.diagramService.updateBoundingBox(otherBox.id, { position: newOtherBoxPosition });
+        }
+      });
+    }
+
+    // Reset transform
+    element.style.transform = '';
+  }
+
+  // Start resizing a bounding box
+  startBoundingBoxResize(event: MouseEvent, box: any, direction: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const rect = this.canvas.nativeElement.getBoundingClientRect();
+    this.resizeStartPos = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+    this.resizeStartSize = { ...box.size };
+    this.resizeBoundingBoxId = box.id;
+    this.isResizing = true;
   }
 
   // Utility methods for template
@@ -281,6 +411,28 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Get Y position for node text based on shape
+  getNodeTextY(node: any): number {
+    if (node.shape === 'circle' || node.shape === 'cylinder') {
+      // Position text below the shape
+      return node.position.y + node.size.height + 20;
+    } else {
+      // Center text within the shape (rectangle, pill)
+      return node.position.y + node.size.height / 2;
+    }
+  }
+
+  // Get baseline alignment for node text based on shape
+  getNodeTextBaseline(node: any): string {
+    if (node.shape === 'circle' || node.shape === 'cylinder') {
+      // Align to top of text for below-shape positioning
+      return 'hanging';
+    } else {
+      // Center alignment for within-shape positioning
+      return 'middle';
+    }
+  }
+
   // Get current diagram title for header
   getCurrentDiagramTitle(): string {
     if (this.state.diagramStack.length > 0) {
@@ -295,6 +447,43 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
     // We're in the root diagram
     return this.state.currentDiagram.name || 'Untitled';
+  }
+
+  // Check if an object is highlighted during drag
+  isHighlighted(objectType: string, objectId: string): boolean {
+    return this.highlightedObjectIds.has(`${objectType}-${objectId}`);
+  }
+
+  // Check if a node is inside a bounding box
+  private isNodeInsideBoundingBox(node: any, boundingBox: any): boolean {
+    const nodeLeft = node.position.x;
+    const nodeRight = node.position.x + node.size.width;
+    const nodeTop = node.position.y;
+    const nodeBottom = node.position.y + node.size.height;
+
+    const boxLeft = boundingBox.position.x;
+    const boxRight = boundingBox.position.x + boundingBox.size.width;
+    const boxTop = boundingBox.position.y;
+    const boxBottom = boundingBox.position.y + boundingBox.size.height;
+
+    return nodeLeft >= boxLeft && nodeRight <= boxRight &&
+           nodeTop >= boxTop && nodeBottom <= boxBottom;
+  }
+
+  // Check if a bounding box is inside another bounding box
+  private isBoundingBoxInsideBoundingBox(innerBox: any, outerBox: any): boolean {
+    const innerLeft = innerBox.position.x;
+    const innerRight = innerBox.position.x + innerBox.size.width;
+    const innerTop = innerBox.position.y;
+    const innerBottom = innerBox.position.y + innerBox.size.height;
+
+    const outerLeft = outerBox.position.x;
+    const outerRight = outerBox.position.x + outerBox.size.width;
+    const outerTop = outerBox.position.y;
+    const outerBottom = outerBox.position.y + outerBox.size.height;
+
+    return innerLeft >= outerLeft && innerRight <= outerRight &&
+           innerTop >= outerTop && innerBottom <= outerBottom;
   }
 
   // Reposition tendrils to stay on borders after node resize

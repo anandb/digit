@@ -8,16 +8,19 @@
   <div class="toolbar-content" [class.collapsed]="isCollapsed">
     <div class="toolbar-section">
       <h3>Diagram Actions</h3>
-      <button (click)="newDiagram()" class="btn">🆕 New Diagram</button>
-      <button (click)="saveDiagram()" class="btn">Save Diagram</button>
-      <input
-        type="file"
-        accept=".json"
-        (change)="loadDiagram($event)"
-        style="display: none"
-        #fileInput>
-      <button (click)="fileInput.click()" class="btn">Load Diagram</button>
-      <button (click)="addNewNode()" class="btn btn-primary">➕ New Node</button>
+      <div class="action-buttons">
+        <button (click)="newDiagram()" class="btn action-btn" title="New Diagram">🆕</button>
+        <button (click)="saveDiagram()" class="btn action-btn" title="Save Diagram">💾</button>
+        <input
+          type="file"
+          accept=".json"
+          (change)="loadDiagram($event)"
+          style="display: none"
+          #fileInput>
+        <button (click)="fileInput.click()" class="btn action-btn" title="Load Diagram">📁</button>
+        <button (click)="addNewNode()" class="btn btn-primary action-btn" title="Add Node">➕</button>
+        <button (click)="addNewBoundingBox()" class="btn action-btn" title="Add Bounding Box">▭</button>
+      </div>
     </div>
 
   <div class="toolbar-section" *ngIf="canGoBack">
@@ -101,6 +104,37 @@
         rows="4">
       </textarea>
     </div>
+  </div>
+
+  <div class="toolbar-section" *ngIf="selectedBoundingBoxId">
+    <h3>Bounding Box Actions</h3>
+    <div class="name-control">
+      <label>Label:</label>
+      <input
+        type="text"
+        [value]="getSelectedBoundingBoxLabel()"
+        (input)="updateBoundingBoxLabel($event)"
+        placeholder="Enter box label..."
+        class="name-input">
+    </div>
+
+    <div class="color-controls">
+      <label>Fill Color:</label>
+      <input
+        type="color"
+        [value]="getSelectedBoundingBoxFillColor()"
+        (change)="updateBoundingBoxFillColor($event)"
+        class="color-input">
+
+      <label>Border Color:</label>
+      <input
+        type="color"
+        [value]="getSelectedBoundingBoxBorderColor()"
+        (change)="updateBoundingBoxBorderColor($event)"
+        class="color-input">
+    </div>
+
+    <button (click)="deleteSelectedBoundingBox()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Bounding Box</button>
   </div>
 
   <div class="toolbar-section" *ngIf="selectedTendrilId">

@@ -1,0 +1,93 @@
+.toolbar
+  position: fixed
+  top: 0
+  left: 0
+  width: 300px
+  height: 100vh
+  background-color: #f8f9fa
+  border-right: 1px solid #dee2e6
+  padding: 20px
+  box-sizing: border-box
+  overflow-y: auto
+  z-index: 1000
+
+  .toolbar-section
+    margin-bottom: 30px
+
+    h3
+      margin: 0 0 10px 0
+      font-size: 14px
+      font-weight: bold
+      color: #495057
+      text-transform: uppercase
+      letter-spacing: 0.5px
+
+    .btn
+      display: block
+      width: 100%
+      padding: 8px 12px
+      margin-bottom: 8px
+      border: 1px solid #ced4da
+      border-radius: 4px
+      background-color: #fff
+      color: #495057
+      font-size: 14px
+      cursor: pointer
+      transition: all 0.2s ease
+
+      &:hover
+        background-color: #e9ecef
+        border-color: #adb5bd
+
+      &.btn-back
+        background-color: #007bff
+        color: white
+        border-color: #007bff
+
+        &:hover
+          background-color: #0056b3
+          border-color: #004085
+
+      &.btn-primary
+        background-color: #28a745
+        color: white
+        border-color: #28a745
+
+        &:hover
+          background-color: #1e7e34
+          border-color: #1c7430
+
+      &.btn-tendril
+        background-color: #28a745
+        color: white
+        border-color: #28a745
+
+        &:hover
+          background-color: #1e7e34
+          border-color: #1c7430
+
+      &.btn-danger
+        background-color: #dc3545
+        color: white
+        border-color: #dc3545
+
+        &:hover
+          background-color: #c82333
+          border-color: #bd2130
+
+  .instructions
+    list-style: none
+    padding: 0
+    margin: 0
+
+    li
+      font-size: 12px
+      color: #6c757d
+      margin-bottom: 8px
+      line-height: 1.4
+
+      &:before
+        content: "•"
+        color: #007bff
+        font-weight: bold
+        margin-right: 8px

@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { DiagramCanvasComponent } from './components/diagram-canvas/diagram-canvas.component';
+import { DiagramToolbarComponent } from './components/diagram-toolbar/diagram-toolbar.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [DiagramCanvasComponent, DiagramToolbarComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.sass'
 })

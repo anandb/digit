@@ -1,0 +1,45 @@
+<div class="toolbar">
+  <div class="toolbar-section">
+    <h3>Diagram Actions</h3>
+    <button (click)="addNewNode()" class="btn btn-primary">➕ New Node</button>
+    <button (click)="saveDiagram()" class="btn">Save Diagram</button>
+    <input
+      type="file"
+      accept=".json"
+      (change)="loadDiagram($event)"
+      style="display: none"
+      #fileInput>
+    <button (click)="fileInput.click()" class="btn">Load Diagram</button>
+  </div>
+
+  <div class="toolbar-section" *ngIf="canGoBack">
+    <h3>Navigation</h3>
+    <button (click)="goBack()" class="btn btn-back">← Back</button>
+  </div>
+
+  <div class="toolbar-section" *ngIf="selectedNodeId">
+    <h3>Node Actions</h3>
+    <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
+    <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
+    <button (click)="deleteSelectedNode()" class="btn btn-danger">🗑️ Delete Node</button>
+  </div>
+
+  <div class="toolbar-section" *ngIf="selectedTendrilId">
+    <h3>Tendril Actions</h3>
+    <button (click)="deleteSelectedTendril()" class="btn btn-danger">🗑️ Delete Tendril</button>
+  </div>
+
+  <div class="toolbar-section">
+    <h3>Instructions</h3>
+    <ul class="instructions">
+      <li>Use "New Node" button to add nodes</li>
+      <li>Drag nodes to reposition</li>
+      <li>Drag blue circle on selected nodes to resize</li>
+      <li>Double-click nodes to enter inner diagrams</li>
+      <li>Click orange tendrils to start edges, green tendrils to complete</li>
+      <li>Right-click to cancel edge creation</li>
+      <li>Right-click nodes/tendrils to select, then delete</li>
+      <li>Press Delete key to remove selected items</li>
+    </ul>
+  </div>
+</div>

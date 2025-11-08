@@ -261,6 +261,42 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `M ${start.x} ${start.y} Q ${midX} ${midY} ${end.x} ${end.y}`;
   }
 
+  // Get circle radius for circular nodes
+  getCircleRadius(node: any): number {
+    return Math.min(node.size.width, node.size.height) / 2;
+  }
+
+  // Get triangle points for internal tendrils
+  getTendrilTrianglePoints(node: any, tendril: any): string {
+    const centerX = node.position.x + tendril.position.x;
+    const centerY = node.position.y + tendril.position.y;
+    const size = 6; // Same size as circle radius
+
+    if (tendril.type === 'incoming') {
+      // Triangle pointing right (for incoming tendrils on left side)
+      return `${centerX - size},${centerY - size} ${centerX - size},${centerY + size} ${centerX + size},${centerY}`;
+    } else {
+      // Triangle pointing left (for outgoing tendrils on right side)
+      return `${centerX + size},${centerY - size} ${centerX + size},${centerY + size} ${centerX - size},${centerY}`;
+    }
+  }
+
+  // Get current diagram title for header
+  getCurrentDiagramTitle(): string {
+    if (this.state.diagramStack.length > 0) {
+      // We're in a nested diagram - show the parent node name
+      const parentDiagram = this.state.diagramStack[this.state.diagramStack.length - 1];
+      // Find the node that contains this inner diagram
+      for (const node of parentDiagram.nodes) {
+        if (node.innerDiagram?.id === this.state.currentDiagram.id) {
+          return node.name || 'Untitled Node';
+        }
+      }
+    }
+    // We're in the root diagram
+    return this.state.currentDiagram.name || 'Untitled';
+  }
+
   // Reposition tendrils to stay on borders after node resize
   private repositionTendrilsAfterResize(nodeId: string, newWidth: number, newHeight: number): void {
     const node = this.state.currentDiagram.nodes.find(n => n.id === nodeId);

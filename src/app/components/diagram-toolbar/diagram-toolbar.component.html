@@ -1,16 +1,24 @@
-<div class="toolbar">
-  <div class="toolbar-section">
-    <h3>Diagram Actions</h3>
-    <button (click)="saveDiagram()" class="btn">Save Diagram</button>
-    <input
-      type="file"
-      accept=".json"
-      (change)="loadDiagram($event)"
-      style="display: none"
-      #fileInput>
-    <button (click)="fileInput.click()" class="btn">Load Diagram</button>
-    <button (click)="addNewNode()" class="btn btn-primary">➕ New Node</button>
+<div class="toolbar" [class.collapsed]="isCollapsed">
+  <div class="toolbar-header">
+    <button (click)="toggleSidebar()" class="sidebar-toggle" [title]="isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
+      {{ isCollapsed ? '▶' : '◀' }}
+    </button>
   </div>
+
+  <div class="toolbar-content" [class.collapsed]="isCollapsed">
+    <div class="toolbar-section">
+      <h3>Diagram Actions</h3>
+      <button (click)="newDiagram()" class="btn">🆕 New Diagram</button>
+      <button (click)="saveDiagram()" class="btn">Save Diagram</button>
+      <input
+        type="file"
+        accept=".json"
+        (change)="loadDiagram($event)"
+        style="display: none"
+        #fileInput>
+      <button (click)="fileInput.click()" class="btn">Load Diagram</button>
+      <button (click)="addNewNode()" class="btn btn-primary">➕ New Node</button>
+    </div>
 
   <div class="toolbar-section" *ngIf="canGoBack">
     <h3>Navigation</h3>
@@ -31,6 +39,40 @@
         (input)="updateNodeName($event)"
         placeholder="Enter node name..."
         class="name-input">
+    </div>
+
+    <div class="shape-control">
+      <label>Shape:</label>
+      <div class="shape-buttons">
+        <button
+          (click)="setNodeShape('rectangle')"
+          [class.active]="getSelectedNodeShape() === 'rectangle'"
+          class="shape-btn"
+          title="Rectangle">
+          ▭
+        </button>
+        <button
+          (click)="setNodeShape('circle')"
+          [class.active]="getSelectedNodeShape() === 'circle'"
+          class="shape-btn"
+          title="Circle">
+          ○
+        </button>
+        <button
+          (click)="setNodeShape('pill')"
+          [class.active]="getSelectedNodeShape() === 'pill'"
+          class="shape-btn"
+          title="Pill">
+          ▬
+        </button>
+        <button
+          (click)="setNodeShape('cylinder')"
+          [class.active]="getSelectedNodeShape() === 'cylinder'"
+          class="shape-btn"
+          title="Cylinder">
+          ⧈
+        </button>
+      </div>
     </div>
 
     <div class="color-controls">
@@ -72,6 +114,29 @@
         placeholder="Enter tendril name..."
         class="name-input">
     </div>
+
+    <div class="exposure-control">
+      <label>Visibility:</label>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input
+            type="radio"
+            [checked]="getSelectedTendrilExposed()"
+            (change)="setTendrilExposed(true)"
+            name="tendril-exposure">
+          Exposed
+        </label>
+        <label class="radio-label">
+          <input
+            type="radio"
+            [checked]="!getSelectedTendrilExposed()"
+            (change)="setTendrilExposed(false)"
+            name="tendril-exposure">
+          Internal
+        </label>
+      </div>
+    </div>
+
     <button (click)="deleteSelectedTendril()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Tendril</button>
   </div>
 
@@ -89,5 +154,6 @@
       <li>Right-click nodes/tendrils to select, then delete</li>
       <li>Press Delete key to remove selected items</li>
     </ul>
+  </div>
   </div>
 </div>

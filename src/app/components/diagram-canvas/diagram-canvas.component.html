@@ -1,9 +1,17 @@
-<svg
-  #canvas
-  class="diagram-canvas"
-  width="100%"
-  height="100%"
-  (click)="onCanvasClick($event)">
+<div class="canvas-container">
+  <!-- Diagram Title Header -->
+  <div class="diagram-header">
+    <div class="diagram-title">
+      {{ getCurrentDiagramTitle() }}
+    </div>
+  </div>
+
+  <svg
+    #canvas
+    class="diagram-canvas"
+    width="100%"
+    height="100%"
+    (click)="onCanvasClick($event)">
 
   <!-- Grid background -->
   <rect
@@ -46,8 +54,9 @@
       (dblclick)="onNodeDoubleClick(node)"
       (contextmenu)="onNodeContextMenu($event, node)">
 
-      <!-- Node rectangle -->
+      <!-- Node shapes -->
       <rect
+        *ngIf="node.shape === 'rectangle'"
         [attr.x]="node.position.x"
         [attr.y]="node.position.y"
         [attr.width]="node.size.width"
@@ -57,6 +66,64 @@
         stroke-width="2"
         class="node">
       </rect>
+
+      <circle
+        *ngIf="node.shape === 'circle'"
+        [attr.cx]="node.position.x + node.size.width / 2"
+        [attr.cy]="node.position.y + node.size.height / 2"
+        [attr.r]="getCircleRadius(node)"
+        [attr.fill]="node.fillColor"
+        [attr.stroke]="node.borderColor"
+        stroke-width="2"
+        class="node">
+      </circle>
+
+      <rect
+        *ngIf="node.shape === 'pill'"
+        [attr.x]="node.position.x"
+        [attr.y]="node.position.y"
+        [attr.width]="node.size.width"
+        [attr.height]="node.size.height"
+        [attr.rx]="node.size.height / 2"
+        [attr.ry]="node.size.height / 2"
+        [attr.fill]="node.fillColor"
+        [attr.stroke]="node.borderColor"
+        stroke-width="2"
+        class="node">
+      </rect>
+
+      <g *ngIf="node.shape === 'cylinder'" class="cylinder">
+        <!-- Cylinder top ellipse -->
+        <ellipse
+          [attr.cx]="node.position.x + node.size.width / 2"
+          [attr.cy]="node.position.y + 15"
+          [attr.rx]="node.size.width / 2"
+          [attr.ry]="15"
+          [attr.fill]="node.fillColor"
+          [attr.stroke]="node.borderColor"
+          stroke-width="2">
+        </ellipse>
+        <!-- Cylinder body -->
+        <rect
+          [attr.x]="node.position.x"
+          [attr.y]="node.position.y + 15"
+          [attr.width]="node.size.width"
+          [attr.height]="node.size.height - 30"
+          [attr.fill]="node.fillColor"
+          [attr.stroke]="node.borderColor"
+          stroke-width="2">
+        </rect>
+        <!-- Cylinder bottom ellipse -->
+        <ellipse
+          [attr.cx]="node.position.x + node.size.width / 2"
+          [attr.cy]="node.position.y + node.size.height - 15"
+          [attr.rx]="node.size.width / 2"
+          [attr.ry]="15"
+          [attr.fill]="node.fillColor"
+          [attr.stroke]="node.borderColor"
+          stroke-width="2">
+        </ellipse>
+      </g>
 
       <!-- Resize handles -->
       <circle
@@ -87,8 +154,9 @@
           (click)="onTendrilClick($event, node, tendril)"
           (contextmenu)="onTendrilContextMenu($event, node, tendril)">
 
-          <!-- Tendril circle -->
+          <!-- Tendril shapes -->
           <circle
+            *ngIf="tendril.exposed"
             [attr.cx]="node.position.x + tendril.position.x"
             [attr.cy]="node.position.y + tendril.position.y"
             r="6"
@@ -98,6 +166,16 @@
             [attr.title]="tendril.type === 'incoming' ? 'Incoming Tendril' : 'Outgoing Tendril'"
             class="tendril">
           </circle>
+
+          <polygon
+            *ngIf="!tendril.exposed"
+            [attr.points]="getTendrilTrianglePoints(node, tendril)"
+            [attr.fill]="tendril.type === 'incoming' ? '#4CAF50' : '#FF5722'"
+            [attr.stroke]="tendril.borderColor"
+            [attr.stroke-width]="tendril.borderThickness"
+            [attr.title]="tendril.type === 'incoming' ? 'Incoming Tendril (Internal)' : 'Outgoing Tendril (Internal)'"
+            class="tendril">
+          </polygon>
 
           <!-- Tendril name -->
           <text
@@ -141,3 +219,4 @@
     </pattern>
   </defs>
 </svg>
+</div>

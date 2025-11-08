@@ -2,14 +2,60 @@
   position: fixed
   top: 0
   left: 0
-  width: 300px
+  width: 380px
   height: 100vh
-  background-color: #f8f9fa
-  border-right: 1px solid #dee2e6
-  padding: 20px
+  background-color: #6c757d
+  border-right: 2px solid #495057
   box-sizing: border-box
-  overflow-y: auto
+  overflow: hidden
   z-index: 1000
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3)
+  transition: width 0.3s ease
+
+  &.collapsed
+    width: 50px
+
+  .toolbar-header
+    position: relative
+    height: 50px
+    border-bottom: 1px solid #495057
+    display: flex
+    align-items: center
+    justify-content: flex-end
+    padding: 0 10px
+
+    .sidebar-toggle
+      background: linear-gradient(145deg, #5a6268, #868e96)
+      border: none
+      border-radius: 6px
+      width: 30px
+      height: 30px
+      color: white
+      font-size: 16px
+      font-weight: bold
+      cursor: pointer
+      display: flex
+      align-items: center
+      justify-content: center
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)
+      transition: all 0.2s ease
+
+      &:hover
+        background: linear-gradient(145deg, #495057, #6c757d)
+        transform: scale(1.05)
+
+      &:active
+        transform: scale(0.95)
+
+  .toolbar-content
+    height: calc(100vh - 50px)
+    overflow-y: auto
+    padding: 20px
+    transition: opacity 0.3s ease
+
+    &.collapsed
+      opacity: 0
+      pointer-events: none
 
   .toolbar-section
     margin-bottom: 30px
@@ -18,62 +64,62 @@
       margin: 0 0 10px 0
       font-size: 14px
       font-weight: bold
-      color: #495057
+      color: white
       text-transform: uppercase
       letter-spacing: 0.5px
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)
 
     .btn
       display: block
       width: 100%
-      padding: 8px 12px
-      margin-bottom: 8px
-      border: 1px solid #ced4da
-      border-radius: 4px
-      background-color: #fff
-      color: #495057
+      padding: 10px 12px
+      margin-bottom: 10px
+      border: none
+      border-radius: 6px
+      background: linear-gradient(145deg, #5a6268, #868e96)
+      color: white
       font-size: 14px
+      font-weight: 600
       cursor: pointer
       transition: all 0.2s ease
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)
 
       &:hover
-        background-color: #e9ecef
-        border-color: #adb5bd
+        background: linear-gradient(145deg, #495057, #6c757d)
+        transform: translateY(-1px)
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)
+
+      &:active
+        transform: translateY(0)
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)
 
       &.btn-back
-        background-color: #007bff
-        color: white
-        border-color: #007bff
+        background: linear-gradient(145deg, #0056b3, #007bff)
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)
 
         &:hover
-          background-color: #0056b3
-          border-color: #004085
+          background: linear-gradient(145deg, #004085, #0056b3)
 
       &.btn-primary
-        background-color: #28a745
-        color: white
-        border-color: #28a745
+        background: linear-gradient(145deg, #1e7e34, #28a745)
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)
 
         &:hover
-          background-color: #1e7e34
-          border-color: #1c7430
+          background: linear-gradient(145deg, #155724, #1e7e34)
 
       &.btn-tendril
-        background-color: #28a745
-        color: white
-        border-color: #28a745
+        background: linear-gradient(145deg, #1e7e34, #28a745)
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)
 
         &:hover
-          background-color: #1e7e34
-          border-color: #1c7430
+          background: linear-gradient(145deg, #155724, #1e7e34)
 
       &.btn-danger
-        background-color: #dc3545
-        color: white
-        border-color: #dc3545
+        background: linear-gradient(145deg, #bd2130, #dc3545)
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)
 
-      &:hover
-        background-color: #c82333
-        border-color: #bd2130
+        &:hover
+          background: linear-gradient(145deg, #921925, #bd2130)
 
   .name-control
     margin-top: 15px
@@ -82,9 +128,10 @@
       display: block
       font-size: 12px
       font-weight: bold
-      color: #495057
+      color: white
       margin-bottom: 5px
       margin-top: 10px
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)
 
     .name-input
       width: 100%
@@ -111,9 +158,10 @@
       display: block
       font-size: 12px
       font-weight: bold
-      color: #495057
+      color: white
       margin-bottom: 5px
       margin-top: 10px
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)
 
     .color-input
       width: 100%
@@ -126,6 +174,73 @@
       &:hover
         border-color: #adb5bd
 
+  .shape-control
+    margin-top: 15px
+
+    label
+      display: block
+      font-size: 12px
+      font-weight: bold
+      color: white
+      margin-bottom: 8px
+      margin-top: 10px
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)
+
+    .shape-buttons
+      display: flex
+      gap: 8px
+
+      .shape-btn
+        width: 35px
+        height: 35px
+        border: 2px solid #ced4da
+        border-radius: 6px
+        background-color: #fff
+        color: #495057
+        font-size: 18px
+        cursor: pointer
+        display: flex
+        align-items: center
+        justify-content: center
+        transition: all 0.2s ease
+
+        &:hover
+          border-color: #007bff
+          background-color: #f8f9ff
+
+        &.active
+          border-color: #007bff
+          background-color: #007bff
+          color: white
+
+  .exposure-control
+    margin-top: 15px
+
+    label
+      display: block
+      font-size: 12px
+      font-weight: bold
+      color: white
+      margin-bottom: 8px
+      margin-top: 10px
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)
+
+    .radio-group
+      display: flex
+      gap: 15px
+
+      .radio-label
+        display: flex
+        align-items: center
+        font-size: 14px
+        color: white
+        cursor: pointer
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)
+
+        input[type="radio"]
+          margin-right: 6px
+          cursor: pointer
+
   .notes-control
     margin-top: 15px
 
@@ -133,9 +248,10 @@
       display: block
       font-size: 12px
       font-weight: bold
-      color: #495057
+      color: white
       margin-bottom: 5px
       margin-top: 10px
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)
 
     .notes-textarea
       width: 100%
@@ -164,9 +280,10 @@
 
     li
       font-size: 12px
-      color: #6c757d
+      color: white
       margin-bottom: 8px
       line-height: 1.4
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)
 
       &:before
         content: "•"

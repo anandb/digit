@@ -10,7 +10,28 @@ import { DiagramService } from '../../services/diagram.service';
   styleUrls: ['./diagram-toolbar.component.sass']
 })
 export class DiagramToolbarComponent {
-  constructor(private diagramService: DiagramService) {}
+  isCollapsed = false;
+  sidebarWidth = 380;
+
+  constructor(private diagramService: DiagramService) {
+    // Load saved sidebar state
+    this.loadSidebarState();
+  }
+
+  newDiagram(): void {
+    // Clear session storage
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.removeItem('diagram-app-data');
+    }
+
+    // Reset the diagram service state
+    this.diagramService['stateSubject'].next({
+      currentDiagram: this.diagramService['createEmptyDiagram'](),
+      diagramStack: [],
+      selectedNodeId: undefined,
+      selectedTendrilId: undefined
+    });
+  }
 
   addNewNode(): void {
     // Add node at a default position (center of visible area)
@@ -185,6 +206,22 @@ export class DiagramToolbarComponent {
     }
   }
 
+  getSelectedNodeShape(): string {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const node = this.diagramService.getNode(selectedNodeId);
+      return node?.shape || 'rectangle';
+    }
+    return 'rectangle';
+  }
+
+  setNodeShape(shape: string): void {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      this.diagramService.updateNode(selectedNodeId, { shape: shape as any });
+    }
+  }
+
   getSelectedTendrilName(): string {
     const selectedNodeId = this.selectedNodeId;
     const selectedTendrilId = this.selectedTendrilId;
@@ -211,6 +248,69 @@ export class DiagramToolbarComponent {
     if (selectedNodeId && selectedTendrilId) {
       const target = event.target as HTMLInputElement;
       this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, { name: target.value });
+    }
+  }
+
+  getSelectedTendrilExposed(): boolean {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      const tendril = this.diagramService.getTendril(selectedNodeId, selectedTendrilId);
+      return tendril?.exposed || false;
+    }
+    return false;
+  }
+
+  setTendrilExposed(exposed: boolean): void {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, { exposed });
+    }
+  }
+
+  toggleSidebar(): void {
+    this.isCollapsed = !this.isCollapsed;
+    this.saveSidebarState();
+    this.updateMainContentMargin();
+  }
+
+  private loadSidebarState(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('diagram-sidebar-state');
+      if (saved) {
+        try {
+          const state = JSON.parse(saved);
+          this.isCollapsed = state.isCollapsed || false;
+          this.sidebarWidth = state.sidebarWidth || 380;
+          this.updateMainContentMargin();
+        } catch (error) {
+          console.warn('Failed to load sidebar state:', error);
+        }
+      }
+    }
+  }
+
+  private saveSidebarState(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const state = {
+          isCollapsed: this.isCollapsed,
+          sidebarWidth: this.sidebarWidth
+        };
+        localStorage.setItem('diagram-sidebar-state', JSON.stringify(state));
+      } catch (error) {
+        console.warn('Failed to save sidebar state:', error);
+      }
+    }
+  }
+
+  private updateMainContentMargin(): void {
+    // Update the main content margin dynamically
+    const mainContent = document.querySelector('.main-content') as HTMLElement;
+    if (mainContent) {
+      const marginLeft = this.isCollapsed ? '50px' : `${this.sidebarWidth}px`;
+      mainContent.style.marginLeft = marginLeft;
     }
   }
 }

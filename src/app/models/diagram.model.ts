@@ -19,11 +19,14 @@ export interface Tendril {
   borderThickness: number;
 }
 
+export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder';
+
 export interface Node {
   id: string;
   name: string;
   position: Position;
   size: Size;
+  shape: NodeShape;
   borderColor: string;
   fillColor: string;
   tendrils: Tendril[];

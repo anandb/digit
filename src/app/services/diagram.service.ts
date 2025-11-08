@@ -345,7 +345,30 @@ export class DiagramService {
       ...this.state,
       selectedNodeId: undefined,
       selectedTendrilId: undefined,
-      selectedBoundingBoxId: boundingBoxId
+      selectedBoundingBoxId: boundingBoxId,
+      selectedEdgeId: undefined
+    };
+  }
+
+  selectEdge(edgeId: string | undefined): void {
+    this.state = {
+      ...this.state,
+      selectedNodeId: undefined,
+      selectedTendrilId: undefined,
+      selectedBoundingBoxId: undefined,
+      selectedEdgeId: edgeId
+    };
+  }
+
+  updateEdge(edgeId: string, updates: Partial<Edge>): void {
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        edges: this.state.currentDiagram.edges.map(edge =>
+          edge.id === edgeId ? { ...edge, ...updates } : edge
+        )
+      }
     };
   }
 

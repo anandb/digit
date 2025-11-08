@@ -1,4 +1,5 @@
-<app-diagram-toolbar></app-diagram-toolbar>
+<app-diagram-toolbar #toolbar></app-diagram-toolbar>
+<div class="resize-handle" (mousedown)="startResizing($event)"></div>
 <div class="main-content">
   <app-diagram-canvas></app-diagram-canvas>
 </div>

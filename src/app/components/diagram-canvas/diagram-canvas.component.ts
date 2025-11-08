@@ -52,6 +52,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Clear all selections when clicking on empty canvas
     this.diagramService.selectNode(undefined);
     this.diagramService.selectBoundingBox(undefined);
+    this.diagramService.selectEdge(undefined);
   }
 
   // Node drag handling
@@ -198,8 +199,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const selectedNodeId = this.state.selectedNodeId;
       const selectedTendrilId = this.state.selectedTendrilId;
       const selectedBoundingBoxId = this.state.selectedBoundingBoxId;
+      const selectedEdgeId = this.state.selectedEdgeId;
 
-      if (selectedTendrilId && selectedNodeId) {
+      if (selectedEdgeId) {
+        // Delete selected edge
+        this.diagramService.deleteEdge(selectedEdgeId);
+      } else if (selectedTendrilId && selectedNodeId) {
         // Delete selected tendril
         this.diagramService.deleteTendril(selectedNodeId, selectedTendrilId);
       } else if (selectedBoundingBoxId) {
@@ -485,6 +490,45 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return innerLeft >= outerLeft && innerRight <= outerRight &&
            innerTop >= outerTop && innerBottom <= outerBottom;
   }
+
+  // Edge click to select
+  onEdgeClick(event: MouseEvent, edge: Edge): void {
+    event.stopPropagation();
+    this.diagramService.selectEdge(edge.id);
+  }
+
+  // Get center point of an edge for label positioning
+  getEdgeCenter(edge: Edge): Position {
+    const fromNode = this.state.currentDiagram.nodes.find(n => n.id === edge.fromNodeId);
+    const toNode = this.state.currentDiagram.nodes.find(n => n.id === edge.toNodeId);
+
+    if (!fromNode || !toNode) return { x: 0, y: 0 };
+
+    const fromTendril = fromNode.tendrils.find(t => t.id === edge.fromTendrilId);
+    const toTendril = toNode.tendrils.find(t => t.id === edge.toTendrilId);
+
+    if (!fromTendril || !toTendril) return { x: 0, y: 0 };
+
+    const start = this.getAbsoluteTendrilPosition(fromNode, fromTendril);
+    const end = this.getAbsoluteTendrilPosition(toNode, toTendril);
+
+    // Return midpoint of the edge
+    return {
+      x: (start.x + end.x) / 2,
+      y: (start.y + end.y) / 2
+    };
+  }
+
+  // Check if a tendril has a connected edge with a name
+  hasEdgeName(nodeId: string, tendrilId: string): boolean {
+    return this.state.currentDiagram.edges.some(edge =>
+      ((edge.fromNodeId === nodeId && edge.fromTendrilId === tendrilId) ||
+       (edge.toNodeId === nodeId && edge.toTendrilId === tendrilId)) &&
+      edge.name && edge.name.trim() !== ''
+    );
+  }
+
+
 
   // Reposition tendrils to stay on borders after node resize
   private repositionTendrilsAfterResize(nodeId: string, newWidth: number, newHeight: number): void {

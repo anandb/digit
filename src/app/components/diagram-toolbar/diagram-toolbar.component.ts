@@ -148,6 +148,10 @@ export class DiagramToolbarComponent {
     return this.diagramService.currentState.selectedTendrilId;
   }
 
+  get selectedEdgeId(): string | undefined {
+    return this.diagramService.currentState.selectedEdgeId;
+  }
+
   getSelectedNodeFillColor(): string {
     const selectedNodeId = this.selectedNodeId;
     if (selectedNodeId) {
@@ -337,6 +341,30 @@ export class DiagramToolbarComponent {
     }
   }
 
+  getSelectedEdgeName(): string {
+    const selectedEdgeId = this.selectedEdgeId;
+    if (selectedEdgeId) {
+      const edge = this.diagramService.getEdge(selectedEdgeId);
+      return edge?.name || '';
+    }
+    return '';
+  }
+
+  updateEdgeName(event: Event): void {
+    const selectedEdgeId = this.selectedEdgeId;
+    if (selectedEdgeId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateEdge(selectedEdgeId, { name: target.value });
+    }
+  }
+
+  deleteSelectedEdge(): void {
+    const selectedEdgeId = this.selectedEdgeId;
+    if (selectedEdgeId) {
+      this.diagramService.deleteEdge(selectedEdgeId);
+    }
+  }
+
   toggleSidebar(): void {
     this.isCollapsed = !this.isCollapsed;
     this.saveSidebarState();
@@ -373,12 +401,19 @@ export class DiagramToolbarComponent {
     }
   }
 
-  private updateMainContentMargin(): void {
+  updateMainContentMargin(): void {
     // Update the main content margin dynamically
     const mainContent = document.querySelector('.main-content') as HTMLElement;
     if (mainContent) {
       const marginLeft = this.isCollapsed ? '50px' : `${this.sidebarWidth}px`;
       mainContent.style.marginLeft = marginLeft;
+    }
+
+    // Also update the resize handle position
+    const resizeHandle = document.querySelector('.resize-handle') as HTMLElement;
+    if (resizeHandle) {
+      const handlePosition = this.isCollapsed ? 50 : this.sidebarWidth;
+      resizeHandle.style.left = `${handlePosition}px`;
     }
   }
 }

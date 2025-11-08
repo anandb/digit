@@ -1,4 +1,4 @@
-<div class="toolbar" [class.collapsed]="isCollapsed">
+<div class="toolbar" [class.collapsed]="isCollapsed" [style.width.px]="isCollapsed ? 50 : sidebarWidth">
   <div class="toolbar-header">
     <button (click)="toggleSidebar()" class="sidebar-toggle" [title]="isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
       {{ isCollapsed ? '▶' : '◀' }}
@@ -172,6 +172,21 @@
     </div>
 
     <button (click)="deleteSelectedTendril()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Tendril</button>
+  </div>
+
+  <div class="toolbar-section" *ngIf="selectedEdgeId">
+    <h3>Edge Actions</h3>
+    <div class="name-control">
+      <label>Edge Name:</label>
+      <input
+        type="text"
+        [value]="getSelectedEdgeName()"
+        (input)="updateEdgeName($event)"
+        placeholder="Enter edge name..."
+        class="name-input">
+    </div>
+
+    <button (click)="deleteSelectedEdge()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Edge</button>
   </div>
 
   <div class="toolbar-section">

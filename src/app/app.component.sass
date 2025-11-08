@@ -1,7 +1,25 @@
+.resize-handle
+  position: absolute
+  left: 380px
+  top: 0
+  width: 6px
+  height: 100vh
+  background-color: #dee2e6
+  cursor: ew-resize
+  z-index: 999
+  transition: background-color 0.2s ease
+
+  &:hover
+    background-color: #007bff
+
+  &:active
+    background-color: #0056b3
+
 .main-content
   margin-left: 380px
   height: 100vh
   overflow: hidden
+  transition: margin-left 0.1s ease
 
 /* Global styles */
 *,

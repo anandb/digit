@@ -41,6 +41,7 @@ export interface Edge {
   fromTendrilId: string;
   toNodeId: string;
   toTendrilId: string;
+  name?: string;
   attributes: { [key: string]: any };
 }
 
@@ -69,4 +70,5 @@ export interface DiagramState {
   selectedNodeId?: string;
   selectedTendrilId?: string;
   selectedBoundingBoxId?: string;
+  selectedEdgeId?: string;
 }

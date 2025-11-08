@@ -22,15 +22,28 @@
 
   <!-- Edges -->
   <g class="edges">
-    <path
-      *ngFor="let edge of state.currentDiagram.edges"
-      [attr.d]="getEdgePath(edge)"
-      class="edge"
-      stroke="#666"
-      stroke-width="2"
-      fill="none"
-      marker-end="url(#arrowhead)">
-    </path>
+    <g *ngFor="let edge of state.currentDiagram.edges" class="edge-group">
+      <path
+        [attr.d]="getEdgePath(edge)"
+        class="edge"
+        [class.selected]="state.selectedEdgeId === edge.id"
+        stroke="#666"
+        stroke-width="2"
+        fill="none"
+        marker-end="url(#arrowhead)"
+        (click)="onEdgeClick($event, edge)">
+      </path>
+      <!-- Edge name label -->
+      <text
+        *ngIf="edge.name"
+        [attr.x]="getEdgeCenter(edge).x"
+        [attr.y]="getEdgeCenter(edge).y"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        class="edge-name">
+        {{ edge.name }}
+      </text>
+    </g>
   </g>
 
   <!-- Temporary edge during creation -->
@@ -147,36 +160,46 @@
       </rect>
 
       <g *ngIf="node.shape === 'cylinder'" [class.highlighted]="isHighlighted('node', node.id)" class="cylinder" filter="url(#dropshadow)">
-        <!-- Cylinder top ellipse -->
+        <!-- Database cylinder - bottom ellipse -->
         <ellipse
           [attr.cx]="node.position.x + node.size.width / 2"
-          [attr.cy]="node.position.y + 15"
+          [attr.cy]="node.position.y + node.size.height - 8"
           [attr.rx]="node.size.width / 2"
-          [attr.ry]="15"
+          [attr.ry]="8"
           [attr.fill]="node.fillColor"
           [attr.stroke]="node.borderColor"
           stroke-width="2">
         </ellipse>
-        <!-- Cylinder body -->
+        <!-- Database cylinder - body -->
         <rect
           [attr.x]="node.position.x"
-          [attr.y]="node.position.y + 15"
+          [attr.y]="node.position.y + 8"
           [attr.width]="node.size.width"
-          [attr.height]="node.size.height - 30"
+          [attr.height]="node.size.height - 16"
           [attr.fill]="node.fillColor"
           [attr.stroke]="node.borderColor"
           stroke-width="2">
         </rect>
-        <!-- Cylinder bottom ellipse -->
+        <!-- Database cylinder - top ellipse (smaller) -->
         <ellipse
           [attr.cx]="node.position.x + node.size.width / 2"
-          [attr.cy]="node.position.y + node.size.height - 15"
-          [attr.rx]="node.size.width / 2"
-          [attr.ry]="15"
+          [attr.cy]="node.position.y + 8"
+          [attr.rx]="node.size.width / 3"
+          [attr.ry]="8"
           [attr.fill]="node.fillColor"
           [attr.stroke]="node.borderColor"
           stroke-width="2">
         </ellipse>
+        <!-- Horizontal lines for database tapes -->
+        <line
+          *ngFor="let i of [1,2,3]"
+          [attr.x1]="node.position.x"
+          [attr.y1]="node.position.y + 8 + (node.size.height - 16) * i / 4"
+          [attr.x2]="node.position.x + node.size.width"
+          [attr.y2]="node.position.y + 8 + (node.size.height - 16) * i / 4"
+          [attr.stroke]="node.borderColor"
+          stroke-width="1">
+        </line>
       </g>
 
       <!-- Resize handles -->
@@ -231,8 +254,9 @@
             class="tendril">
           </polygon>
 
-          <!-- Tendril name -->
+          <!-- Tendril name - only show if no connected edge has a name -->
           <text
+            *ngIf="!hasEdgeName(node.id, tendril.id)"
             [attr.x]="tendril.type === 'incoming' ? node.position.x + tendril.position.x - 25 : node.position.x + tendril.position.x + 25"
             [attr.y]="node.position.y + tendril.position.y - 8"
             [attr.text-anchor]="tendril.type === 'incoming' ? 'end' : 'start'"

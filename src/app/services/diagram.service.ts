@@ -499,6 +499,46 @@ export class DiagramService {
     };
   }
 
+  // Get exposed tendrils from an inner diagram
+  getExposedTendrilsFromInnerDiagram(nodeId: string): Tendril[] {
+    const node = this.getNode(nodeId);
+    if (!node?.innerDiagram) return [];
+
+    const innerDiagram = this.allDiagrams.get(node.innerDiagram.id);
+    if (!innerDiagram) return [];
+
+    // Get all tendrils from all nodes and SVG images in the inner diagram
+    const allInnerTendrils: Tendril[] = [];
+
+    // Collect tendrils from nodes
+    innerDiagram.nodes.forEach(innerNode => {
+      innerNode.tendrils.forEach(tendril => {
+        if (tendril.exposed) {
+          allInnerTendrils.push({
+            ...tendril,
+            id: `${innerNode.id}-${tendril.id}`, // Prefix with node ID to avoid conflicts
+            name: `${innerNode.name}: ${tendril.name}`
+          });
+        }
+      });
+    });
+
+    // Collect tendrils from SVG images
+    innerDiagram.svgImages.forEach(svgImage => {
+      svgImage.tendrils.forEach(tendril => {
+        if (tendril.exposed) {
+          allInnerTendrils.push({
+            ...tendril,
+            id: `svg-${svgImage.id}-${tendril.id}`, // Prefix with svg-image ID
+            name: `${svgImage.label}: ${tendril.name}`
+          });
+        }
+      });
+    });
+
+    return allInnerTendrils;
+  }
+
   // Public getters
   get currentState(): DiagramState {
     return this.state;

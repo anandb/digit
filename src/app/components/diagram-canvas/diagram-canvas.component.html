@@ -652,6 +652,57 @@
             </text>
           </g>
         </ng-container>
+
+        <!-- Propagated tendrils from inner diagram -->
+        <ng-container *ngFor="let tendril of getPropagatedTendrils(node); let i = index">
+          <g
+            class="propagated-tendril-group"
+            *ngIf="!hasPropagatedEdgeName(node.id, tendril.id)">
+
+            <!-- Position propagated tendrils around the node perimeter -->
+            <ng-container *ngIf="getPropagatedTendrilPosition(node, i) as pos">
+              <!-- Invisible larger click area -->
+              <rect
+                [attr.x]="tendril.type === 'incoming' ? pos.x - 30 : pos.x - 10"
+                [attr.y]="pos.y - 15"
+                [attr.width]="tendril.type === 'incoming' ? 45 : 45"
+                [attr.height]="30"
+                fill="transparent"
+                (click)="onPropagatedTendrilClick($event, node, tendril)"
+                (contextmenu)="onPropagatedTendrilContextMenu($event, node, tendril)"
+                class="tendril-click-area">
+              </rect>
+
+              <!-- Tendril circles -->
+              <circle
+                [attr.cx]="pos.x"
+                [attr.cy]="pos.y"
+                r="5"
+                [attr.fill]="tendril.type === 'incoming' ? '#4CAF50' : '#FF5722'"
+                [attr.stroke]="'#ffffff'"
+                stroke-width="1"
+                [attr.title]="tendril.name"
+                class="propagated-tendril"
+                (click)="onPropagatedTendrilClick($event, node, tendril)"
+                (contextmenu)="onPropagatedTendrilContextMenu($event, node, tendril)"
+                style="cursor: pointer;">
+              </circle>
+
+              <!-- Tendril name -->
+              <text
+                [attr.x]="pos.x < node.position.x + node.size.width / 2 ? pos.x - 25 : pos.x + 25"
+                [attr.y]="pos.y - 8"
+                [attr.text-anchor]="pos.x < node.position.x + node.size.width / 2 ? 'end' : 'start'"
+                dominant-baseline="middle"
+                class="propagated-tendril-name"
+                (click)="onPropagatedTendrilClick($event, node, tendril)"
+                (contextmenu)="onPropagatedTendrilContextMenu($event, node, tendril)"
+                style="cursor: pointer;">
+                {{ tendril.name }}
+              </text>
+            </ng-container>
+          </g>
+        </ng-container>
       </g>
     </g>
   </g>

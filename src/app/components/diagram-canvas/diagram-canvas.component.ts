@@ -653,6 +653,40 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Check if a propagated tendril has a connected edge
+  hasPropagatedEdgeName(nodeId: string, tendrilId: string): boolean {
+    // For propagated tendrils, we need to check if the original tendril in the inner diagram has an edge
+    const node = this.state.currentDiagram.nodes.find(n => n.id === nodeId);
+    if (!node?.innerDiagram) return false;
+
+    // Parse the tendril ID to find the original element and tendril
+    // Format: "nodeId-tendrilId" or "svg-svgImageId-tendrilId"
+    const parts = tendrilId.split('-');
+    if (parts.length < 2) return false;
+
+    let originalElementId: string;
+    let originalTendrilId: string;
+
+    if (parts[0] === 'svg') {
+      // Format: "svg-svgImageId-tendrilId"
+      originalElementId = `svg-${parts[1]}`;
+      originalTendrilId = parts.slice(2).join('-');
+    } else {
+      // Format: "nodeId-tendrilId"
+      originalElementId = parts[0];
+      originalTendrilId = parts.slice(1).join('-');
+    }
+
+    // Check if the original tendril has an edge in the inner diagram
+    // We need to check the current diagram's edges since propagated tendrils create edges at the parent level
+    return this.state.currentDiagram.edges.some((edge: Edge) => {
+      const fromMatch = (edge.fromNodeId === nodeId && edge.fromTendrilId === tendrilId);
+      const toMatch = (edge.toNodeId === nodeId && edge.toTendrilId === tendrilId);
+
+      return (fromMatch || toMatch) && edge.name && edge.name.trim() !== '';
+    });
+  }
+
 
 
   // Reposition tendrils to stay on borders after node resize
@@ -1079,6 +1113,73 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       'text': 'Text'
     };
     return shapeLabels[shape] || shape;
+  }
+
+  // Get propagated tendrils from inner diagram
+  getPropagatedTendrils(node: Node): Tendril[] {
+    return this.diagramService.getExposedTendrilsFromInnerDiagram(node.id);
+  }
+
+  // Check if a tendril is propagated from inner diagram
+  isPropagatedTendril(nodeId: string, tendrilId: string): boolean {
+    const propagatedTendrils = this.getPropagatedTendrils(this.state.currentDiagram.nodes.find(n => n.id === nodeId)!);
+    return propagatedTendrils.some(t => t.id === tendrilId);
+  }
+
+  // Get position for propagated tendrils around node perimeter
+  getPropagatedTendrilPosition(node: Node, index: number): Position | null {
+    const propagatedTendrils = this.getPropagatedTendrils(node);
+    if (propagatedTendrils.length === 0) return null;
+
+    // Position tendrils around the node perimeter
+    const angleStep = (2 * Math.PI) / propagatedTendrils.length;
+    const angle = index * angleStep - Math.PI / 2; // Start from top
+    const radius = Math.max(node.size.width, node.size.height) / 2 + 15; // Outside the node
+
+    const centerX = node.position.x + node.size.width / 2;
+    const centerY = node.position.y + node.size.height / 2;
+
+    return {
+      x: centerX + Math.cos(angle) * radius,
+      y: centerY + Math.sin(angle) * radius
+    };
+  }
+
+  // Handle propagated tendril click
+  onPropagatedTendrilClick(event: MouseEvent, node: Node, tendril: Tendril): void {
+    event.stopPropagation();
+
+    if (this.isCreatingEdge) {
+      // Complete edge creation - only allow connecting to incoming tendrils
+      if (tendril.type === 'incoming' &&
+          this.edgeStartNodeId && this.edgeStartTendrilId &&
+          this.edgeStartNodeId !== node.id) {
+        this.diagramService.addEdge(
+          this.edgeStartNodeId,
+          this.edgeStartTendrilId,
+          node.id,
+          tendril.id
+        );
+      }
+      // Always stop edge creation after attempt
+      this.isCreatingEdge = false;
+      this.edgeStartNodeId = undefined;
+      this.edgeStartTendrilId = undefined;
+    } else {
+      // Start edge creation - only allow from outgoing tendrils
+      if (tendril.type === 'outgoing') {
+        this.isCreatingEdge = true;
+        this.edgeStartNodeId = node.id;
+        this.edgeStartTendrilId = tendril.id;
+      }
+    }
+  }
+
+  // Handle propagated tendril context menu
+  onPropagatedTendrilContextMenu(event: MouseEvent, node: Node, tendril: Tendril): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.diagramService.selectTendril(node.id, tendril.id);
   }
 
   // Handle Ctrl+click edge creation

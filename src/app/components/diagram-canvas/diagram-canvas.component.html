@@ -20,6 +20,54 @@
     fill="url(#grid)">
   </rect>
 
+  <!-- Bounding boxes - bottom layer -->
+  <g class="bounding-boxes">
+    <g
+      *ngFor="let box of getBoundingBoxes()"
+      class="bounding-box-group"
+      cdkDrag
+      (cdkDragStarted)="onBoundingBoxDragStarted(box)"
+      (cdkDragMoved)="onBoundingBoxDragMoved($event, box)"
+      (cdkDragEnded)="onBoundingBoxDragEnd($event, box)"
+      (click)="onBoundingBoxClick($event, box)"
+      (contextmenu)="onBoundingBoxContextMenu($event, box)">
+
+      <!-- Bounding box rectangle -->
+      <rect
+        [attr.x]="box.position.x"
+        [attr.y]="box.position.y"
+        [attr.width]="box.size.width"
+        [attr.height]="box.size.height"
+        [attr.fill]="box.fillColor"
+        [attr.stroke]="box.borderColor"
+        stroke-width="2"
+        stroke-dasharray="8,4"
+        class="bounding-box">
+      </rect>
+
+      <!-- Resize handle -->
+      <circle
+        *ngIf="state.selectedBoundingBoxId === box.id"
+        [attr.cx]="box.position.x + box.size.width"
+        [attr.cy]="box.position.y + box.size.height"
+        r="4"
+        class="resize-handle"
+        (mousedown)="startBoundingBoxResize($event, box, 'se')"
+        style="cursor: nw-resize;">
+      </circle>
+
+      <!-- Bounding box label -->
+      <text
+        [attr.x]="box.position.x + box.size.width - 10"
+        [attr.y]="box.position.y + 20"
+        text-anchor="end"
+        dominant-baseline="hanging"
+        class="bounding-box-label">
+        {{ box.label }}
+      </text>
+    </g>
+  </g>
+
   <!-- SVG Images -->
   <g class="svg-images">
     <g
@@ -48,6 +96,7 @@
 
       <!-- Resize handle -->
       <circle
+        *ngIf="state.selectedSvgImageId === svgImage.id"
         [attr.cx]="svgImage.position.x + svgImage.size.width"
         [attr.cy]="svgImage.position.y + svgImage.size.height"
         r="4"
@@ -118,54 +167,6 @@
     </g>
   </g>
 
-  <!-- Bounding boxes - bottom layer -->
-  <g class="bounding-boxes">
-    <g
-      *ngFor="let box of getBoundingBoxes()"
-      class="bounding-box-group"
-      cdkDrag
-      (cdkDragStarted)="onBoundingBoxDragStarted(box)"
-      (cdkDragMoved)="onBoundingBoxDragMoved($event, box)"
-      (cdkDragEnded)="onBoundingBoxDragEnd($event, box)"
-      (click)="onBoundingBoxClick($event, box)"
-      (contextmenu)="onBoundingBoxContextMenu($event, box)">
-
-      <!-- Bounding box rectangle -->
-      <rect
-        [attr.x]="box.position.x"
-        [attr.y]="box.position.y"
-        [attr.width]="box.size.width"
-        [attr.height]="box.size.height"
-        [attr.fill]="box.fillColor"
-        [attr.stroke]="box.borderColor"
-        stroke-width="2"
-        stroke-dasharray="8,4"
-        class="bounding-box">
-      </rect>
-
-      <!-- Resize handle -->
-      <circle
-        *ngIf="state.selectedBoundingBoxId === box.id"
-        [attr.cx]="box.position.x + box.size.width"
-        [attr.cy]="box.position.y + box.size.height"
-        r="4"
-        class="resize-handle"
-        (mousedown)="startBoundingBoxResize($event, box, 'se')"
-        style="cursor: nw-resize;">
-      </circle>
-
-      <!-- Bounding box label -->
-      <text
-        [attr.x]="box.position.x + box.size.width - 10"
-        [attr.y]="box.position.y + 20"
-        text-anchor="end"
-        dominant-baseline="hanging"
-        class="bounding-box-label">
-        {{ box.label }}
-      </text>
-    </g>
-  </g>
-
   <!-- Edges -->
   <g class="edges">
     <g *ngFor="let edge of getCurrentEdges()" class="edge-group">
@@ -210,6 +211,7 @@
       class="node-group"
       cdkDrag
       (cdkDragEnded)="onNodeDragEnd($event, node)"
+      (click)="onNodeClick($event, node)"
       (dblclick)="onNodeDoubleClick(node)"
       (contextmenu)="onNodeContextMenu($event, node)">
 

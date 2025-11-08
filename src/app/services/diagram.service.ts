@@ -470,6 +470,35 @@ export class DiagramService {
     );
   }
 
+  updateCurrentDiagramName(name: string): void {
+    // Update the current diagram name
+    const updatedDiagram = { ...this.state.currentDiagram, name };
+
+    // Update in the allDiagrams map
+    this.allDiagrams.set(updatedDiagram.id, updatedDiagram);
+
+    // If we're in a nested diagram, also update the parent node's innerDiagram reference
+    if (this.state.diagramStack.length > 0) {
+      const parentDiagram = this.state.diagramStack[this.state.diagramStack.length - 1];
+
+      // Find and update the node that contains this inner diagram
+      parentDiagram.nodes.forEach(node => {
+        if (node.innerDiagram?.id === updatedDiagram.id) {
+          node.innerDiagram = updatedDiagram;
+        }
+      });
+
+      // Update parent diagram in allDiagrams map
+      this.allDiagrams.set(parentDiagram.id, parentDiagram);
+    }
+
+    // Update the state to trigger change detection
+    this.state = {
+      ...this.state,
+      currentDiagram: updatedDiagram
+    };
+  }
+
   // Public getters
   get currentState(): DiagramState {
     return this.state;

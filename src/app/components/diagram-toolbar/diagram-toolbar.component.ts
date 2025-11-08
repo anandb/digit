@@ -492,6 +492,15 @@ export class DiagramToolbarComponent {
     }
   }
 
+  getCurrentDiagramName(): string {
+    return this.diagramService.currentState.currentDiagram.name || '';
+  }
+
+  updateCurrentDiagramName(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.diagramService.updateCurrentDiagramName(target.value);
+  }
+
   toggleSidebar(): void {
     this.isCollapsed = !this.isCollapsed;
     this.saveSidebarState();

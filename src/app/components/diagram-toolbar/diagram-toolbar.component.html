@@ -6,6 +6,19 @@
   </div>
 
   <div class="toolbar-content" [class.collapsed]="isCollapsed">
+    <div class="toolbar-section" *ngIf="!selectedNodeId && !selectedBoundingBoxId && !selectedTendrilId && !selectedEdgeId && !selectedSvgImageId">
+      <h3>Diagram Properties</h3>
+      <div class="name-control">
+        <label>Diagram Name:</label>
+        <input
+          type="text"
+          [value]="getCurrentDiagramName()"
+          (input)="updateCurrentDiagramName($event)"
+          placeholder="Enter diagram name..."
+          class="name-input">
+      </div>
+    </div>
+
     <div class="toolbar-section">
       <h3>Diagram Actions</h3>
       <div class="action-buttons">

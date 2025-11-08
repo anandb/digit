@@ -272,6 +272,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.isResizing = true;
   }
 
+  // Node click to select
+  onNodeClick(event: MouseEvent, node: Node): void {
+    event.stopPropagation();
+    this.diagramService.selectNode(node.id);
+  }
+
   // Context menu for nodes
   onNodeContextMenu(event: MouseEvent, node: Node): void {
     event.preventDefault();
@@ -514,18 +520,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       return '';
     }
 
-    if (this.state.diagramStack.length > 0) {
-      // We're in a nested diagram - show the parent node name
-      const parentDiagram = this.state.diagramStack[this.state.diagramStack.length - 1];
-
-      // Find the node that contains this inner diagram
-      for (const node of parentDiagram.nodes) {
-        if (node.innerDiagram?.id === this.state.currentDiagram.id) {
-          return node.name || 'Untitled Node';
-        }
-      }
-    }
-    // We're in the root diagram
+    // Always show the current diagram's name
     return this.state.currentDiagram.name || 'Untitled';
   }
 
@@ -758,7 +753,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // SVG image click to select
   onSvgImageClick(event: MouseEvent, svgImage: SvgImage): void {
     event.stopPropagation();
-    // TODO: Implement SVG image selection
+    this.diagramService.selectSvgImage(svgImage.id);
   }
 
   // SVG image context menu

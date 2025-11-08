@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragEnd, CdkDragMove } from '@angular/cdk/drag-drop';
 import { Subscription } from 'rxjs';
 import { DiagramService } from '../../services/diagram.service';
-import { DiagramState, Node, Tendril, Edge, Position, Size } from '../../models/diagram.model';
+import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox } from '../../models/diagram.model';
 
 @Component({
   selector: 'app-diagram-canvas',
@@ -86,7 +86,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onNodeDoubleClick(node: Node): void {
     // If node doesn't have an inner diagram, create one
     if (!node.innerDiagram) {
-      this.diagramService.createInnerDiagram(node.id);
+      node.innerDiagram = this.diagramService.createInnerDiagram(node.id);
     }
     // Then navigate to it
     this.diagramService.enterNodeDiagram(node.id);
@@ -440,9 +440,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Get current diagram title for header
   getCurrentDiagramTitle(): string {
+    if (!this.state.currentDiagram) {
+      return '';
+    }
+
     if (this.state.diagramStack.length > 0) {
       // We're in a nested diagram - show the parent node name
       const parentDiagram = this.state.diagramStack[this.state.diagramStack.length - 1];
+
       // Find the node that contains this inner diagram
       for (const node of parentDiagram.nodes) {
         if (node.innerDiagram?.id === this.state.currentDiagram.id) {
@@ -564,5 +569,29 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         }
       });
     });
+  }
+
+  getBoundingBoxes() : BoundingBox[] {
+    if (this.state.currentDiagram && this.state.currentDiagram.boundingBoxes) {
+      return this.state.currentDiagram.boundingBoxes
+    }
+
+    return [];
+  }
+
+  getCurrentEdges() : Edge[] {
+    if (this.state.currentDiagram && this.state.currentDiagram.edges) {
+      return this.state.currentDiagram.edges;
+    }
+
+    return [];
+  }
+
+  getCurrentNodes() : Node[] {
+    if (this.state.currentDiagram && this.state.currentDiagram.nodes) {
+      return this.state.currentDiagram.nodes;
+    }
+
+    return [];
   }
 }

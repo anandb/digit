@@ -94,15 +94,26 @@
         class="color-input">
     </div>
 
-    <div class="notes-control">
-      <label>Notes:</label>
-      <textarea
-        [value]="getSelectedNodeNotes()"
-        (input)="updateNodeNotes($event)"
-        placeholder="Enter notes for this node..."
-        class="notes-textarea"
-        rows="4">
-      </textarea>
+    <div class="accordion-section">
+      <button
+        type="button"
+        class="accordion-header"
+        (click)="notesExpanded = !notesExpanded"
+        [class.expanded]="notesExpanded">
+        <span class="accordion-icon">{{ notesExpanded ? '▼' : '▶' }}</span>
+        <span class="accordion-title">Notes</span>
+      </button>
+      <div class="accordion-content" [class.expanded]="notesExpanded">
+        <div class="notes-control">
+          <textarea
+            [value]="getSelectedNodeNotes()"
+            (input)="updateNodeNotes($event)"
+            placeholder="Enter notes for this node..."
+            class="notes-textarea"
+            rows="4">
+          </textarea>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -190,19 +201,30 @@
   </div>
 
   <div class="toolbar-section">
-    <h3>Instructions</h3>
-    <ul class="instructions">
-      <li>Use "New Node" button to add nodes</li>
-      <li>Drag nodes to reposition</li>
-      <li>Drag blue circle on selected nodes to resize</li>
-      <li>Right-click nodes to rename, customize colors & add notes</li>
-      <li>Right-click tendrils to rename them</li>
-      <li>Double-click nodes to enter inner diagrams</li>
-      <li>Click orange tendrils to start edges, green tendrils to complete</li>
-      <li>Right-click to cancel edge creation</li>
-      <li>Right-click nodes/tendrils to select, then delete</li>
-      <li>Press Delete key to remove selected items</li>
-    </ul>
+    <div class="accordion-section">
+      <button
+        type="button"
+        class="accordion-header"
+        (click)="instructionsExpanded = !instructionsExpanded"
+        [class.expanded]="instructionsExpanded">
+        <span class="accordion-icon">{{ instructionsExpanded ? '▼' : '▶' }}</span>
+        <span class="accordion-title">Instructions</span>
+      </button>
+      <div class="accordion-content" [class.expanded]="instructionsExpanded">
+        <ul class="instructions">
+          <li>Use "New Node" button to add nodes</li>
+          <li>Drag nodes to reposition</li>
+          <li>Drag blue circle on selected nodes to resize</li>
+          <li>Right-click nodes to rename, customize colors & add notes</li>
+          <li>Right-click tendrils to rename them</li>
+          <li>Double-click nodes to enter inner diagrams</li>
+          <li>Click orange tendrils to start edges, green tendrils to complete</li>
+          <li>Right-click to cancel edge creation</li>
+          <li>Right-click nodes/tendrils to select, then delete</li>
+          <li>Press Delete key to remove selected items</li>
+        </ul>
+      </div>
+    </div>
   </div>
   </div>
 </div>

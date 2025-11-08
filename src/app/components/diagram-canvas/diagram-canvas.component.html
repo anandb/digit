@@ -20,47 +20,10 @@
     fill="url(#grid)">
   </rect>
 
-  <!-- Edges -->
-  <g class="edges">
-    <g *ngFor="let edge of state.currentDiagram.edges" class="edge-group">
-      <path
-        [attr.d]="getEdgePath(edge)"
-        class="edge"
-        [class.selected]="state.selectedEdgeId === edge.id"
-        stroke="#666"
-        stroke-width="2"
-        fill="none"
-        marker-end="url(#arrowhead)"
-        (click)="onEdgeClick($event, edge)">
-      </path>
-      <!-- Edge name label -->
-      <text
-        *ngIf="edge.name"
-        [attr.x]="getEdgeCenter(edge).x"
-        [attr.y]="getEdgeCenter(edge).y"
-        text-anchor="middle"
-        dominant-baseline="middle"
-        class="edge-name">
-        {{ edge.name }}
-      </text>
-    </g>
-  </g>
-
-  <!-- Temporary edge during creation -->
-  <path
-    *ngIf="isCreatingEdge"
-    [attr.d]="getTempEdgePath()"
-    class="temp-edge"
-    stroke="#999"
-    stroke-width="2"
-    stroke-dasharray="5,5"
-    fill="none">
-  </path>
-
-  <!-- Bounding boxes -->
+  <!-- Bounding boxes - bottom layer -->
   <g class="bounding-boxes">
     <g
-      *ngFor="let box of state.currentDiagram.boundingBoxes"
+      *ngFor="let box of getBoundingBoxes()"
       class="bounding-box-group"
       cdkDrag
       (cdkDragStarted)="onBoundingBoxDragStarted(box)"
@@ -105,10 +68,47 @@
     </g>
   </g>
 
+  <!-- Edges -->
+  <g class="edges">
+    <g *ngFor="let edge of getCurrentEdges()" class="edge-group">
+      <path
+        [attr.d]="getEdgePath(edge)"
+        class="edge"
+        [class.selected]="state.selectedEdgeId === edge.id"
+        stroke="#666"
+        stroke-width="2"
+        fill="none"
+        marker-end="url(#arrowhead)"
+        (click)="onEdgeClick($event, edge)">
+      </path>
+      <!-- Edge name label -->
+      <text
+        *ngIf="edge.name"
+        [attr.x]="getEdgeCenter(edge).x"
+        [attr.y]="getEdgeCenter(edge).y"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        class="edge-name">
+        {{ edge.name }}
+      </text>
+    </g>
+  </g>
+
+  <!-- Temporary edge during creation -->
+  <path
+    *ngIf="isCreatingEdge"
+    [attr.d]="getTempEdgePath()"
+    class="temp-edge"
+    stroke="#999"
+    stroke-width="2"
+    stroke-dasharray="5,5"
+    fill="none">
+  </path>
+
   <!-- Nodes -->
   <g class="nodes">
     <g
-      *ngFor="let node of state.currentDiagram.nodes"
+      *ngFor="let node of getCurrentNodes()"
       class="node-group"
       cdkDrag
       (cdkDragEnded)="onNodeDragEnd($event, node)"

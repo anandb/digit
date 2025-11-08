@@ -13,17 +13,16 @@ export class DiagramToolbarComponent {
   isCollapsed = false;
   sidebarWidth = 380;
 
+  // Accordion states - collapsed by default
+  notesExpanded = false;
+  instructionsExpanded = false;
+
   constructor(private diagramService: DiagramService) {
     // Load saved sidebar state
     this.loadSidebarState();
   }
 
   newDiagram(): void {
-    // Clear session storage
-    if (typeof window !== 'undefined' && window.sessionStorage) {
-      sessionStorage.removeItem('diagram-app-data');
-    }
-
     // Reset the diagram service state
     this.diagramService['stateSubject'].next({
       currentDiagram: this.diagramService['createEmptyDiagram'](),

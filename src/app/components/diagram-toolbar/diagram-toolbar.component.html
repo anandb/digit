@@ -161,6 +161,29 @@
             💬
           </button>
           <button
+            (click)="setNodeShape('process')"
+            [class.active]="getSelectedNodeShape() === 'process'"
+            class="shape-btn"
+            title="Process - Emphasized Process">
+            ▭
+          </button>
+          <button
+            (click)="setNodeShape('tape')"
+            [class.active]="getSelectedNodeShape() === 'tape'"
+            class="shape-btn"
+            title="Tape - Magnetic Tape">
+            ◯
+          </button>
+        </div>
+        <div class="shape-row">
+          <button
+            (click)="setNodeShape('cube')"
+            [class.active]="getSelectedNodeShape() === 'cube'"
+            class="shape-btn"
+            title="Cube - 3D Object">
+            □
+          </button>
+          <button
             (click)="setNodeShape('text')"
             [class.active]="getSelectedNodeShape() === 'text'"
             class="shape-btn"

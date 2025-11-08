@@ -976,4 +976,58 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
     return `${bubbleRight},${bubbleBottom} ${pointerX},${bubbleBottom} ${pointerX},${pointerY}`;
   }
+
+  getCubeTopFacePoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const depth = Math.min(w, h) * 0.15; // Perspective depth
+
+    // Top face: from top-right of front face to top-left with depth
+    const frontTopRight = x + w * 0.9;
+    const frontTopLeft = x + w * 0.1;
+    const topTopRight = frontTopRight + depth;
+    const topTopLeft = frontTopLeft + depth;
+
+    return `${frontTopRight},${y + h * 0.1} ${topTopRight},${y} ${topTopLeft},${y} ${frontTopLeft},${y + h * 0.1}`;
+  }
+
+  getCubeSideFacePoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const depth = Math.min(w, h) * 0.15; // Perspective depth
+
+    // Side face: from bottom-right of front face to right side with depth
+    const frontBottomRight = x + w * 0.9;
+    const frontTopRight = x + w * 0.9;
+    const sideBottomRight = frontBottomRight + depth;
+    const sideTopRight = frontTopRight + depth;
+
+    return `${frontBottomRight},${y + h * 0.9} ${frontTopRight},${y + h * 0.1} ${sideTopRight},${y} ${sideBottomRight},${y + h * 0.8}`;
+  }
+
+  getTapeRadius(node: any): number {
+    return Math.min(node.size.width, node.size.height) / 2;
+  }
+
+  getTapeInnerRadius(node: any): number {
+    return Math.min(node.size.width, node.size.height) / 4;
+  }
+
+  getTapeLineX2(node: any, i: number): number {
+    const centerX = node.position.x + node.size.width / 2;
+    const centerY = node.position.y + node.size.height / 2;
+    const radius = Math.min(node.size.width, node.size.height) / 3;
+    return centerX + Math.cos(i * Math.PI / 3) * radius;
+  }
+
+  getTapeLineY2(node: any, i: number): number {
+    const centerX = node.position.x + node.size.width / 2;
+    const centerY = node.position.y + node.size.height / 2;
+    const radius = Math.min(node.size.width, node.size.height) / 3;
+    return centerY + Math.sin(i * Math.PI / 3) * radius;
+  }
 }

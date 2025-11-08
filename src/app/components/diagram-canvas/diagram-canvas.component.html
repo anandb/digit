@@ -486,6 +486,92 @@
         </polygon>
       </g>
 
+      <!-- Process shape (rectangle with double border) -->
+      <g *ngIf="node.shape === 'process'" [class.highlighted]="isHighlighted('node', node.id)" class="process" filter="url(#dropshadow)">
+        <!-- Outer rectangle -->
+        <rect
+          [attr.x]="node.position.x"
+          [attr.y]="node.position.y"
+          [attr.width]="node.size.width"
+          [attr.height]="node.size.height"
+          [attr.fill]="node.fillColor"
+          [attr.stroke]="node.borderColor"
+          stroke-width="3">
+        </rect>
+        <!-- Inner rectangle -->
+        <rect
+          [attr.x]="node.position.x + 3"
+          [attr.y]="node.position.y + 3"
+          [attr.width]="node.size.width - 6"
+          [attr.height]="node.size.height - 6"
+          fill="none"
+          [attr.stroke]="node.borderColor"
+          stroke-width="1">
+        </rect>
+      </g>
+
+      <!-- Tape shape (magnetic tape reel) -->
+      <g *ngIf="node.shape === 'tape'" [class.highlighted]="isHighlighted('node', node.id)" class="tape" filter="url(#dropshadow)">
+        <!-- Outer circle -->
+        <circle
+          [attr.cx]="node.position.x + node.size.width / 2"
+          [attr.cy]="node.position.y + node.size.height / 2"
+          [attr.r]="getTapeRadius(node)"
+          [attr.fill]="node.fillColor"
+          [attr.stroke]="node.borderColor"
+          stroke-width="2">
+        </circle>
+        <!-- Inner circle -->
+        <circle
+          [attr.cx]="node.position.x + node.size.width / 2"
+          [attr.cy]="node.position.y + node.size.height / 2"
+          [attr.r]="getTapeInnerRadius(node)"
+          fill="none"
+          [attr.stroke]="node.borderColor"
+          stroke-width="2">
+        </circle>
+        <!-- Tape lines -->
+        <line
+          *ngFor="let i of [0,1,2,3,4,5]"
+          [attr.x1]="node.position.x + node.size.width / 2"
+          [attr.y1]="node.position.y + node.size.height / 2"
+          [attr.x2]="getTapeLineX2(node, i)"
+          [attr.y2]="getTapeLineY2(node, i)"
+          [attr.stroke]="node.borderColor"
+          stroke-width="1">
+        </line>
+      </g>
+
+      <!-- Cube shape (3D perspective) -->
+      <g *ngIf="node.shape === 'cube'" [class.highlighted]="isHighlighted('node', node.id)" class="cube" filter="url(#dropshadow)">
+        <!-- Front face -->
+        <rect
+          [attr.x]="node.position.x + node.size.width * 0.1"
+          [attr.y]="node.position.y + node.size.height * 0.1"
+          [attr.width]="node.size.width * 0.8"
+          [attr.height]="node.size.height * 0.8"
+          [attr.fill]="node.fillColor"
+          [attr.stroke]="node.borderColor"
+          stroke-width="2">
+        </rect>
+        <!-- Top face -->
+        <polygon
+          [attr.points]="getCubeTopFacePoints(node)"
+          [attr.fill]="node.fillColor"
+          [attr.stroke]="node.borderColor"
+          stroke-width="2"
+          opacity="0.8">
+        </polygon>
+        <!-- Side face -->
+        <polygon
+          [attr.points]="getCubeSideFacePoints(node)"
+          [attr.fill]="node.fillColor"
+          [attr.stroke]="node.borderColor"
+          stroke-width="2"
+          opacity="0.6">
+        </polygon>
+      </g>
+
       <!-- Resize handles -->
       <circle
         *ngIf="state.selectedNodeId === node.id"

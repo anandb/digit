@@ -19,7 +19,7 @@ export interface Tendril {
   borderThickness: number;
 }
 
-export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder';
+export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout';
 
 export interface Node {
   id: string;

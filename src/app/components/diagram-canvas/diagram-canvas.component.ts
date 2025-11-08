@@ -497,8 +497,20 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (node.shape === 'circle' || node.shape === 'cylinder') {
       // Position text below the shape
       return node.position.y + node.size.height + 20;
+    } else if (node.shape === 'triangle') {
+      // Position text in the lower part of the triangle
+      return node.position.y + node.size.height * 0.75;
+    } else if (node.shape === 'stickman') {
+      // Position text below the stickman figure
+      return node.position.y + node.size.height + 15;
+    } else if (node.shape === 'callout') {
+      // Position text inside the callout bubble
+      return node.position.y + node.size.height * 0.4;
+    } else if (node.shape === 'text') {
+      // Position text at the top of the text area for text-only nodes
+      return node.position.y + 20;
     } else {
-      // Center text within the shape (rectangle, pill)
+      // Center text within the shape (rectangle, pill, diamond, parallelogram, document, roundedRectangle, hexagon, trapezoid)
       return node.position.y + node.size.height / 2;
     }
   }
@@ -866,5 +878,102 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       x: element.position.x + tendril.position.x,
       y: element.position.y + tendril.position.y
     };
+  }
+
+  // Shape calculation methods for new flowchart symbols
+  getDiamondPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+
+    // Diamond points: left, top, right, bottom
+    const left = x;
+    const top = y + h / 2;
+    const right = x + w;
+    const bottom = y + h / 2;
+
+    return `${left},${y + h / 2} ${x + w / 2},${y} ${right},${y + h / 2} ${x + w / 2},${y + h}`;
+  }
+
+  getParallelogramPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const skew = w * 0.2; // Skew amount
+
+    // Parallelogram points: top-left, top-right, bottom-right, bottom-left
+    return `${x + skew},${y} ${x + w},${y} ${x + w - skew},${y + h} ${x},${y + h}`;
+  }
+
+  getDocumentBottomPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height - 15;
+
+    // Create a wavy bottom for document shape
+    const waveHeight = 8;
+    const waveWidth = w / 3;
+
+    return `M ${x} ${y + h}
+             L ${x} ${y + h + waveHeight}
+             Q ${x + waveWidth / 2} ${y + h} ${x + waveWidth} ${y + h + waveHeight}
+             Q ${x + waveWidth * 1.5} ${y + h + waveHeight * 2} ${x + waveWidth * 2} ${y + h + waveHeight}
+             Q ${x + waveWidth * 2.5} ${y + h} ${x + w} ${y + h + waveHeight}
+             L ${x + w} ${y + h} Z`;
+  }
+
+  getHexagonPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const indent = w * 0.2; // Indentation for hexagon sides
+
+    // Hexagon points: top-left, top-right, middle-right, bottom-right, bottom-left, middle-left
+    return `${x + indent},${y}
+            ${x + w - indent},${y}
+            ${x + w},${y + h / 2}
+            ${x + w - indent},${y + h}
+            ${x + indent},${y + h}
+            ${x},${y + h / 2}`;
+  }
+
+  getTrianglePoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+
+    // Triangle points: top, bottom-right, bottom-left
+    return `${x + w / 2},${y} ${x + w},${y + h} ${x},${y + h}`;
+  }
+
+  getTrapezoidPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const indent = w * 0.15; // Indentation for trapezoid top
+
+    // Trapezoid points: top-left, top-right, bottom-right, bottom-left
+    return `${x + indent},${y} ${x + w - indent},${y} ${x + w},${y + h} ${x},${y + h}`;
+  }
+
+  getCalloutPointerPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+
+    // Callout pointer points: from bottom-right of bubble to point downward
+    const bubbleRight = x + w * 0.8;
+    const bubbleBottom = y + h * 0.8;
+    const pointerX = x + w * 0.9;
+    const pointerY = y + h;
+
+    return `${bubbleRight},${bubbleBottom} ${pointerX},${bubbleBottom} ${pointerX},${pointerY}`;
   }
 }

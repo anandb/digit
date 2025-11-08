@@ -161,6 +161,43 @@ export class DiagramToolbarComponent {
     input.value = '';
   }
 
+  exportToSvg(): void {
+    // Find the SVG canvas element
+    const svgElement = document.querySelector('.diagram-canvas') as SVGElement;
+    if (!svgElement) {
+      console.error('SVG canvas element not found');
+      return;
+    }
+
+    // Clone the SVG to avoid modifying the original
+    const svgClone = svgElement.cloneNode(true) as SVGElement;
+
+    // Remove interactive elements that shouldn't be in the exported SVG
+    // Remove resize handles, click areas, and other interactive elements
+    const elementsToRemove = svgClone.querySelectorAll('.resize-handle, .tendril-click-area');
+    elementsToRemove.forEach(el => el.remove());
+
+    // Get the SVG content as string
+    const svgContent = new XMLSerializer().serializeToString(svgClone);
+
+    // Create a blob and download link
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+
+    // Use diagram name for filename, fallback to 'diagram.svg'
+    const diagramName = this.getCurrentDiagramName() || 'diagram';
+    const filename = `${diagramName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.svg`;
+    a.download = filename;
+
+    // Trigger download
+    a.click();
+
+    // Clean up
+    URL.revokeObjectURL(url);
+  }
+
   loadSvgImage(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];

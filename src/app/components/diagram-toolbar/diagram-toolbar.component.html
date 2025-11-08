@@ -32,6 +32,7 @@
           style="display: none"
           #fileInput>
         <button (click)="fileInput.click()" class="btn action-btn" title="Load Diagram">📁</button>
+        <button (click)="exportToSvg()" class="btn action-btn" title="Export to SVG">📤</button>
         <button (click)="addNewNode()" class="btn btn-primary action-btn" title="Add Node">➕</button>
         <button (click)="addNewBoundingBox()" class="btn action-btn" title="Add Bounding Box">▭</button>
         <input
@@ -41,8 +42,10 @@
           style="display: none"
           #svgInput>
         <button (click)="svgInput.click()" class="btn action-btn" title="Load SVG Image">🖼️</button>
+      </div>
+    </div>
 
-  <div class="toolbar-section" *ngIf="selectedNodeId">
+    <div class="toolbar-section" *ngIf="selectedNodeId">
     <h3>Node Actions</h3>
     <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
     <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
@@ -60,35 +63,111 @@
 
     <div class="shape-control">
       <label>Shape:</label>
-      <div class="shape-buttons">
-        <button
-          (click)="setNodeShape('rectangle')"
-          [class.active]="getSelectedNodeShape() === 'rectangle'"
-          class="shape-btn"
-          title="Rectangle">
-          ▭
-        </button>
-        <button
-          (click)="setNodeShape('circle')"
-          [class.active]="getSelectedNodeShape() === 'circle'"
-          class="shape-btn"
-          title="Circle">
-          ○
-        </button>
-        <button
-          (click)="setNodeShape('pill')"
-          [class.active]="getSelectedNodeShape() === 'pill'"
-          class="shape-btn"
-          title="Pill">
-          ▬
-        </button>
-        <button
-          (click)="setNodeShape('cylinder')"
-          [class.active]="getSelectedNodeShape() === 'cylinder'"
-          class="shape-btn"
-          title="Cylinder">
-          ⧈
-        </button>
+      <div class="shape-buttons-grid">
+        <div class="shape-row">
+          <button
+            (click)="setNodeShape('rectangle')"
+            [class.active]="getSelectedNodeShape() === 'rectangle'"
+            class="shape-btn"
+            title="Rectangle - Process/Action">
+            ▭
+          </button>
+          <button
+            (click)="setNodeShape('circle')"
+            [class.active]="getSelectedNodeShape() === 'circle'"
+            class="shape-btn"
+            title="Circle - Start/End">
+            ○
+          </button>
+          <button
+            (click)="setNodeShape('pill')"
+            [class.active]="getSelectedNodeShape() === 'pill'"
+            class="shape-btn"
+            title="Pill - Input/Output">
+            ▬
+          </button>
+          <button
+            (click)="setNodeShape('cylinder')"
+            [class.active]="getSelectedNodeShape() === 'cylinder'"
+            class="shape-btn"
+            title="Cylinder - Database">
+            ⧈
+          </button>
+          <button
+            (click)="setNodeShape('diamond')"
+            [class.active]="getSelectedNodeShape() === 'diamond'"
+            class="shape-btn"
+            title="Diamond - Decision">
+            ◇
+          </button>
+        </div>
+        <div class="shape-row">
+          <button
+            (click)="setNodeShape('parallelogram')"
+            [class.active]="getSelectedNodeShape() === 'parallelogram'"
+            class="shape-btn"
+            title="Parallelogram - Input/Output">
+            ▰
+          </button>
+          <button
+            (click)="setNodeShape('document')"
+            [class.active]="getSelectedNodeShape() === 'document'"
+            class="shape-btn"
+            title="Document - Document">
+            ▯
+          </button>
+          <button
+            (click)="setNodeShape('roundedRectangle')"
+            [class.active]="getSelectedNodeShape() === 'roundedRectangle'"
+            class="shape-btn"
+            title="Rounded Rectangle - Process">
+            ▢
+          </button>
+          <button
+            (click)="setNodeShape('hexagon')"
+            [class.active]="getSelectedNodeShape() === 'hexagon'"
+            class="shape-btn"
+            title="Hexagon - Preparation">
+            ⬡
+          </button>
+          <button
+            (click)="setNodeShape('triangle')"
+            [class.active]="getSelectedNodeShape() === 'triangle'"
+            class="shape-btn"
+            title="Triangle - Manual Operation">
+            △
+          </button>
+        </div>
+        <div class="shape-row">
+          <button
+            (click)="setNodeShape('trapezoid')"
+            [class.active]="getSelectedNodeShape() === 'trapezoid'"
+            class="shape-btn"
+            title="Trapezoid - Manual Input">
+            ⏢
+          </button>
+          <button
+            (click)="setNodeShape('stickman')"
+            [class.active]="getSelectedNodeShape() === 'stickman'"
+            class="shape-btn"
+            title="Stickman - Person/Actor">
+            🧑
+          </button>
+          <button
+            (click)="setNodeShape('callout')"
+            [class.active]="getSelectedNodeShape() === 'callout'"
+            class="shape-btn"
+            title="Callout - Speech Bubble">
+            💬
+          </button>
+          <button
+            (click)="setNodeShape('text')"
+            [class.active]="getSelectedNodeShape() === 'text'"
+            class="shape-btn"
+            title="Text - Plain Text Label">
+            📝
+          </button>
+        </div>
       </div>
     </div>
 

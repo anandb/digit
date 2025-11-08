@@ -178,6 +178,28 @@
         class="name-input">
     </div>
 
+    <div class="type-control">
+      <label>Type:</label>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input
+            type="radio"
+            [checked]="getSelectedTendrilType() === 'incoming'"
+            (change)="setTendrilType('incoming')"
+            name="tendril-type">
+          Incoming
+        </label>
+        <label class="radio-label">
+          <input
+            type="radio"
+            [checked]="getSelectedTendrilType() === 'outgoing'"
+            (change)="setTendrilType('outgoing')"
+            name="tendril-type">
+          Outgoing
+        </label>
+      </div>
+    </div>
+
     <div class="exposure-control">
       <label>Visibility:</label>
       <div class="radio-group">

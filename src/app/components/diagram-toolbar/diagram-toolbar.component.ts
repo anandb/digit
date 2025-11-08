@@ -350,6 +350,49 @@ export class DiagramToolbarComponent {
     }
   }
 
+  getSelectedTendrilType(): string {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
+      return tendril?.type || 'incoming';
+    }
+    return 'incoming';
+  }
+
+  setTendrilType(type: 'incoming' | 'outgoing'): void {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      // Get current tendril to check if name needs updating
+      const currentTendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
+      const currentName = currentTendril?.name || '';
+
+      // Check if name is still the default value and update it
+      let newName = currentName;
+      if (currentName === 'Incoming Tendril' && type === 'outgoing') {
+        newName = 'Outgoing Tendril';
+      } else if (currentName === 'Outgoing Tendril' && type === 'incoming') {
+        newName = 'Incoming Tendril';
+      }
+
+      // Update the tendril
+      const updates: any = { type };
+      if (newName !== currentName) {
+        updates.name = newName;
+      }
+
+      // Check if it's an SVG tendril (selectedNodeId starts with 'svg-')
+      if (selectedNodeId.startsWith('svg-')) {
+        const svgImageId = selectedNodeId.substring(4);
+        this.diagramService.updateSvgTendril(svgImageId, selectedTendrilId, updates);
+      } else {
+        // Regular node tendril
+        this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, updates);
+      }
+    }
+  }
+
   getSelectedBoundingBoxLabel(): string {
     const selectedBoundingBoxId = this.selectedBoundingBoxId;
     if (selectedBoundingBoxId) {

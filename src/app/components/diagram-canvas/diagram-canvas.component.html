@@ -102,9 +102,9 @@
 
             <!-- Tendril name -->
             <text
-              [attr.x]="tendril.type === 'incoming' ? svgImage.position.x + tendril.position.x - 25 : svgImage.position.x + tendril.position.x + 25"
+              [attr.x]="tendril.position.x < svgImage.size.width / 2 ? svgImage.position.x + tendril.position.x - 25 : svgImage.position.x + tendril.position.x + 25"
               [attr.y]="svgImage.position.y + tendril.position.y - 8"
-              [attr.text-anchor]="tendril.type === 'incoming' ? 'end' : 'start'"
+              [attr.text-anchor]="tendril.position.x < svgImage.size.width / 2 ? 'end' : 'start'"
               dominant-baseline="middle"
               class="tendril-name"
               (click)="onSvgTendrilClick($event, svgImage, tendril)"
@@ -357,9 +357,9 @@
 
             <!-- Tendril name -->
             <text
-              [attr.x]="tendril.type === 'incoming' ? node.position.x + tendril.position.x - 25 : node.position.x + tendril.position.x + 25"
+              [attr.x]="tendril.position.x < node.size.width / 2 ? node.position.x + tendril.position.x - 25 : node.position.x + tendril.position.x + 25"
               [attr.y]="node.position.y + tendril.position.y - 8"
-              [attr.text-anchor]="tendril.type === 'incoming' ? 'end' : 'start'"
+              [attr.text-anchor]="tendril.position.x < node.size.width / 2 ? 'end' : 'start'"
               dominant-baseline="middle"
               class="tendril-name"
               (click)="onTendrilClick($event, node, tendril)"

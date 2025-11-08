@@ -801,7 +801,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onSvgTendrilContextMenu(event: MouseEvent, svgImage: SvgImage, tendril: Tendril): void {
     event.preventDefault();
     event.stopPropagation();
-    // TODO: Implement SVG tendril context menu
+    this.diagramService.selectTendril(`svg-${svgImage.id}`, tendril.id);
   }
 
   // Get spring path for SVG tendrils

@@ -33,8 +33,15 @@ export class DiagramToolbarComponent {
   }
 
   addNewNode(): void {
-    // Add node at a default position (center of visible area)
-    const position = { x: 400, y: 300 };
+    // Add node at a random position on the canvas
+    const canvasWidth = 800;
+    const canvasHeight = 600;
+    const margin = 50; // Keep elements away from edges
+
+    const position = {
+      x: margin + Math.random() * (canvasWidth - 2 * margin),
+      y: margin + Math.random() * (canvasHeight - 2 * margin)
+    };
     this.diagramService.addNode(position);
   }
 
@@ -86,6 +93,48 @@ export class DiagramToolbarComponent {
     }
   }
 
+  addIncomingTendrilToSvgImage(): void {
+    const selectedSvgImageId = this.diagramService.currentState.selectedSvgImageId;
+    if (selectedSvgImageId) {
+      const svgImage = this.diagramService.getSvgImage(selectedSvgImageId);
+      if (svgImage) {
+        // Count existing incoming tendrils
+        const incomingCount = svgImage.tendrils.filter(t => t.type === 'incoming').length;
+
+        // Calculate vertical spacing for incoming tendrils along left edge
+        const spacing = svgImage.size.height / (incomingCount + 1);
+        const y = spacing * (incomingCount + 0.5); // Center between existing tendrils
+
+        const position = {
+          x: 0,
+          y: Math.max(10, Math.min(svgImage.size.height - 10, y)) // Keep within SVG bounds
+        };
+        this.diagramService.addTendrilToSvgImage(selectedSvgImageId, 'incoming', position);
+      }
+    }
+  }
+
+  addOutgoingTendrilToSvgImage(): void {
+    const selectedSvgImageId = this.diagramService.currentState.selectedSvgImageId;
+    if (selectedSvgImageId) {
+      const svgImage = this.diagramService.getSvgImage(selectedSvgImageId);
+      if (svgImage) {
+        // Count existing outgoing tendrils
+        const outgoingCount = svgImage.tendrils.filter(t => t.type === 'outgoing').length;
+
+        // Calculate vertical spacing for outgoing tendrils along right edge
+        const spacing = svgImage.size.height / (outgoingCount + 1);
+        const y = spacing * (outgoingCount + 0.5); // Center between existing tendrils
+
+        const position = {
+          x: svgImage.size.width,
+          y: Math.max(10, Math.min(svgImage.size.height - 10, y)) // Keep within SVG bounds
+        };
+        this.diagramService.addTendrilToSvgImage(selectedSvgImageId, 'outgoing', position);
+      }
+    }
+  }
+
   saveDiagram(): void {
     const json = this.diagramService.saveDiagram();
     const blob = new Blob([json], { type: 'application/json' });
@@ -105,6 +154,21 @@ export class DiagramToolbarComponent {
       reader.onload = (e) => {
         const json = e.target?.result as string;
         this.diagramService.loadDiagram(json);
+      };
+      reader.readAsText(file);
+    }
+    // Reset input
+    input.value = '';
+  }
+
+  loadSvgImage(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const svgContent = e.target?.result as string;
+        this.diagramService.addSvgImage(svgContent, file.name);
       };
       reader.readAsText(file);
     }
@@ -141,6 +205,10 @@ export class DiagramToolbarComponent {
 
   get selectedBoundingBoxId(): string | undefined {
     return this.diagramService.currentState.selectedBoundingBoxId;
+  }
+
+  get selectedSvgImageId(): string | undefined {
+    return this.diagramService.currentState.selectedSvgImageId;
   }
 
   get selectedTendrilId(): string | undefined {
@@ -337,6 +405,23 @@ export class DiagramToolbarComponent {
     const selectedBoundingBoxId = this.selectedBoundingBoxId;
     if (selectedBoundingBoxId) {
       this.diagramService.deleteBoundingBox(selectedBoundingBoxId);
+    }
+  }
+
+  getSelectedSvgImageLabel(): string {
+    const selectedSvgImageId = this.selectedSvgImageId;
+    if (selectedSvgImageId) {
+      const svgImage = this.diagramService.getSvgImage(selectedSvgImageId);
+      return svgImage?.label || '';
+    }
+    return '';
+  }
+
+  updateSvgImageLabel(event: Event): void {
+    const selectedSvgImageId = this.selectedSvgImageId;
+    if (selectedSvgImageId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateSvgImage(selectedSvgImageId, { label: target.value });
     }
   }
 

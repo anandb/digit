@@ -10,6 +10,7 @@
       <h3>Diagram Actions</h3>
       <div class="action-buttons">
         <button (click)="newDiagram()" class="btn action-btn" title="New Diagram">🆕</button>
+        <button *ngIf="canGoBack" (click)="goBack()" class="btn action-btn" title="Go Back">⬅️</button>
         <button (click)="saveDiagram()" class="btn action-btn" title="Save Diagram">💾</button>
         <input
           type="file"
@@ -20,13 +21,13 @@
         <button (click)="fileInput.click()" class="btn action-btn" title="Load Diagram">📁</button>
         <button (click)="addNewNode()" class="btn btn-primary action-btn" title="Add Node">➕</button>
         <button (click)="addNewBoundingBox()" class="btn action-btn" title="Add Bounding Box">▭</button>
-      </div>
-    </div>
-
-  <div class="toolbar-section" *ngIf="canGoBack">
-    <h3>Navigation</h3>
-    <button (click)="goBack()" class="btn btn-back">← Back</button>
-  </div>
+        <input
+          type="file"
+          accept=".svg"
+          (change)="loadSvgImage($event)"
+          style="display: none"
+          #svgInput>
+        <button (click)="svgInput.click()" class="btn action-btn" title="Load SVG Image">🖼️</button>
 
   <div class="toolbar-section" *ngIf="selectedNodeId">
     <h3>Node Actions</h3>
@@ -146,6 +147,23 @@
     </div>
 
     <button (click)="deleteSelectedBoundingBox()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Bounding Box</button>
+  </div>
+
+  <div class="toolbar-section" *ngIf="selectedSvgImageId">
+    <h3>SVG Image Actions</h3>
+    <div class="name-control">
+      <label>Label:</label>
+      <input
+        type="text"
+        [value]="getSelectedSvgImageLabel()"
+        (input)="updateSvgImageLabel($event)"
+        placeholder="Enter SVG label..."
+        class="name-input">
+    </div>
+    <div class="action-buttons">
+      <button (click)="addIncomingTendrilToSvgImage()" class="btn btn-tendril">+ Incoming Tendril</button>
+      <button (click)="addOutgoingTendrilToSvgImage()" class="btn btn-tendril">+ Outgoing Tendril</button>
+    </div>
   </div>
 
   <div class="toolbar-section" *ngIf="selectedTendrilId">

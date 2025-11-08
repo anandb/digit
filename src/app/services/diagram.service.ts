@@ -19,7 +19,8 @@ export class DiagramService {
       diagramStack: [],
       selectedNodeId: undefined,
       selectedTendrilId: undefined,
-      selectedBoundingBoxId: undefined
+      selectedBoundingBoxId: undefined,
+      selectedSvgImageId: undefined
     };
   }
 
@@ -38,6 +39,7 @@ export class DiagramService {
       nodes: [],
       edges: [],
       boundingBoxes: [],
+      svgImages: [],
       attributes: {}
     };
 
@@ -72,6 +74,7 @@ export class DiagramService {
       nodes: [],
       edges: [],
       boundingBoxes: [],
+      svgImages: [],
       attributes: {}
     };
 
@@ -106,6 +109,7 @@ export class DiagramService {
       attributes: {}
     };
 
+    console.log(this.state);
     this.state.currentDiagram.nodes.push(newNode);
   }
 
@@ -124,10 +128,93 @@ export class DiagramService {
     this.state.currentDiagram.boundingBoxes = [...this.state.currentDiagram.boundingBoxes, newBoundingBox];
   }
 
+  // SVG image operations
+  addSvgImage(svgContent: string, fileName: string): void {
+    // Parse SVG to get dimensions
+    const parser = new DOMParser();
+    const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
+    const svgElement = svgDoc.documentElement;
+
+    let width = parseFloat(svgElement.getAttribute('width') || '100');
+    let height = parseFloat(svgElement.getAttribute('height') || '100');
+
+    // Scale down to be comparable to typical node size (100x60)
+    // Target size should be smaller than node size for better proportion
+    const targetWidth = 80;   // Smaller than typical node width
+    const targetHeight = 50;  // Smaller than typical node height
+
+    // Always scale down to target size
+    const scaleX = targetWidth / width;
+    const scaleY = targetHeight / height;
+    const scale = Math.min(scaleX, scaleY);
+
+    // Apply scaling to dimensions
+    width *= scale;
+    height *= scale;
+
+    // Update the SVG content with scaled dimensions
+    svgElement.setAttribute('width', width.toString());
+    svgElement.setAttribute('height', height.toString());
+
+    // Don't modify viewBox - let the SVG display its full content at the new size
+    // The viewBox should remain as originally defined to show complete content
+
+    // Serialize back to string
+    const serializer = new XMLSerializer();
+    const scaledSvgContent = serializer.serializeToString(svgElement);
+
+    // Generate random position on canvas
+    const canvasWidth = 800;
+    const canvasHeight = 600;
+    const margin = 50; // Keep elements away from edges
+
+    const position = {
+      x: margin + Math.random() * (canvasWidth - 2 * margin),
+      y: margin + Math.random() * (canvasHeight - 2 * margin)
+    };
+
+    const newSvgImage: import('../models/diagram.model').SvgImage = {
+      id: this.generateId(),
+      position,
+      size: { width, height },
+      svgContent: scaledSvgContent,
+      fileName,
+      label: fileName.replace('.svg', ''), // Use filename without extension as default label
+      tendrils: [],
+      attributes: {}
+    };
+
+    this.state.currentDiagram.svgImages = [...this.state.currentDiagram.svgImages, newSvgImage];
+  }
+
   updateBoundingBox(boundingBoxId: string, updates: Partial<import('../models/diagram.model').BoundingBox>): void {
     this.state.currentDiagram.boundingBoxes = this.state.currentDiagram.boundingBoxes.map(box =>
       box.id === boundingBoxId ? { ...box, ...updates } : box
     );
+  }
+
+  updateSvgImage(svgImageId: string, updates: Partial<import('../models/diagram.model').SvgImage>): void {
+    this.state.currentDiagram.svgImages = this.state.currentDiagram.svgImages.map(svg => {
+      if (svg.id === svgImageId) {
+        const updatedSvg = { ...svg, ...updates };
+
+        // If size is being updated, also update the SVG content dimensions
+        if (updates.size) {
+          const parser = new DOMParser();
+          const svgDoc = parser.parseFromString(svg.svgContent, 'image/svg+xml');
+          const svgElement = svgDoc.documentElement;
+
+          svgElement.setAttribute('width', updates.size.width.toString());
+          svgElement.setAttribute('height', updates.size.height.toString());
+
+          const serializer = new XMLSerializer();
+          updatedSvg.svgContent = serializer.serializeToString(svgElement);
+        }
+
+        return updatedSvg;
+      }
+      return svg;
+    });
   }
 
   deleteBoundingBox(boundingBoxId: string): void {
@@ -165,11 +252,39 @@ export class DiagramService {
     });
   }
 
+  addTendrilToSvgImage(svgImageId: string, type: 'incoming' | 'outgoing', position: Position): void {
+    const newTendril: Tendril = {
+      id: this.generateId(),
+      name: type === 'incoming' ? 'Incoming Tendril' : 'Outgoing Tendril',
+      position,
+      type,
+      exposed: false,
+      attributes: {},
+      borderColor: '#000000',
+      borderThickness: 2
+    };
+
+    this.updateSvgImage(svgImageId, {
+      tendrils: [...this.getSvgImage(svgImageId)!.tendrils, newTendril]
+    });
+  }
+
   updateTendril(nodeId: string, tendrilId: string, updates: Partial<Tendril>): void {
     const node = this.getNode(nodeId);
     if (node) {
       this.updateNode(nodeId, {
         tendrils: node.tendrils.map(tendril =>
+          tendril.id === tendrilId ? { ...tendril, ...updates } : tendril
+        )
+      });
+    }
+  }
+
+  updateSvgTendril(svgImageId: string, tendrilId: string, updates: Partial<Tendril>): void {
+    const svgImage = this.getSvgImage(svgImageId);
+    if (svgImage) {
+      this.updateSvgImage(svgImageId, {
+        tendrils: svgImage.tendrils.map(tendril =>
           tendril.id === tendrilId ? { ...tendril, ...updates } : tendril
         )
       });
@@ -191,8 +306,8 @@ export class DiagramService {
 
   // Edge operations
   addEdge(fromNodeId: string, fromTendrilId: string, toNodeId: string, toTendrilId: string): void {
-    const fromTendril = this.getTendril(fromNodeId, fromTendrilId);
-    const toTendril = this.getTendril(toNodeId, toTendrilId);
+    const fromTendril = this.getTendrilAny(fromNodeId, fromTendrilId);
+    const toTendril = this.getTendrilAny(toNodeId, toTendrilId);
 
     if (fromTendril?.type === 'outgoing' && toTendril?.type === 'incoming') {
       const newEdge: Edge = {
@@ -220,6 +335,29 @@ export class DiagramService {
   getTendril(nodeId: string, tendrilId: string): Tendril | undefined {
     const node = this.getNode(nodeId);
     return node?.tendrils.find(tendril => tendril.id === tendrilId);
+  }
+
+  getTendrilAny(elementId: string, tendrilId: string): Tendril | undefined {
+    // Check if it's a regular node
+    const node = this.getNode(elementId);
+    if (node) {
+      return node.tendrils.find(tendril => tendril.id === tendrilId);
+    }
+
+    // Check if it's an SVG image (elementId might be "svg-{svgImageId}")
+    if (elementId.startsWith('svg-')) {
+      const svgImageId = elementId.substring(4); // Remove "svg-" prefix
+      const svgImage = this.getSvgImage(svgImageId);
+      if (svgImage) {
+        return svgImage.tendrils.find(tendril => tendril.id === tendrilId);
+      }
+    }
+
+    return undefined;
+  }
+
+  getSvgImage(svgImageId: string): import('../models/diagram.model').SvgImage | undefined {
+    return this.state.currentDiagram.svgImages.find(svg => svg.id === svgImageId);
   }
 
   getEdge(edgeId: string): Edge | undefined {
@@ -291,12 +429,24 @@ export class DiagramService {
     };
   }
 
+  selectSvgImage(svgImageId: string | undefined): void {
+    this.state = {
+      ...this.state,
+      selectedNodeId: undefined,
+      selectedTendrilId: undefined,
+      selectedBoundingBoxId: undefined,
+      selectedSvgImageId: svgImageId,
+      selectedEdgeId: undefined
+    };
+  }
+
   selectEdge(edgeId: string | undefined): void {
     this.state = {
       ...this.state,
       selectedNodeId: undefined,
       selectedTendrilId: undefined,
       selectedBoundingBoxId: undefined,
+      selectedSvgImageId: undefined,
       selectedEdgeId: edgeId
     };
   }

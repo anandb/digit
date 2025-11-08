@@ -55,12 +55,24 @@ export interface BoundingBox {
   attributes: { [key: string]: any };
 }
 
+export interface SvgImage {
+  id: string;
+  position: Position;
+  size: Size;
+  svgContent: string;
+  fileName: string;
+  label: string;
+  tendrils: Tendril[];
+  attributes: { [key: string]: any };
+}
+
 export interface Diagram {
   id: string;
   name: string;
   nodes: Node[];
   edges: Edge[];
   boundingBoxes: BoundingBox[];
+  svgImages: SvgImage[];
   attributes: { [key: string]: any };
 }
 
@@ -70,5 +82,6 @@ export interface DiagramState {
   selectedNodeId?: string;
   selectedTendrilId?: string;
   selectedBoundingBoxId?: string;
+  selectedSvgImageId?: string;
   selectedEdgeId?: string;
 }

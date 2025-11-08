@@ -6,10 +6,14 @@ import { Diagram, DiagramState, Node, Tendril, Edge, Position } from '../models/
   providedIn: 'root'
 })
 export class DiagramService {
-  private stateSubject = new BehaviorSubject<DiagramState>({
-    currentDiagram: this.createEmptyDiagram(),
-    diagramStack: []
-  });
+  private stateSubject = new BehaviorSubject<DiagramState>(
+    this.loadFromSession() || {
+      currentDiagram: this.createEmptyDiagram(),
+      diagramStack: [],
+      selectedNodeId: undefined,
+      selectedTendrilId: undefined
+    }
+  );
 
   public state$ = this.stateSubject.asObservable();
 
@@ -19,6 +23,7 @@ export class DiagramService {
 
   private set state(newState: DiagramState) {
     this.stateSubject.next(newState);
+    this.saveToSession(newState);
   }
 
   private createEmptyDiagram(): Diagram {
@@ -218,7 +223,24 @@ export class DiagramService {
 
   // Save/Load
   saveDiagram(): string {
-    return JSON.stringify(this.state.currentDiagram, null, 2);
+    // Always save from the root diagram (first in the stack or current if no stack)
+    const rootDiagram = this.state.diagramStack.length > 0
+      ? this.state.diagramStack[0]
+      : this.state.currentDiagram;
+
+    // Recursively save all nested diagrams
+    const saveDiagramRecursively = (diagram: Diagram): Diagram => {
+      return {
+        ...diagram,
+        nodes: diagram.nodes.map(node => ({
+          ...node,
+          innerDiagram: node.innerDiagram ? saveDiagramRecursively(node.innerDiagram) : undefined
+        }))
+      };
+    };
+
+    const diagramToSave = saveDiagramRecursively(rootDiagram);
+    return JSON.stringify(diagramToSave, null, 2);
   }
 
   loadDiagram(jsonString: string): void {
@@ -249,6 +271,51 @@ export class DiagramService {
       selectedNodeId: nodeId,
       selectedTendrilId: tendrilId
     };
+  }
+
+  // Session storage methods
+  private saveToSession(state: DiagramState): void {
+    // Only save to session storage if we're in a browser environment
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        // Recursively save all nested diagrams for session storage
+        const saveDiagramRecursively = (diagram: Diagram): Diagram => {
+          return {
+            ...diagram,
+            nodes: diagram.nodes.map(node => ({
+              ...node,
+              innerDiagram: node.innerDiagram ? saveDiagramRecursively(node.innerDiagram) : undefined
+            }))
+          };
+        };
+
+        // Save the complete state including navigation
+        const stateToSave = {
+          currentDiagram: saveDiagramRecursively(state.currentDiagram),
+          diagramStack: state.diagramStack.map(diagram => saveDiagramRecursively(diagram)),
+          selectedNodeId: state.selectedNodeId,
+          selectedTendrilId: state.selectedTendrilId
+        };
+
+        sessionStorage.setItem('diagram-app-state', JSON.stringify(stateToSave));
+      } catch (error) {
+        console.warn('Failed to save to session storage:', error);
+      }
+    }
+  }
+
+  private loadFromSession(): DiagramState | null {
+    // Only load from session storage if we're in a browser environment
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        const data = sessionStorage.getItem('diagram-app-state');
+        return data ? JSON.parse(data) : null;
+      } catch (error) {
+        console.warn('Failed to load from session storage:', error);
+        return null;
+      }
+    }
+    return null;
   }
 
   // Public getters

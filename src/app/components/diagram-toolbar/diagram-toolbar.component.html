@@ -1,7 +1,6 @@
 <div class="toolbar">
   <div class="toolbar-section">
     <h3>Diagram Actions</h3>
-    <button (click)="addNewNode()" class="btn btn-primary">➕ New Node</button>
     <button (click)="saveDiagram()" class="btn">Save Diagram</button>
     <input
       type="file"
@@ -10,6 +9,7 @@
       style="display: none"
       #fileInput>
     <button (click)="fileInput.click()" class="btn">Load Diagram</button>
+    <button (click)="addNewNode()" class="btn btn-primary">➕ New Node</button>
   </div>
 
   <div class="toolbar-section" *ngIf="canGoBack">
@@ -22,11 +22,57 @@
     <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
     <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
     <button (click)="deleteSelectedNode()" class="btn btn-danger">🗑️ Delete Node</button>
+
+    <div class="name-control">
+      <label>Node Name:</label>
+      <input
+        type="text"
+        [value]="getSelectedNodeName()"
+        (input)="updateNodeName($event)"
+        placeholder="Enter node name..."
+        class="name-input">
+    </div>
+
+    <div class="color-controls">
+      <label>Fill Color:</label>
+      <input
+        type="color"
+        [value]="getSelectedNodeFillColor()"
+        (change)="updateNodeFillColor($event)"
+        class="color-input">
+
+      <label>Border Color:</label>
+      <input
+        type="color"
+        [value]="getSelectedNodeBorderColor()"
+        (change)="updateNodeBorderColor($event)"
+        class="color-input">
+    </div>
+
+    <div class="notes-control">
+      <label>Notes:</label>
+      <textarea
+        [value]="getSelectedNodeNotes()"
+        (input)="updateNodeNotes($event)"
+        placeholder="Enter notes for this node..."
+        class="notes-textarea"
+        rows="4">
+      </textarea>
+    </div>
   </div>
 
   <div class="toolbar-section" *ngIf="selectedTendrilId">
     <h3>Tendril Actions</h3>
-    <button (click)="deleteSelectedTendril()" class="btn btn-danger">🗑️ Delete Tendril</button>
+    <div class="name-control">
+      <label>{{ getSelectedTendrilTypeLabel() }}:</label>
+      <input
+        type="text"
+        [value]="getSelectedTendrilName()"
+        (input)="updateTendrilName($event)"
+        placeholder="Enter tendril name..."
+        class="name-input">
+    </div>
+    <button (click)="deleteSelectedTendril()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Tendril</button>
   </div>
 
   <div class="toolbar-section">
@@ -35,6 +81,8 @@
       <li>Use "New Node" button to add nodes</li>
       <li>Drag nodes to reposition</li>
       <li>Drag blue circle on selected nodes to resize</li>
+      <li>Right-click nodes to rename, customize colors & add notes</li>
+      <li>Right-click tendrils to rename them</li>
       <li>Double-click nodes to enter inner diagrams</li>
       <li>Click orange tendrils to start edges, green tendrils to complete</li>
       <li>Right-click to cancel edge creation</li>

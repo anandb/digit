@@ -28,6 +28,7 @@ export interface Node {
   fillColor: string;
   tendrils: Tendril[];
   innerDiagram?: Diagram;
+  notes?: string;
   attributes: { [key: string]: any };
 }
 

@@ -21,12 +21,18 @@ export class DiagramToolbarComponent {
   addIncomingTendril(): void {
     const selectedNodeId = this.diagramService.currentState.selectedNodeId;
     if (selectedNodeId) {
-      // Add tendril at the left side of the node
       const node = this.diagramService.getNode(selectedNodeId);
       if (node) {
+        // Count existing incoming tendrils
+        const incomingCount = node.tendrils.filter(t => t.type === 'incoming').length;
+
+        // Calculate vertical spacing for incoming tendrils along left edge
+        const spacing = node.size.height / (incomingCount + 1);
+        const y = spacing * (incomingCount + 0.5); // Center between existing tendrils
+
         const position = {
           x: 0,
-          y: node.size.height / 2
+          y: Math.max(10, Math.min(node.size.height - 10, y)) // Keep within node bounds
         };
         this.diagramService.addTendril(selectedNodeId, 'incoming', position);
       }
@@ -36,12 +42,18 @@ export class DiagramToolbarComponent {
   addOutgoingTendril(): void {
     const selectedNodeId = this.diagramService.currentState.selectedNodeId;
     if (selectedNodeId) {
-      // Add tendril at the right side of the node
       const node = this.diagramService.getNode(selectedNodeId);
       if (node) {
+        // Count existing outgoing tendrils
+        const outgoingCount = node.tendrils.filter(t => t.type === 'outgoing').length;
+
+        // Calculate vertical spacing for outgoing tendrils along right edge
+        const spacing = node.size.height / (outgoingCount + 1);
+        const y = spacing * (outgoingCount + 0.5); // Center between existing tendrils
+
         const position = {
           x: node.size.width,
-          y: node.size.height / 2
+          y: Math.max(10, Math.min(node.size.height - 10, y)) // Keep within node bounds
         };
         this.diagramService.addTendril(selectedNodeId, 'outgoing', position);
       }
@@ -103,5 +115,102 @@ export class DiagramToolbarComponent {
 
   get selectedTendrilId(): string | undefined {
     return this.diagramService.currentState.selectedTendrilId;
+  }
+
+  getSelectedNodeFillColor(): string {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const node = this.diagramService.getNode(selectedNodeId);
+      return node?.fillColor || '#ffffff';
+    }
+    return '#ffffff';
+  }
+
+  getSelectedNodeBorderColor(): string {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const node = this.diagramService.getNode(selectedNodeId);
+      return node?.borderColor || '#000000';
+    }
+    return '#000000';
+  }
+
+  updateNodeFillColor(event: Event): void {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateNode(selectedNodeId, { fillColor: target.value });
+    }
+  }
+
+  updateNodeBorderColor(event: Event): void {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateNode(selectedNodeId, { borderColor: target.value });
+    }
+  }
+
+  getSelectedNodeNotes(): string {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const node = this.diagramService.getNode(selectedNodeId);
+      return node?.notes || '';
+    }
+    return '';
+  }
+
+  updateNodeNotes(event: Event): void {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const target = event.target as HTMLTextAreaElement;
+      this.diagramService.updateNode(selectedNodeId, { notes: target.value });
+    }
+  }
+
+  getSelectedNodeName(): string {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const node = this.diagramService.getNode(selectedNodeId);
+      return node?.name || '';
+    }
+    return '';
+  }
+
+  updateNodeName(event: Event): void {
+    const selectedNodeId = this.selectedNodeId;
+    if (selectedNodeId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateNode(selectedNodeId, { name: target.value });
+    }
+  }
+
+  getSelectedTendrilName(): string {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      const tendril = this.diagramService.getTendril(selectedNodeId, selectedTendrilId);
+      return tendril?.name || '';
+    }
+    return '';
+  }
+
+  getSelectedTendrilTypeLabel(): string {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      const tendril = this.diagramService.getTendril(selectedNodeId, selectedTendrilId);
+      return tendril?.type === 'incoming' ? 'Incoming Tendril Name' : 'Outgoing Tendril Name';
+    }
+    return 'Tendril Name';
+  }
+
+  updateTendrilName(event: Event): void {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, { name: target.value });
+    }
   }
 }

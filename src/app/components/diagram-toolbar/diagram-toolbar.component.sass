@@ -71,9 +71,91 @@
         color: white
         border-color: #dc3545
 
-        &:hover
-          background-color: #c82333
-          border-color: #bd2130
+      &:hover
+        background-color: #c82333
+        border-color: #bd2130
+
+  .name-control
+    margin-top: 15px
+
+    label
+      display: block
+      font-size: 12px
+      font-weight: bold
+      color: #495057
+      margin-bottom: 5px
+      margin-top: 10px
+
+    .name-input
+      width: 100%
+      padding: 6px 8px
+      border: 1px solid #ced4da
+      border-radius: 4px
+      font-family: inherit
+      font-size: 14px
+      background-color: #fff
+      color: #495057
+
+      &:focus
+        outline: none
+        border-color: #007bff
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25)
+
+      &::placeholder
+        color: #6c757d
+
+  .color-controls
+    margin-top: 15px
+
+    label
+      display: block
+      font-size: 12px
+      font-weight: bold
+      color: #495057
+      margin-bottom: 5px
+      margin-top: 10px
+
+    .color-input
+      width: 100%
+      height: 35px
+      border: 1px solid #ced4da
+      border-radius: 4px
+      cursor: pointer
+      background-color: #fff
+
+      &:hover
+        border-color: #adb5bd
+
+  .notes-control
+    margin-top: 15px
+
+    label
+      display: block
+      font-size: 12px
+      font-weight: bold
+      color: #495057
+      margin-bottom: 5px
+      margin-top: 10px
+
+    .notes-textarea
+      width: 100%
+      padding: 8px
+      border: 1px solid #ced4da
+      border-radius: 4px
+      font-family: inherit
+      font-size: 12px
+      line-height: 1.4
+      resize: vertical
+      background-color: #fff
+      color: #495057
+
+      &:focus
+        outline: none
+        border-color: #007bff
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25)
+
+      &::placeholder
+        color: #6c757d
 
   .instructions
     list-style: none

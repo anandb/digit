@@ -135,9 +135,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const newWidth = Math.max(50, this.resizeStartSize.width + deltaX);
       const newHeight = Math.max(30, this.resizeStartSize.height + deltaY);
 
+      // Update node size
       this.diagramService.updateNode(this.resizeNodeId, {
         size: { width: newWidth, height: newHeight }
       });
+
+      // Reposition tendrils to stay on borders
+      this.repositionTendrilsAfterResize(this.resizeNodeId, newWidth, newHeight);
     }
   }
 
@@ -203,6 +207,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Context menu for tendrils
   onTendrilContextMenu(event: MouseEvent, node: Node, tendril: Tendril): void {
     event.preventDefault();
+    event.stopPropagation();
     this.diagramService.selectTendril(node.id, tendril.id);
     // TODO: Show context menu
   }
@@ -254,5 +259,41 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const midY = (start.y + end.y) / 2;
 
     return `M ${start.x} ${start.y} Q ${midX} ${midY} ${end.x} ${end.y}`;
+  }
+
+  // Reposition tendrils to stay on borders after node resize
+  private repositionTendrilsAfterResize(nodeId: string, newWidth: number, newHeight: number): void {
+    const node = this.state.currentDiagram.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    // Separate incoming and outgoing tendrils
+    const incomingTendrils = node.tendrils.filter(t => t.type === 'incoming');
+    const outgoingTendrils = node.tendrils.filter(t => t.type === 'outgoing');
+
+    // Reposition incoming tendrils along left edge
+    incomingTendrils.forEach((tendril, index) => {
+      const spacing = newHeight / (incomingTendrils.length + 1);
+      const y = spacing * (index + 1); // Distribute evenly
+
+      this.diagramService.updateTendril(nodeId, tendril.id, {
+        position: {
+          x: 0, // Left border
+          y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
+        }
+      });
+    });
+
+    // Reposition outgoing tendrils along right edge
+    outgoingTendrils.forEach((tendril, index) => {
+      const spacing = newHeight / (outgoingTendrils.length + 1);
+      const y = spacing * (index + 1); // Distribute evenly
+
+      this.diagramService.updateTendril(nodeId, tendril.id, {
+        position: {
+          x: newWidth, // Right border
+          y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
+        }
+      });
+    });
   }
 }

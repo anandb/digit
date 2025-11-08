@@ -11,18 +11,9 @@ export class DiagramService {
   );
 
   public state$ = this.stateSubject.asObservable();
+  private allDiagrams: Map<string, Diagram> = new Map();
 
   private initializeState(): DiagramState {
-    const loadedDiagram = this.loadFromSession();
-    if (loadedDiagram) {
-      return {
-        currentDiagram: loadedDiagram,
-        diagramStack: [],
-        selectedNodeId: undefined,
-        selectedTendrilId: undefined,
-        selectedBoundingBoxId: undefined
-      };
-    }
     return {
       currentDiagram: this.createEmptyDiagram(),
       diagramStack: [],
@@ -38,15 +29,10 @@ export class DiagramService {
 
   private set state(newState: DiagramState) {
     this.stateSubject.next(newState);
-    // Always save from the root diagram for session storage
-    const rootDiagram = newState.diagramStack.length > 0
-      ? newState.diagramStack[0]
-      : newState.currentDiagram;
-    this.saveToSession(rootDiagram);
   }
 
   private createEmptyDiagram(): Diagram {
-    return {
+    const emptyDiagram = {
       id: this.generateId(),
       name: 'New Diagram',
       nodes: [],
@@ -54,6 +40,12 @@ export class DiagramService {
       boundingBoxes: [],
       attributes: {}
     };
+
+    if (this.allDiagrams) {
+      this.allDiagrams.set(emptyDiagram.id, emptyDiagram);
+    }
+
+    return emptyDiagram;
   }
 
   private generateId(): string {
@@ -67,12 +59,13 @@ export class DiagramService {
       this.state = {
         ...this.state,
         diagramStack: [...this.state.diagramStack, this.state.currentDiagram],
-        currentDiagram: node.innerDiagram
+        currentDiagram: this.allDiagrams.get(node.innerDiagram.id)!
       };
     }
   }
 
-  createInnerDiagram(nodeId: string): void {
+  createInnerDiagram(nodeId: string): Diagram {
+    this.allDiagrams.set(this.state.currentDiagram.id, this.state.currentDiagram);
     const newDiagram: Diagram = {
       id: this.generateId(),
       name: 'Inner Diagram',
@@ -82,12 +75,15 @@ export class DiagramService {
       attributes: {}
     };
 
+    this.allDiagrams.set(newDiagram.id, newDiagram);
     this.updateNode(nodeId, { innerDiagram: newDiagram });
+
+    return newDiagram;
   }
 
   goBack(): void {
     if (this.state.diagramStack.length > 0) {
-      const previousDiagram = this.state.diagramStack[this.state.diagramStack.length - 1];
+      const previousDiagram = this.allDiagrams.get(this.state.diagramStack[this.state.diagramStack.length - 1].id)!;
       this.state = {
         ...this.state,
         currentDiagram: previousDiagram,
@@ -110,13 +106,7 @@ export class DiagramService {
       attributes: {}
     };
 
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        nodes: [...this.state.currentDiagram.nodes, newNode]
-      }
-    };
+    this.state.currentDiagram.nodes.push(newNode);
   }
 
   // Bounding box operations
@@ -131,60 +121,30 @@ export class DiagramService {
       attributes: {}
     };
 
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        boundingBoxes: [...this.state.currentDiagram.boundingBoxes, newBoundingBox]
-      }
-    };
+    this.state.currentDiagram.boundingBoxes = [...this.state.currentDiagram.boundingBoxes, newBoundingBox];
   }
 
   updateBoundingBox(boundingBoxId: string, updates: Partial<import('../models/diagram.model').BoundingBox>): void {
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        boundingBoxes: this.state.currentDiagram.boundingBoxes.map(box =>
-          box.id === boundingBoxId ? { ...box, ...updates } : box
-        )
-      }
-    };
+    this.state.currentDiagram.boundingBoxes = this.state.currentDiagram.boundingBoxes.map(box =>
+      box.id === boundingBoxId ? { ...box, ...updates } : box
+    );
   }
 
   deleteBoundingBox(boundingBoxId: string): void {
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        boundingBoxes: this.state.currentDiagram.boundingBoxes.filter(box => box.id !== boundingBoxId)
-      }
-    };
+    this.state.currentDiagram.boundingBoxes = this.state.currentDiagram.boundingBoxes.filter(box => box.id !== boundingBoxId);
   }
 
   updateNode(nodeId: string, updates: Partial<Node>): void {
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        nodes: this.state.currentDiagram.nodes.map(node =>
-          node.id === nodeId ? { ...node, ...updates } : node
-        )
-      }
-    };
+    this.state.currentDiagram.nodes = this.state.currentDiagram.nodes.map(node =>
+      node.id === nodeId ? { ...node, ...updates } : node
+    );
   }
 
   deleteNode(nodeId: string): void {
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        nodes: this.state.currentDiagram.nodes.filter(node => node.id !== nodeId),
-        edges: this.state.currentDiagram.edges.filter(edge =>
-          edge.fromNodeId !== nodeId && edge.toNodeId !== nodeId
-        )
-      }
-    };
+    this.state.currentDiagram.nodes = this.state.currentDiagram.nodes.filter(node => node.id !== nodeId);
+    this.state.currentDiagram.edges = this.state.currentDiagram.edges.filter(edge =>
+      edge.fromNodeId !== nodeId && edge.toNodeId !== nodeId
+    );
   }
 
   // Tendril operations
@@ -222,18 +182,10 @@ export class DiagramService {
       this.updateNode(nodeId, {
         tendrils: node.tendrils.filter(t => t.id !== tendrilId)
       });
-
-      // Remove edges connected to this tendril
-      this.state = {
-        ...this.state,
-        currentDiagram: {
-          ...this.state.currentDiagram,
-          edges: this.state.currentDiagram.edges.filter(edge =>
-            !(edge.fromNodeId === nodeId && edge.fromTendrilId === tendrilId) &&
-            !(edge.toNodeId === nodeId && edge.toTendrilId === tendrilId)
-          )
-        }
-      };
+      this.state.currentDiagram.edges = this.state.currentDiagram.edges.filter(edge =>
+        !(edge.fromNodeId === nodeId && edge.fromTendrilId === tendrilId) &&
+        !(edge.toNodeId === nodeId && edge.toTendrilId === tendrilId)
+      );
     }
   }
 
@@ -252,24 +204,12 @@ export class DiagramService {
         attributes: {}
       };
 
-      this.state = {
-        ...this.state,
-        currentDiagram: {
-          ...this.state.currentDiagram,
-          edges: [...this.state.currentDiagram.edges, newEdge]
-        }
-      };
+      this.state.currentDiagram.edges.push(newEdge);
     }
   }
 
   deleteEdge(edgeId: string): void {
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        edges: this.state.currentDiagram.edges.filter(edge => edge.id !== edgeId)
-      }
-    };
+    this.state.currentDiagram.edges = this.state.currentDiagram.edges.filter(edge => edge.id !== edgeId);
   }
 
   // Utility methods
@@ -311,6 +251,7 @@ export class DiagramService {
   loadDiagram(jsonString: string): void {
     try {
       const diagram: Diagram = JSON.parse(jsonString);
+      this.allDiagrams.set(diagram.id, diagram);
       this.state = {
         ...this.state,
         currentDiagram: diagram,
@@ -361,53 +302,9 @@ export class DiagramService {
   }
 
   updateEdge(edgeId: string, updates: Partial<Edge>): void {
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        edges: this.state.currentDiagram.edges.map(edge =>
-          edge.id === edgeId ? { ...edge, ...updates } : edge
-        )
-      }
-    };
-  }
-
-  // Session storage methods
-  private saveToSession(rootDiagram: Diagram): void {
-    // Only save to session storage if we're in a browser environment
-    if (typeof window !== 'undefined' && window.sessionStorage) {
-      try {
-        // Recursively save all nested diagrams for session storage
-        const saveDiagramRecursively = (diagram: Diagram): Diagram => {
-          return {
-            ...diagram,
-            nodes: diagram.nodes.map(node => ({
-              ...node,
-              innerDiagram: node.innerDiagram ? saveDiagramRecursively(node.innerDiagram) : undefined
-            }))
-          };
-        };
-
-        const diagramToSave = saveDiagramRecursively(rootDiagram);
-        sessionStorage.setItem('diagram-app-data', JSON.stringify(diagramToSave));
-      } catch (error) {
-        console.warn('Failed to save to session storage:', error);
-      }
-    }
-  }
-
-  private loadFromSession(): Diagram | null {
-    // Only load from session storage if we're in a browser environment
-    if (typeof window !== 'undefined' && window.sessionStorage) {
-      try {
-        const data = sessionStorage.getItem('diagram-app-data');
-        return data ? JSON.parse(data) : null;
-      } catch (error) {
-        console.warn('Failed to load from session storage:', error);
-        return null;
-      }
-    }
-    return null;
+    this.state.currentDiagram.edges = this.state.currentDiagram.edges.map(edge =>
+      edge.id === edgeId ? { ...edge, ...updates } : edge
+    );
   }
 
   // Public getters

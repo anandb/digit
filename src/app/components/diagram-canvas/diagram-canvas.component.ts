@@ -25,6 +25,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private edgeStartTendrilId?: string;
   private tempEdgeEnd: Position = { x: 0, y: 0 };
 
+  // For Ctrl+click edge creation
+  private isCtrlEdgeMode = false;
+  private ctrlEdgeStartElementId?: string;
+
   // For resizing
   private isResizing = false;
   private resizeNodeId?: string;
@@ -232,7 +236,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Keyboard shortcuts for deletion
+  // Keyboard shortcuts for deletion and Ctrl key tracking
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Delete') {
@@ -255,6 +259,22 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         this.diagramService.deleteNode(selectedNodeId);
       }
     }
+
+    // Track Ctrl key for edge creation mode
+    if (event.key === 'Control') {
+      this.isCtrlEdgeMode = true;
+    }
+  }
+
+  @HostListener('document:keyup', ['$event'])
+  onKeyUp(event: KeyboardEvent): void {
+    if (event.key === 'Control') {
+      this.isCtrlEdgeMode = false;
+      // Cancel any pending Ctrl edge creation
+      if (this.ctrlEdgeStartElementId) {
+        this.ctrlEdgeStartElementId = undefined;
+      }
+    }
   }
 
   // Start resizing a node
@@ -272,10 +292,15 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.isResizing = true;
   }
 
-  // Node click to select
+  // Node click to select or start Ctrl edge creation
   onNodeClick(event: MouseEvent, node: Node): void {
     event.stopPropagation();
-    this.diagramService.selectNode(node.id);
+
+    if (this.isCtrlEdgeMode) {
+      this.handleCtrlClick(node.id);
+    } else {
+      this.diagramService.selectNode(node.id);
+    }
   }
 
   // Context menu for nodes
@@ -762,10 +787,15 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     element.style.transform = '';
   }
 
-  // SVG image click to select
+  // SVG image click to select or start Ctrl edge creation
   onSvgImageClick(event: MouseEvent, svgImage: SvgImage): void {
     event.stopPropagation();
-    this.diagramService.selectSvgImage(svgImage.id);
+
+    if (this.isCtrlEdgeMode) {
+      this.handleCtrlClick(`svg-${svgImage.id}`);
+    } else {
+      this.diagramService.selectSvgImage(svgImage.id);
+    }
   }
 
   // SVG image context menu
@@ -1049,5 +1079,93 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       'text': 'Text'
     };
     return shapeLabels[shape] || shape;
+  }
+
+  // Handle Ctrl+click edge creation
+  private handleCtrlClick(elementId: string): void {
+    if (!this.ctrlEdgeStartElementId) {
+      // Start edge creation - auto-create outgoing tendril
+      const outgoingTendrilId = this.autoCreateOutgoingTendril(elementId);
+      if (outgoingTendrilId) {
+        this.ctrlEdgeStartElementId = elementId;
+        this.edgeStartNodeId = elementId;
+        this.edgeStartTendrilId = outgoingTendrilId;
+        this.isCreatingEdge = true;
+      }
+    } else if (this.ctrlEdgeStartElementId !== elementId) {
+      // Complete edge creation - auto-create incoming tendril
+      const incomingTendrilId = this.autoCreateIncomingTendril(elementId);
+      if (incomingTendrilId) {
+        this.diagramService.addEdge(
+          this.edgeStartNodeId!,
+          this.edgeStartTendrilId!,
+          elementId,
+          incomingTendrilId
+        );
+      }
+      // Reset edge creation state
+      this.ctrlEdgeStartElementId = undefined;
+      this.edgeStartNodeId = undefined;
+      this.edgeStartTendrilId = undefined;
+      this.isCreatingEdge = false;
+    }
+  }
+
+  // Auto-create an outgoing tendril on an element
+  private autoCreateOutgoingTendril(elementId: string): string | null {
+    const element = this.getElementAny(elementId);
+    if (!element || !('tendrils' in element)) return null;
+
+    // Check if element already has an outgoing tendril
+    const existingOutgoing = element.tendrils.find(t => t.type === 'outgoing');
+    if (existingOutgoing) {
+      return existingOutgoing.id;
+    }
+
+    // Create new outgoing tendril using service method
+    const position = { x: element.size.width, y: element.size.height / 2 };
+
+    if (elementId.startsWith('svg-')) {
+      // It's an SVG image
+      const svgImageId = elementId.substring(4);
+      this.diagramService.addTendrilToSvgImage(svgImageId, 'outgoing', position);
+    } else {
+      // It's a node
+      this.diagramService.addTendril(elementId, 'outgoing', position);
+    }
+
+    // Return the ID of the newly created tendril
+    const updatedElement = this.getElementAny(elementId);
+    const newOutgoing = updatedElement?.tendrils.find(t => t.type === 'outgoing');
+    return newOutgoing?.id || null;
+  }
+
+  // Auto-create an incoming tendril on an element
+  private autoCreateIncomingTendril(elementId: string): string | null {
+    const element = this.getElementAny(elementId);
+    if (!element || !('tendrils' in element)) return null;
+
+    // Check if element already has an incoming tendril
+    const existingIncoming = element.tendrils.find(t => t.type === 'incoming');
+    if (existingIncoming) {
+      return existingIncoming.id;
+    }
+
+    // Create new incoming tendril using service method
+    const position = { x: 0, y: element.size.height / 2 };
+
+    if (elementId.startsWith('svg-')) {
+      // It's an SVG image
+      const svgImageId = elementId.substring(4);
+      this.diagramService.addTendrilToSvgImage(svgImageId, 'incoming', position);
+    } else {
+      // It's a node
+      this.diagramService.addTendril(elementId, 'incoming', position);
+    }
+
+    // Return the ID of the newly created tendril
+    const updatedElement = this.getElementAny(elementId);
+    const newIncoming = updatedElement?.tendrils.find(t => t.type === 'incoming');
+    return newIncoming?.id || null;
   }
 }

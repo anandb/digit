@@ -1030,4 +1030,24 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const radius = Math.min(node.size.width, node.size.height) / 3;
     return centerY + Math.sin(i * Math.PI / 3) * radius;
   }
+
+  getShapeTypeLabel(shape: string): string {
+    const shapeLabels: { [key: string]: string } = {
+      'circle': 'Circle',
+      'cylinder': 'Cylinder',
+      'diamond': 'Diamond',
+      'parallelogram': 'Para',
+      'document': 'Document',
+      'roundedRectangle': 'Round',
+      'hexagon': 'Hexagon',
+      'triangle': 'Triangle',
+      'trapezoid': 'Trap',
+      'stickman': 'Stickman',
+      'callout': 'Callout',
+      'tape': 'Tape',
+      'cube': 'Cube',
+      'text': 'Text'
+    };
+    return shapeLabels[shape] || shape;
+  }
 }

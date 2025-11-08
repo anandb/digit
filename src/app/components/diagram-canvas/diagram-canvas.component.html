@@ -593,15 +593,15 @@
         {{ node.name }}
       </text>
 
-      <!-- Shape type label (below shape) -->
+      <!-- Node name label (below shape) -->
       <text
         *ngIf="!['pill', 'rectangle', 'process'].includes(node.shape)"
         [attr.x]="node.position.x + node.size.width / 2"
         [attr.y]="node.position.y + node.size.height + 25"
         text-anchor="middle"
         dominant-baseline="hanging"
-        class="shape-type-label">
-        {{ getShapeTypeLabel(node.shape) }}
+        class="node-name-label">
+        {{ node.name }}
       </text>
 
       <!-- Tendrils -->

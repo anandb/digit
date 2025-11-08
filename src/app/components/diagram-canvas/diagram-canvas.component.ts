@@ -401,19 +401,33 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return Math.min(node.size.width, node.size.height) / 2;
   }
 
-  // Get triangle points for internal tendrils
-  getTendrilTrianglePoints(node: any, tendril: any): string {
-    const centerX = node.position.x + tendril.position.x;
-    const centerY = node.position.y + tendril.position.y;
-    const size = 6; // Same size as circle radius
+  // Get spring path for tendrils
+  getTendrilSpringPath(node: any, tendril: any): string {
+    const startX = node.position.x + tendril.position.x;
+    const startY = node.position.y + tendril.position.y;
+    const springLength = 20; // Length of the spring
+    const amplitude = 3; // Height of the waves
+    const segments = 4; // Number of wave segments
+
+    let path = `M ${startX} ${startY}`;
 
     if (tendril.type === 'incoming') {
-      // Triangle pointing right (for incoming tendrils on left side)
-      return `${centerX - size},${centerY - size} ${centerX - size},${centerY + size} ${centerX + size},${centerY}`;
+      // Spring extending to the left
+      for (let i = 1; i <= segments; i++) {
+        const x = startX - (springLength * i / segments);
+        const y = startY + (i % 2 === 0 ? amplitude : -amplitude);
+        path += ` Q ${startX - (springLength * (i - 0.5) / segments)} ${startY} ${x} ${y}`;
+      }
     } else {
-      // Triangle pointing left (for outgoing tendrils on right side)
-      return `${centerX + size},${centerY - size} ${centerX + size},${centerY + size} ${centerX - size},${centerY}`;
+      // Spring extending to the right
+      for (let i = 1; i <= segments; i++) {
+        const x = startX + (springLength * i / segments);
+        const y = startY + (i % 2 === 0 ? amplitude : -amplitude);
+        path += ` Q ${startX + (springLength * (i - 0.5) / segments)} ${startY} ${x} ${y}`;
+      }
     }
+
+    return path;
   }
 
   // Get Y position for node text based on shape
@@ -521,6 +535,16 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return {
       x: (start.x + end.x) / 2,
       y: (start.y + end.y) / 2
+    };
+  }
+
+  // Get position for edge label (offset from center for better visibility)
+  getEdgeLabelPosition(edge: Edge): Position {
+    const center = this.getEdgeCenter(edge);
+    // Offset the label 15 pixels above the edge center
+    return {
+      x: center.x,
+      y: center.y - 15
     };
   }
 

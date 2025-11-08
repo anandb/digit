@@ -84,8 +84,8 @@
       <!-- Edge name label -->
       <text
         *ngIf="edge.name"
-        [attr.x]="getEdgeCenter(edge).x"
-        [attr.y]="getEdgeCenter(edge).y"
+        [attr.x]="getEdgeLabelPosition(edge).x"
+        [attr.y]="getEdgeLabelPosition(edge).y"
         text-anchor="middle"
         dominant-baseline="middle"
         class="edge-name">
@@ -231,28 +231,16 @@
           (click)="onTendrilClick($event, node, tendril)"
           (contextmenu)="onTendrilContextMenu($event, node, tendril)">
 
-          <!-- Tendril shapes -->
-          <circle
-            *ngIf="tendril.exposed"
-            [attr.cx]="node.position.x + tendril.position.x"
-            [attr.cy]="node.position.y + tendril.position.y"
-            r="6"
-            [attr.fill]="tendril.type === 'incoming' ? '#4CAF50' : '#FF5722'"
-            [attr.stroke]="tendril.borderColor"
+          <!-- Tendril spring shapes -->
+          <path
+            *ngIf="!hasEdgeName(node.id, tendril.id)"
+            [attr.d]="getTendrilSpringPath(node, tendril)"
+            [attr.stroke]="tendril.type === 'incoming' ? '#4CAF50' : '#FF5722'"
             [attr.stroke-width]="tendril.borderThickness"
+            fill="none"
             [attr.title]="tendril.type === 'incoming' ? 'Incoming Tendril' : 'Outgoing Tendril'"
             class="tendril">
-          </circle>
-
-          <polygon
-            *ngIf="!tendril.exposed"
-            [attr.points]="getTendrilTrianglePoints(node, tendril)"
-            [attr.fill]="tendril.type === 'incoming' ? '#4CAF50' : '#FF5722'"
-            [attr.stroke]="tendril.borderColor"
-            [attr.stroke-width]="tendril.borderThickness"
-            [attr.title]="tendril.type === 'incoming' ? 'Incoming Tendril (Internal)' : 'Outgoing Tendril (Internal)'"
-            class="tendril">
-          </polygon>
+          </path>
 
           <!-- Tendril name - only show if no connected edge has a name -->
           <text

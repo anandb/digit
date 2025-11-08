@@ -151,7 +151,7 @@ export class DiagramService {
   addTendril(nodeId: string, type: 'incoming' | 'outgoing', position: Position): void {
     const newTendril: Tendril = {
       id: this.generateId(),
-      name: 'New Tendril',
+      name: type === 'incoming' ? 'Incoming Tendril' : 'Outgoing Tendril',
       position,
       type,
       exposed: false,

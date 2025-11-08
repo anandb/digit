@@ -227,9 +227,19 @@
       <g class="tendrils">
         <g
           *ngFor="let tendril of node.tendrils"
-          class="tendril-group"
-          (click)="onTendrilClick($event, node, tendril)"
-          (contextmenu)="onTendrilContextMenu($event, node, tendril)">
+          class="tendril-group">
+
+          <!-- Invisible larger click area -->
+          <rect
+            [attr.x]="tendril.type === 'incoming' ? node.position.x + tendril.position.x - 15 : node.position.x + tendril.position.x - 5"
+            [attr.y]="node.position.y + tendril.position.y - 10"
+            [attr.width]="tendril.type === 'incoming' ? 25 : 25"
+            [attr.height]="20"
+            fill="transparent"
+            (click)="onTendrilClick($event, node, tendril)"
+            (contextmenu)="onTendrilContextMenu($event, node, tendril)"
+            class="tendril-click-area">
+          </rect>
 
           <!-- Tendril spring shapes -->
           <path

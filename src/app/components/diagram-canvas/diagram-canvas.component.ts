@@ -239,12 +239,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // TODO: Show context menu
   }
 
-  // Context menu for tendrils
+  // Context menu for tendrils - now selects immediately
   onTendrilContextMenu(event: MouseEvent, node: Node, tendril: Tendril): void {
     event.preventDefault();
     event.stopPropagation();
     this.diagramService.selectTendril(node.id, tendril.id);
-    // TODO: Show context menu
   }
 
   // Bounding box click to select

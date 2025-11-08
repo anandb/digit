@@ -70,35 +70,38 @@
             [class.active]="getSelectedNodeShape() === 'rectangle'"
             class="shape-btn"
             title="Rectangle - Process/Action">
-            ▶️
+            <div class="shape-icon">▶️</div>
           </button>
           <button
             (click)="setNodeShape('circle')"
             [class.active]="getSelectedNodeShape() === 'circle'"
             class="shape-btn"
             title="Circle - Start/End">
-            🔄
+            <div class="shape-icon">🔄</div>
+            <div class="shape-label">Circle</div>
           </button>
           <button
             (click)="setNodeShape('pill')"
             [class.active]="getSelectedNodeShape() === 'pill'"
             class="shape-btn"
             title="Pill - Input/Output">
-            📥
+            <div class="shape-icon">📥</div>
           </button>
           <button
             (click)="setNodeShape('cylinder')"
             [class.active]="getSelectedNodeShape() === 'cylinder'"
             class="shape-btn"
             title="Cylinder - Database">
-            🗂️
+            <div class="shape-icon">🗂️</div>
+            <div class="shape-label">Cylinder</div>
           </button>
           <button
             (click)="setNodeShape('diamond')"
             [class.active]="getSelectedNodeShape() === 'diamond'"
             class="shape-btn"
             title="Diamond - Decision">
-            ❓
+            <div class="shape-icon">❓</div>
+            <div class="shape-label">Diamond</div>
           </button>
         </div>
         <div class="shape-row">
@@ -107,35 +110,40 @@
             [class.active]="getSelectedNodeShape() === 'parallelogram'"
             class="shape-btn"
             title="Parallelogram - Input/Output">
-            📤
+            <div class="shape-icon">📤</div>
+            <div class="shape-label">Para</div>
           </button>
           <button
             (click)="setNodeShape('document')"
             [class.active]="getSelectedNodeShape() === 'document'"
             class="shape-btn"
             title="Document - Document">
-            📋
+            <div class="shape-icon">📋</div>
+            <div class="shape-label">Document</div>
           </button>
           <button
             (click)="setNodeShape('roundedRectangle')"
             [class.active]="getSelectedNodeShape() === 'roundedRectangle'"
             class="shape-btn"
             title="Rounded Rectangle - Process">
-            📦
+            <div class="shape-icon">📦</div>
+            <div class="shape-label">Round</div>
           </button>
           <button
             (click)="setNodeShape('hexagon')"
             [class.active]="getSelectedNodeShape() === 'hexagon'"
             class="shape-btn"
             title="Hexagon - Preparation">
-            🔧
+            <div class="shape-icon">🔧</div>
+            <div class="shape-label">Hexagon</div>
           </button>
           <button
             (click)="setNodeShape('triangle')"
             [class.active]="getSelectedNodeShape() === 'triangle'"
             class="shape-btn"
             title="Triangle - Manual Operation">
-            👤
+            <div class="shape-icon">👤</div>
+            <div class="shape-label">Triangle</div>
           </button>
         </div>
         <div class="shape-row">
@@ -144,35 +152,40 @@
             [class.active]="getSelectedNodeShape() === 'trapezoid'"
             class="shape-btn"
             title="Trapezoid - Manual Input">
-            🔺
+            <div class="shape-icon">🔺</div>
+            <div class="shape-label">Trap</div>
           </button>
           <button
             (click)="setNodeShape('stickman')"
             [class.active]="getSelectedNodeShape() === 'stickman'"
             class="shape-btn"
             title="Stickman - Person/Actor">
-            🧑
+            <div class="shape-icon">🧑</div>
+            <div class="shape-label">Stickman</div>
           </button>
           <button
             (click)="setNodeShape('callout')"
             [class.active]="getSelectedNodeShape() === 'callout'"
             class="shape-btn"
             title="Callout - Speech Bubble">
-            💬
+            <div class="shape-icon">💬</div>
+            <div class="shape-label">Callout</div>
           </button>
           <button
             (click)="setNodeShape('process')"
             [class.active]="getSelectedNodeShape() === 'process'"
             class="shape-btn"
             title="Process - Emphasized Process">
-            ⚙️
+            <div class="shape-icon">⚙️</div>
+            <div class="shape-label">Process</div>
           </button>
           <button
             (click)="setNodeShape('tape')"
             [class.active]="getSelectedNodeShape() === 'tape'"
             class="shape-btn"
             title="Tape - Magnetic Tape">
-            📼
+            <div class="shape-icon">📼</div>
+            <div class="shape-label">Tape</div>
           </button>
         </div>
         <div class="shape-row">
@@ -181,14 +194,16 @@
             [class.active]="getSelectedNodeShape() === 'cube'"
             class="shape-btn"
             title="Cube - 3D Object">
-            🧊
+            <div class="shape-icon">🧊</div>
+            <div class="shape-label">Cube</div>
           </button>
           <button
             (click)="setNodeShape('text')"
             [class.active]="getSelectedNodeShape() === 'text'"
             class="shape-btn"
             title="Text - Plain Text Label">
-            ✏️
+            <div class="shape-icon">✏️</div>
+            <div class="shape-label">Text</div>
           </button>
         </div>
       </div>

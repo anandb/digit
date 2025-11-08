@@ -389,7 +389,20 @@ export class DiagramService {
   loadDiagram(jsonString: string): void {
     try {
       const diagram: Diagram = JSON.parse(jsonString);
-      this.allDiagrams.set(diagram.id, diagram);
+
+      // Recursively store all diagrams in the allDiagrams map
+      const storeDiagramsRecursively = (diag: Diagram): void => {
+        this.allDiagrams.set(diag.id, diag);
+        // Store nested diagrams
+        diag.nodes.forEach(node => {
+          if (node.innerDiagram) {
+            storeDiagramsRecursively(node.innerDiagram);
+          }
+        });
+      };
+
+      storeDiagramsRecursively(diagram);
+
       this.state = {
         ...this.state,
         currentDiagram: diagram,

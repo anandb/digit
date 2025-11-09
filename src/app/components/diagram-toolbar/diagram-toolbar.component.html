@@ -212,6 +212,28 @@
       </div>
     </div>
 
+    <div class="border-style-control" *ngIf="selectedElement && isNode(selectedElement)">
+      <label>BORDER STYLE:</label>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input
+            type="radio"
+            [checked]="!getSelectedElementDotted()"
+            (change)="setElementDotted(false)"
+            name="element-dotted">
+          Solid
+        </label>
+        <label class="radio-label">
+          <input
+            type="radio"
+            [checked]="getSelectedElementDotted()"
+            (change)="setElementDotted(true)"
+            name="element-dotted">
+          Dotted
+        </label>
+      </div>
+    </div>
+
     <div class="color-controls" *ngIf="selectedElement && isNode(selectedElement)">
       <label>FILL COLOR:</label>
       <input

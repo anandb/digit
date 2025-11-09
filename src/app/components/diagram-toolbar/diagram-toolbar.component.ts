@@ -282,6 +282,14 @@ export class DiagramToolbarComponent {
     return 'rectangle';
   }
 
+  getSelectedElementDotted(): boolean {
+    const element = this.selectedElement;
+    if (element && isNode(element)) {
+      return element.dotted || false;
+    }
+    return false;
+  }
+
   // Unified element update methods
   updateElementName(event: Event): void {
     const elementId = this.selectedElementId;
@@ -326,6 +334,13 @@ export class DiagramToolbarComponent {
     const elementId = this.selectedElementId;
     if (elementId) {
       this.diagramService.updateElement(elementId, { shape: shape as any });
+    }
+  }
+
+  setElementDotted(dotted: boolean): void {
+    const elementId = this.selectedElementId;
+    if (elementId) {
+      this.diagramService.updateElement(elementId, { dotted });
     }
   }
 

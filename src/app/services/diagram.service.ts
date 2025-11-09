@@ -132,7 +132,8 @@ export class DiagramService {
       notes: '',
       shape: 'rectangle',
       borderColor: '#000000',
-      fillColor: '#ffffff'
+      fillColor: '#ffffff',
+      dotted: false
     };
 
     console.log(this.state);

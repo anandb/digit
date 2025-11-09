@@ -41,6 +41,7 @@ export interface Node extends DiagramElement {
   borderColor: string;
   fillColor: string;
   innerDiagram?: Diagram;
+  dotted: boolean;
 }
 
 export interface Edge extends HasNotes {

@@ -134,6 +134,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">

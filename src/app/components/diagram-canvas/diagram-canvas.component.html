@@ -139,11 +139,11 @@
             [attr.fill]="tendril.type === 'incoming' ? '#4CAF50' : '#FF5722'"
             [attr.stroke]="'#ffffff'"
             stroke-width="1"
-            [attr.title]="getTendrilTooltip(svgImage.id, tendril.id)"
             class="tendril"
             (click)="onSvgTendrilClick($event, svgImage, tendril)"
             (contextmenu)="onSvgTendrilContextMenu($event, svgImage, tendril)"
             style="cursor: pointer;">
+            <title>{{ getTendrilTooltip(svgImage.id, tendril.id) }}</title>
           </circle>
 
           <!-- Tendril name - only hide when there's an edge name -->
@@ -624,11 +624,11 @@
             [attr.fill]="tendril.type === 'incoming' ? '#4CAF50' : '#FF5722'"
             [attr.stroke]="'#ffffff'"
             stroke-width="1"
-            [attr.title]="getTendrilTooltip(node.id, tendril.id)"
             class="tendril"
             (click)="onTendrilClick($event, node, tendril)"
             (contextmenu)="onTendrilContextMenu($event, node, tendril)"
             style="cursor: pointer;">
+            <title>{{ getTendrilTooltip(node.id, tendril.id) }}</title>
           </circle>
 
           <!-- Tendril name - only hide when there's an edge name -->
@@ -670,11 +670,11 @@
               [attr.fill]="tendril.type === 'incoming' ? '#4CAF50' : '#FF5722'"
               [attr.stroke]="'#ffffff'"
               stroke-width="1"
-              [attr.title]="getPropagatedTendrilTooltip(node.id, tendril.id)"
               class="propagated-tendril"
               (click)="onPropagatedTendrilClick($event, node, tendril)"
               (contextmenu)="onPropagatedTendrilContextMenu($event, node, tendril)"
               style="cursor: pointer;">
+              <title>{{ getPropagatedTendrilTooltip(node.id, tendril.id) }}</title>
             </circle>
 
             <!-- Tendril name - only hide when there's an edge name -->

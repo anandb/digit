@@ -18,6 +18,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   state!: DiagramState;
   private subscription!: Subscription;
+  private forceUpdate = 0; // Used to force re-rendering of edge paths
 
   // For edge creation
   isCreatingEdge = false;
@@ -1622,9 +1623,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       position: constrainedPosition
     });
 
-    // Force re-render by triggering change detection
-    // This ensures edges are redrawn with the new tendril positions
-    this.state = { ...this.state };
+    // Force re-render of edge paths by incrementing forceUpdate
+    this.forceUpdate++;
   }
 
   // Constrain a point to the border of a rectangular element

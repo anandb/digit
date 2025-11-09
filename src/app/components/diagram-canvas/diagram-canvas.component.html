@@ -695,7 +695,7 @@
       <!-- For labeled edges, render two path segments with a gap -->
       <ng-container *ngIf="edge.name && getEdgePathSegments(edge) as segments">
         <path
-          [attr.d]="segments.first"
+          [attr.d]="segments.first + forceUpdate"
           class="edge"
           [class.selected]="isSelected('edge', edge.id)"
           stroke="#666"
@@ -704,7 +704,7 @@
           (click)="onEdgeClick($event, edge)">
         </path>
         <path
-          [attr.d]="segments.second"
+          [attr.d]="segments.second + forceUpdate"
           class="edge"
           [class.selected]="isSelected('edge', edge.id)"
           stroke="#666"

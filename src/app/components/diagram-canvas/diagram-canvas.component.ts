@@ -1416,4 +1416,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   isNode(element: DiagramElement): boolean {
     return isNode(element);
   }
+
+  // Navigation methods
+  canGoBack(): boolean {
+    return this.state.diagramStack.length > 0;
+  }
+
+  goBack(): void {
+    this.diagramService.goBack();
+  }
 }

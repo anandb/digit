@@ -3,7 +3,33 @@
   top: 10px
   right: 10px
   z-index: 100
-  pointer-events: none
+  display: flex
+  align-items: center
+  gap: 8px
+
+  .back-btn
+    background: linear-gradient(145deg, #5a6268, #868e96)
+    border: none
+    border-radius: 6px
+    width: 32px
+    height: 32px
+    color: white
+    font-size: 16px
+    font-weight: bold
+    cursor: pointer
+    display: flex
+    align-items: center
+    justify-content: center
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)
+    transition: all 0.2s ease
+    pointer-events: all
+
+    &:hover
+      background: linear-gradient(145deg, #495057, #6c757d)
+      transform: scale(1.05)
+
+    &:active
+      transform: scale(0.95)
 
   .diagram-title
     background-color: rgba(255, 255, 255, 0.9)
@@ -19,6 +45,7 @@
     max-width: 200px
     overflow: hidden
     text-overflow: ellipsis
+    pointer-events: none
 
 .canvas-container
   width: 100%

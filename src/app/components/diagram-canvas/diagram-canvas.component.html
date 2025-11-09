@@ -1,6 +1,7 @@
 <div class="canvas-container">
   <!-- Diagram Title Header -->
   <div class="diagram-header">
+    <button *ngIf="canGoBack" (click)="goBack()" class="back-btn" title="Go Back to Parent Diagram">⬆️</button>
     <div class="diagram-title">
       {{ getCurrentDiagramTitle() }}
     </div>

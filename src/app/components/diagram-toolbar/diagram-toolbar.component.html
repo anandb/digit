@@ -1,7 +1,7 @@
 <div class="toolbar" [class.collapsed]="isCollapsed" [style.width.px]="isCollapsed ? 50 : sidebarWidth">
   <div class="toolbar-header">
     <button (click)="toggleSidebar()" class="sidebar-toggle" [title]="isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
-      {{ isCollapsed ? '▶' : '◀' }}
+      {{ isCollapsed ? '»' : '«' }}
     </button>
   </div>
 
@@ -23,7 +23,6 @@
       <h3>Diagram Actions</h3>
       <div class="action-buttons">
         <button (click)="newDiagram()" class="btn action-btn" title="New Diagram">🆕</button>
-        <button *ngIf="canGoBack" (click)="goBack()" class="btn action-btn" title="Go Back">⬅️</button>
         <button (click)="saveDiagram()" class="btn action-btn" title="Save Diagram">💾</button>
         <input
           type="file"
@@ -33,15 +32,15 @@
           #fileInput>
         <button (click)="fileInput.click()" class="btn action-btn" title="Load Diagram">📁</button>
         <button (click)="exportToSvg()" class="btn action-btn" title="Export to SVG">📤</button>
-        <button (click)="addNewNode()" class="btn btn-primary action-btn" title="Add Node">➕</button>
-        <button (click)="addNewBoundingBox()" class="btn action-btn" title="Add Bounding Box">▭</button>
+        <button (click)="addNewNode()" class="btn btn-light-grey action-btn" title="Add Node">➕</button>
+        <button (click)="addNewBoundingBox()" class="btn btn-light-grey action-btn" title="Add Bounding Box">▭</button>
         <input
           type="file"
           accept=".svg"
           (change)="loadSvgImage($event)"
           style="display: none"
           #svgInput>
-        <button (click)="svgInput.click()" class="btn action-btn" title="Load SVG Image">🖼️</button>
+        <button (click)="svgInput.click()" class="btn btn-light-grey action-btn" title="Load SVG Image">🖼️</button>
       </div>
     </div>
 

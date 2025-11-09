@@ -872,21 +872,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const spacing = newHeight / (incomingTendrils.length + 1);
       const y = spacing * (index + 1); // Distribute evenly
 
-      if (isSvgImage(element)) {
-        this.diagramService.updateSvgTendril(elementId, tendril.id, {
-          position: {
-            x: 0, // Left border
-            y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
-          }
-        });
-      } else {
-        this.diagramService.updateTendril(elementId, tendril.id, {
-          position: {
-            x: 0, // Left border
-            y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
-          }
-        });
-      }
+      this.diagramService.updateTendril(elementId, tendril.id, {
+        position: {
+          x: 0, // Left border
+          y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
+        }
+      });
     });
 
     // Reposition outgoing tendrils along right edge
@@ -894,21 +885,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const spacing = newHeight / (outgoingTendrils.length + 1);
       const y = spacing * (index + 1); // Distribute evenly
 
-      if (isSvgImage(element)) {
-        this.diagramService.updateSvgTendril(elementId, tendril.id, {
-          position: {
-            x: newWidth, // Right border
-            y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
-          }
-        });
-      } else {
-        this.diagramService.updateTendril(elementId, tendril.id, {
-          position: {
-            x: newWidth, // Right border
-            y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
-          }
-        });
-      }
+      this.diagramService.updateTendril(elementId, tendril.id, {
+        position: {
+          x: newWidth, // Right border
+          y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
+        }
+      });
     });
   }
 
@@ -1396,14 +1378,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Create new outgoing tendril using service method
     const position = { x: element.size.width, y: element.size.height / 2 };
 
-    if (elementId.startsWith('svg-')) {
-      // It's an SVG image
-      const svgImageId = elementId.substring(4);
-      this.diagramService.addTendrilToSvgImage(svgImageId, 'outgoing', position);
-    } else {
-      // It's a node
-      this.diagramService.addTendril(elementId, 'outgoing', position);
-    }
+    this.diagramService.addTendril(elementId, 'outgoing', position);
 
     // Return the ID of the newly created tendril
     const updatedElement = this.getElementAny(elementId);
@@ -1425,14 +1400,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Create new incoming tendril using service method
     const position = { x: 0, y: element.size.height / 2 };
 
-    if (elementId.startsWith('svg-')) {
-      // It's an SVG image
-      const svgImageId = elementId.substring(4);
-      this.diagramService.addTendrilToSvgImage(svgImageId, 'incoming', position);
-    } else {
-      // It's a node
-      this.diagramService.addTendril(elementId, 'incoming', position);
-    }
+    this.diagramService.addTendril(elementId, 'incoming', position);
 
     // Return the ID of the newly created tendril
     const updatedElement = this.getElementAny(elementId);

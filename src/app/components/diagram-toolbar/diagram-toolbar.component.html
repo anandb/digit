@@ -6,7 +6,7 @@
   </div>
 
   <div class="toolbar-content" [class.collapsed]="isCollapsed">
-    <div class="toolbar-section" *ngIf="!selectedNodeId && !selectedBoundingBoxId && !selectedTendrilId && !selectedEdgeId && !selectedSvgImageId">
+    <div class="toolbar-section" *ngIf="!selectedElementId && !selectedBoundingBoxId && !selectedTendrilId && !selectedEdgeId">
       <h3>Diagram Properties</h3>
       <div class="name-control">
         <label>Diagram Name:</label>
@@ -45,61 +45,61 @@
       </div>
     </div>
 
-    <div class="toolbar-section" *ngIf="selectedNodeId">
-    <h3>Node Actions</h3>
+    <div class="toolbar-section" *ngIf="selectedElementId">
+    <h3>Element Actions</h3>
     <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
     <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
-    <button (click)="deleteSelectedNode()" class="btn btn-danger">🗑️ Delete Node</button>
+    <button (click)="deleteSelectedNode()" class="btn btn-danger">🗑️ Delete Element</button>
 
     <div class="name-control">
-      <label>Node Name:</label>
+      <label>Element Name:</label>
       <input
         type="text"
-        [value]="getSelectedNodeName()"
-        (input)="updateNodeName($event)"
-        placeholder="Enter node name..."
+        [value]="getSelectedElementName()"
+        (input)="updateElementName($event)"
+        placeholder="Enter element name..."
         class="name-input">
     </div>
 
-    <div class="shape-control">
+    <div class="shape-control" *ngIf="selectedElement && isNode(selectedElement)">
       <label>Shape:</label>
       <div class="shape-buttons-grid">
         <div class="shape-row">
           <button
-            (click)="setNodeShape('rectangle')"
-            [class.active]="getSelectedNodeShape() === 'rectangle'"
+            (click)="setElementShape('rectangle')"
+            [class.active]="getSelectedElementShape() === 'rectangle'"
             class="shape-btn"
             title="Rectangle - Process/Action">
             <div class="shape-icon">▶️</div>
             <div class="shape-label">Rect</div>
           </button>
           <button
-            (click)="setNodeShape('circle')"
-            [class.active]="getSelectedNodeShape() === 'circle'"
+            (click)="setElementShape('circle')"
+            [class.active]="getSelectedElementShape() === 'circle'"
             class="shape-btn"
             title="Circle - Start/End">
             <div class="shape-icon">🔄</div>
             <div class="shape-label">Circle</div>
           </button>
           <button
-            (click)="setNodeShape('pill')"
-            [class.active]="getSelectedNodeShape() === 'pill'"
+            (click)="setElementShape('pill')"
+            [class.active]="getSelectedElementShape() === 'pill'"
             class="shape-btn"
             title="Pill - Input/Output">
             <div class="shape-icon">📥</div>
             <div class="shape-label">Pill</div>
           </button>
           <button
-            (click)="setNodeShape('cylinder')"
-            [class.active]="getSelectedNodeShape() === 'cylinder'"
+            (click)="setElementShape('cylinder')"
+            [class.active]="getSelectedElementShape() === 'cylinder'"
             class="shape-btn"
             title="Cylinder - Database">
             <div class="shape-icon">🗂️</div>
             <div class="shape-label">Cylinder</div>
           </button>
           <button
-            (click)="setNodeShape('diamond')"
-            [class.active]="getSelectedNodeShape() === 'diamond'"
+            (click)="setElementShape('diamond')"
+            [class.active]="getSelectedElementShape() === 'diamond'"
             class="shape-btn"
             title="Diamond - Decision">
             <div class="shape-icon">❓</div>
@@ -108,40 +108,40 @@
         </div>
         <div class="shape-row">
           <button
-            (click)="setNodeShape('parallelogram')"
-            [class.active]="getSelectedNodeShape() === 'parallelogram'"
+            (click)="setElementShape('parallelogram')"
+            [class.active]="getSelectedElementShape() === 'parallelogram'"
             class="shape-btn"
             title="Parallelogram - Input/Output">
             <div class="shape-icon">📤</div>
             <div class="shape-label">Para</div>
           </button>
           <button
-            (click)="setNodeShape('document')"
-            [class.active]="getSelectedNodeShape() === 'document'"
+            (click)="setElementShape('document')"
+            [class.active]="getSelectedElementShape() === 'document'"
             class="shape-btn"
             title="Document - Document">
             <div class="shape-icon">📋</div>
             <div class="shape-label">Document</div>
           </button>
           <button
-            (click)="setNodeShape('roundedRectangle')"
-            [class.active]="getSelectedNodeShape() === 'roundedRectangle'"
+            (click)="setElementShape('roundedRectangle')"
+            [class.active]="getSelectedElementShape() === 'roundedRectangle'"
             class="shape-btn"
             title="Rounded Rectangle - Process">
             <div class="shape-icon">📦</div>
             <div class="shape-label">Round</div>
           </button>
           <button
-            (click)="setNodeShape('hexagon')"
-            [class.active]="getSelectedNodeShape() === 'hexagon'"
+            (click)="setElementShape('hexagon')"
+            [class.active]="getSelectedElementShape() === 'hexagon'"
             class="shape-btn"
             title="Hexagon - Preparation">
             <div class="shape-icon">🔧</div>
             <div class="shape-label">Hexagon</div>
           </button>
           <button
-            (click)="setNodeShape('triangle')"
-            [class.active]="getSelectedNodeShape() === 'triangle'"
+            (click)="setElementShape('triangle')"
+            [class.active]="getSelectedElementShape() === 'triangle'"
             class="shape-btn"
             title="Triangle - Manual Operation">
             <div class="shape-icon">👤</div>
@@ -150,40 +150,40 @@
         </div>
         <div class="shape-row">
           <button
-            (click)="setNodeShape('trapezoid')"
-            [class.active]="getSelectedNodeShape() === 'trapezoid'"
+            (click)="setElementShape('trapezoid')"
+            [class.active]="getSelectedElementShape() === 'trapezoid'"
             class="shape-btn"
             title="Trapezoid - Manual Input">
             <div class="shape-icon">🔺</div>
             <div class="shape-label">Trap</div>
           </button>
           <button
-            (click)="setNodeShape('stickman')"
-            [class.active]="getSelectedNodeShape() === 'stickman'"
+            (click)="setElementShape('stickman')"
+            [class.active]="getSelectedElementShape() === 'stickman'"
             class="shape-btn"
             title="Stickman - Person/Actor">
             <div class="shape-icon">🧑</div>
             <div class="shape-label">Stickman</div>
           </button>
           <button
-            (click)="setNodeShape('callout')"
-            [class.active]="getSelectedNodeShape() === 'callout'"
+            (click)="setElementShape('callout')"
+            [class.active]="getSelectedElementShape() === 'callout'"
             class="shape-btn"
             title="Callout - Speech Bubble">
             <div class="shape-icon">💬</div>
             <div class="shape-label">Callout</div>
           </button>
           <button
-            (click)="setNodeShape('process')"
-            [class.active]="getSelectedNodeShape() === 'process'"
+            (click)="setElementShape('process')"
+            [class.active]="getSelectedElementShape() === 'process'"
             class="shape-btn"
             title="Process - Emphasized Process">
             <div class="shape-icon">⚙️</div>
             <div class="shape-label">Process</div>
           </button>
           <button
-            (click)="setNodeShape('tape')"
-            [class.active]="getSelectedNodeShape() === 'tape'"
+            (click)="setElementShape('tape')"
+            [class.active]="getSelectedElementShape() === 'tape'"
             class="shape-btn"
             title="Tape - Magnetic Tape">
             <div class="shape-icon">📼</div>
@@ -192,16 +192,16 @@
         </div>
         <div class="shape-row">
           <button
-            (click)="setNodeShape('cube')"
-            [class.active]="getSelectedNodeShape() === 'cube'"
+            (click)="setElementShape('cube')"
+            [class.active]="getSelectedElementShape() === 'cube'"
             class="shape-btn"
             title="Cube - 3D Object">
             <div class="shape-icon">🧊</div>
             <div class="shape-label">Cube</div>
           </button>
           <button
-            (click)="setNodeShape('text')"
-            [class.active]="getSelectedNodeShape() === 'text'"
+            (click)="setElementShape('text')"
+            [class.active]="getSelectedElementShape() === 'text'"
             class="shape-btn"
             title="Text - Plain Text Label">
             <div class="shape-icon">✏️</div>
@@ -211,19 +211,19 @@
       </div>
     </div>
 
-    <div class="color-controls">
+    <div class="color-controls" *ngIf="selectedElement && isNode(selectedElement)">
       <label>Fill Color:</label>
       <input
         type="color"
-        [value]="getSelectedNodeFillColor()"
-        (change)="updateNodeFillColor($event)"
+        [value]="getSelectedElementFillColor()"
+        (change)="updateElementFillColor($event)"
         class="color-input">
 
       <label>Border Color:</label>
       <input
         type="color"
-        [value]="getSelectedNodeBorderColor()"
-        (change)="updateNodeBorderColor($event)"
+        [value]="getSelectedElementBorderColor()"
+        (change)="updateElementBorderColor($event)"
         class="color-input">
     </div>
 
@@ -239,9 +239,9 @@
       <div class="accordion-content" [class.expanded]="notesExpanded">
         <div class="notes-control">
           <textarea
-            [value]="getSelectedNodeNotes()"
-            (input)="updateNodeNotes($event)"
-            placeholder="Enter notes for this node..."
+            [value]="getSelectedElementNotes()"
+            (input)="updateElementNotes($event)"
+            placeholder="Enter notes for this element..."
             class="notes-textarea"
             rows="4">
           </textarea>
@@ -281,44 +281,7 @@
     <button (click)="deleteSelectedBoundingBox()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Bounding Box</button>
   </div>
 
-  <div class="toolbar-section" *ngIf="selectedSvgImageId">
-    <h3>SVG Image Actions</h3>
-    <div class="name-control">
-      <label>Label:</label>
-      <input
-        type="text"
-        [value]="getSelectedSvgImageLabel()"
-        (input)="updateSvgImageLabel($event)"
-        placeholder="Enter SVG label..."
-        class="name-input">
-    </div>
-    <div class="action-buttons">
-      <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
-      <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
-    </div>
 
-    <div class="accordion-section">
-      <button
-        type="button"
-        class="accordion-header"
-        (click)="svgNotesExpanded = !svgNotesExpanded"
-        [class.expanded]="svgNotesExpanded">
-        <span class="accordion-icon">{{ svgNotesExpanded ? '▼' : '▶' }}</span>
-        <span class="accordion-title">Notes</span>
-      </button>
-      <div class="accordion-content" [class.expanded]="svgNotesExpanded">
-        <div class="notes-control">
-          <textarea
-            [value]="getSelectedSvgImageNotes()"
-            (input)="updateSvgImageNotes($event)"
-            placeholder="Enter notes for this SVG image..."
-            class="notes-textarea"
-            rows="4">
-          </textarea>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <div class="toolbar-section" *ngIf="selectedTendrilId">
     <h3>Tendril Actions</h3>

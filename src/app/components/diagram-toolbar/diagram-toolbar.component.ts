@@ -211,6 +211,15 @@ export class DiagramToolbarComponent {
     }
   }
 
+  get selectedElementId(): string | undefined {
+    return this.diagramService.currentState.selectedNodeId || this.diagramService.currentState.selectedSvgImageId;
+  }
+
+  get selectedElement(): DiagramElement | undefined {
+    const elementId = this.selectedElementId;
+    return elementId ? this.diagramService.getElement(elementId) : undefined;
+  }
+
   get selectedNodeId(): string | undefined {
     return this.diagramService.currentState.selectedNodeId;
   }
@@ -231,88 +240,134 @@ export class DiagramToolbarComponent {
     return this.diagramService.currentState.selectedEdgeId;
   }
 
-  getSelectedNodeFillColor(): string {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const node = this.diagramService.getNode(selectedNodeId);
-      return node?.fillColor || '#ffffff';
+  // Unified element getter methods
+  getSelectedElementName(): string {
+    const element = this.selectedElement;
+    if (element) {
+      if (isNode(element)) {
+        return element.name || '';
+      } else if (isSvgImage(element)) {
+        return element.label || '';
+      }
+    }
+    return '';
+  }
+
+  getSelectedElementNotes(): string {
+    const element = this.selectedElement;
+    return element?.notes ?? '';
+  }
+
+  getSelectedElementFillColor(): string {
+    const element = this.selectedElement;
+    if (element && isNode(element)) {
+      return element.fillColor || '#ffffff';
     }
     return '#ffffff';
   }
 
-  getSelectedNodeBorderColor(): string {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const node = this.diagramService.getNode(selectedNodeId);
-      return node?.borderColor || '#000000';
+  getSelectedElementBorderColor(): string {
+    const element = this.selectedElement;
+    if (element && isNode(element)) {
+      return element.borderColor || '#000000';
     }
     return '#000000';
   }
 
-  updateNodeFillColor(event: Event): void {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateNode(selectedNodeId, { fillColor: target.value });
-    }
-  }
-
-  updateNodeBorderColor(event: Event): void {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateNode(selectedNodeId, { borderColor: target.value });
-    }
-  }
-
-  getSelectedNodeNotes(): string {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const node = this.diagramService.getNode(selectedNodeId);
-      return node?.notes ?? '';
-    }
-    return '';
-  }
-
-  updateNodeNotes(event: Event): void {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const target = event.target as HTMLTextAreaElement;
-      this.diagramService.updateNode(selectedNodeId, { notes: target.value });
-    }
-  }
-
-  getSelectedNodeName(): string {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const node = this.diagramService.getNode(selectedNodeId);
-      return node?.name || '';
-    }
-    return '';
-  }
-
-  updateNodeName(event: Event): void {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateNode(selectedNodeId, { name: target.value });
-    }
-  }
-
-  getSelectedNodeShape(): string {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      const node = this.diagramService.getNode(selectedNodeId);
-      return node?.shape || 'rectangle';
+  getSelectedElementShape(): string {
+    const element = this.selectedElement;
+    if (element && isNode(element)) {
+      return element.shape || 'rectangle';
     }
     return 'rectangle';
   }
 
-  setNodeShape(shape: string): void {
-    const selectedNodeId = this.selectedNodeId;
-    if (selectedNodeId) {
-      this.diagramService.updateNode(selectedNodeId, { shape: shape as any });
+  // Unified element update methods
+  updateElementName(event: Event): void {
+    const elementId = this.selectedElementId;
+    if (elementId) {
+      const target = event.target as HTMLInputElement;
+      const element = this.selectedElement;
+      if (element) {
+        if (isNode(element)) {
+          this.diagramService.updateElement(elementId, { name: target.value });
+        } else if (isSvgImage(element)) {
+          this.diagramService.updateElement(elementId, { label: target.value });
+        }
+      }
     }
+  }
+
+  updateElementNotes(event: Event): void {
+    const elementId = this.selectedElementId;
+    if (elementId) {
+      const target = event.target as HTMLTextAreaElement;
+      this.diagramService.updateElement(elementId, { notes: target.value });
+    }
+  }
+
+  updateElementFillColor(event: Event): void {
+    const elementId = this.selectedElementId;
+    if (elementId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateElement(elementId, { fillColor: target.value });
+    }
+  }
+
+  updateElementBorderColor(event: Event): void {
+    const elementId = this.selectedElementId;
+    if (elementId) {
+      const target = event.target as HTMLInputElement;
+      this.diagramService.updateElement(elementId, { borderColor: target.value });
+    }
+  }
+
+  setElementShape(shape: string): void {
+    const elementId = this.selectedElementId;
+    if (elementId) {
+      this.diagramService.updateElement(elementId, { shape: shape as any });
+    }
+  }
+
+  // Legacy methods for backward compatibility
+  getSelectedNodeFillColor(): string {
+    return this.getSelectedElementFillColor();
+  }
+
+  getSelectedNodeBorderColor(): string {
+    return this.getSelectedElementBorderColor();
+  }
+
+  updateNodeFillColor(event: Event): void {
+    this.updateElementFillColor(event);
+  }
+
+  updateNodeBorderColor(event: Event): void {
+    this.updateElementBorderColor(event);
+  }
+
+  getSelectedNodeNotes(): string {
+    return this.getSelectedElementNotes();
+  }
+
+  updateNodeNotes(event: Event): void {
+    this.updateElementNotes(event);
+  }
+
+  getSelectedNodeName(): string {
+    return this.getSelectedElementName();
+  }
+
+  updateNodeName(event: Event): void {
+    this.updateElementName(event);
+  }
+
+  getSelectedNodeShape(): string {
+    return this.getSelectedElementShape();
+  }
+
+  setNodeShape(shape: string): void {
+    this.setElementShape(shape);
   }
 
   getSelectedTendrilName(): string {
@@ -373,11 +428,11 @@ export class DiagramToolbarComponent {
   }
 
   setTendrilType(type: 'incoming' | 'outgoing'): void {
-    const selectedNodeId = this.selectedNodeId;
+    const selectedElementId = this.selectedNodeId || this.selectedSvgImageId;
     const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
+    if (selectedElementId && selectedTendrilId) {
       // Get current tendril to check if name needs updating
-      const currentTendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
+      const currentTendril = this.diagramService.getTendrilAny(selectedElementId, selectedTendrilId);
       const currentName = currentTendril?.name || '';
 
       // Check if name is still the default value and update it
@@ -394,14 +449,7 @@ export class DiagramToolbarComponent {
         updates.name = newName;
       }
 
-      // Check if it's an SVG tendril (selectedNodeId starts with 'svg-')
-      if (selectedNodeId.startsWith('svg-')) {
-        const svgImageId = selectedNodeId.substring(4);
-        this.diagramService.updateSvgTendril(svgImageId, selectedTendrilId, updates);
-      } else {
-        // Regular node tendril
-        this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, updates);
-      }
+      this.diagramService.updateTendril(selectedElementId, selectedTendrilId, updates);
     }
   }
 
@@ -616,5 +664,10 @@ export class DiagramToolbarComponent {
       const handlePosition = this.isCollapsed ? 50 : this.sidebarWidth;
       resizeHandle.style.left = `${handlePosition}px`;
     }
+  }
+
+  // Template helper methods
+  isNode(element: DiagramElement): boolean {
+    return isNode(element);
   }
 }

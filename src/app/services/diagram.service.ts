@@ -196,13 +196,11 @@ export class DiagramService {
     );
   }
 
-  updateSvgImage(svgImageId: string, updates: Partial<import('../models/diagram.model').SvgImage>): void {
+  updateElement(elementId: string, updates: any): void {
     this.state.currentDiagram.elements = this.state.currentDiagram.elements.map(element => {
-      if (element.id === svgImageId && isSvgImage(element)) {
-        const updatedSvg = { ...element, ...updates };
-
-        // If size is being updated, also update the SVG content dimensions
-        if (updates.size) {
+      if (element.id === elementId) {
+        if (isSvgImage(element) && updates.size) {
+          // Special handling for SVG images when size is updated
           const parser = new DOMParser();
           const svgDoc = parser.parseFromString(element.svgContent, 'image/svg+xml');
           const svgElement = svgDoc.documentElement;
@@ -211,13 +209,20 @@ export class DiagramService {
           svgElement.setAttribute('height', updates.size.height.toString());
 
           const serializer = new XMLSerializer();
+          const updatedSvg = { ...element, ...updates };
           updatedSvg.svgContent = serializer.serializeToString(svgElement);
+          return updatedSvg;
+        } else {
+          // Standard update for nodes and other elements
+          return { ...element, ...updates };
         }
-
-        return updatedSvg;
       }
       return element;
     });
+  }
+
+  updateSvgImage(svgImageId: string, updates: Partial<import('../models/diagram.model').SvgImage>): void {
+    this.updateElement(svgImageId, updates);
   }
 
   deleteBoundingBox(boundingBoxId: string): void {
@@ -225,12 +230,7 @@ export class DiagramService {
   }
 
   updateNode(nodeId: string, updates: Partial<Node>): void {
-    this.state.currentDiagram.elements = this.state.currentDiagram.elements.map(element => {
-      if (element.id === nodeId && isNode(element)) {
-        return { ...element, ...updates };
-      }
-      return element;
-    });
+    this.updateElement(nodeId, updates);
   }
 
   deleteNode(nodeId: string): void {
@@ -262,46 +262,26 @@ export class DiagramService {
     }
   }
 
-  // Legacy methods for backward compatibility
-  addTendrilToNode(nodeId: string, type: 'incoming' | 'outgoing', position: Position): void {
-    this.addTendril(nodeId, type, position);
-  }
-
-  addTendrilToSvgImage(svgImageId: string, type: 'incoming' | 'outgoing', position: Position): void {
-    this.addTendril(svgImageId, type, position);
-  }
-
-  updateTendril(nodeId: string, tendrilId: string, updates: Partial<Tendril>): void {
-    const node = this.getNode(nodeId);
-    if (node) {
-      this.updateNode(nodeId, {
-        tendrils: node.tendrils.map(tendril =>
+  updateTendril(elementId: string, tendrilId: string, updates: Partial<Tendril>): void {
+    const element = this.getElement(elementId);
+    if (element) {
+      this.updateElement(elementId, {
+        tendrils: element.tendrils.map(tendril =>
           tendril.id === tendrilId ? { ...tendril, ...updates } : tendril
         )
       });
     }
   }
 
-  updateSvgTendril(svgImageId: string, tendrilId: string, updates: Partial<Tendril>): void {
-    const svgImage = this.getSvgImage(svgImageId);
-    if (svgImage) {
-      this.updateSvgImage(svgImageId, {
-        tendrils: svgImage.tendrils.map(tendril =>
-          tendril.id === tendrilId ? { ...tendril, ...updates } : tendril
-        )
-      });
-    }
-  }
-
-  deleteTendril(nodeId: string, tendrilId: string): void {
-    const node = this.getNode(nodeId);
-    if (node) {
-      this.updateNode(nodeId, {
-        tendrils: node.tendrils.filter(t => t.id !== tendrilId)
+  deleteTendril(elementId: string, tendrilId: string): void {
+    const element = this.getElement(elementId);
+    if (element) {
+      this.updateElement(elementId, {
+        tendrils: element.tendrils.filter(t => t.id !== tendrilId)
       });
       this.state.currentDiagram.edges = this.state.currentDiagram.edges.filter(edge =>
-        !(edge.fromNodeId === nodeId && edge.fromTendrilId === tendrilId) &&
-        !(edge.toNodeId === nodeId && edge.toTendrilId === tendrilId)
+        !(edge.fromNodeId === elementId && edge.fromTendrilId === tendrilId) &&
+        !(edge.toNodeId === elementId && edge.toTendrilId === tendrilId)
       );
     }
   }
@@ -331,8 +311,12 @@ export class DiagramService {
   }
 
   // Utility methods
+  getElement(elementId: string): DiagramElement | undefined {
+    return this.state.currentDiagram.elements.find(element => element.id === elementId);
+  }
+
   getNode(nodeId: string): Node | undefined {
-    const element = this.state.currentDiagram.elements.find(element => element.id === nodeId);
+    const element = this.getElement(nodeId);
     return element && isNode(element) ? element : undefined;
   }
 
@@ -343,7 +327,7 @@ export class DiagramService {
 
   getTendrilAny(elementId: string, tendrilId: string): Tendril | undefined {
     // First try to find the element directly in the unified elements array
-    const element = this.state.currentDiagram.elements.find(e => e.id === elementId);
+    const element = this.getElement(elementId);
     if (element) {
       // First check if it's a regular tendril on the element
       const regularTendril = element.tendrils.find(tendril => tendril.id === tendrilId);
@@ -371,7 +355,7 @@ export class DiagramService {
   }
 
   getSvgImage(svgImageId: string): import('../models/diagram.model').SvgImage | undefined {
-    const element = this.state.currentDiagram.elements.find(element => element.id === svgImageId);
+    const element = this.getElement(svgImageId);
     return element && isSvgImage(element) ? element : undefined;
   }
 
@@ -434,6 +418,22 @@ export class DiagramService {
   }
 
   // Selection - Multi-selection support
+  selectElement(elementId: string | undefined, multiSelect: boolean = false): void {
+    if (!elementId) {
+      this.clearSelection();
+      return;
+    }
+
+    const element = this.getElement(elementId);
+    if (!element) return;
+
+    if (isNode(element)) {
+      this.selectNode(elementId, multiSelect);
+    } else if (isSvgImage(element)) {
+      this.selectSvgImage(elementId, multiSelect);
+    }
+  }
+
   selectNode(nodeId: string | undefined, multiSelect: boolean = false): void {
     if (multiSelect && nodeId) {
       // Multi-select mode: toggle selection

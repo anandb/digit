@@ -40,14 +40,14 @@
         [attr.height]="box.size.height"
         [attr.fill]="box.fillColor"
         [attr.stroke]="box.borderColor"
-        stroke-width="2"
+        stroke-width="1"
         stroke-dasharray="8,4"
         class="bounding-box">
       </rect>
 
       <!-- Resize handle -->
       <circle
-        *ngIf="state.selectedBoundingBoxId === box.id"
+        *ngIf="isSelected('boundingBox', box.id)"
         [attr.cx]="box.position.x + box.size.width"
         [attr.cy]="box.position.y + box.size.height"
         r="4"
@@ -99,7 +99,7 @@
 
         <!-- Resize handle -->
         <circle
-          *ngIf="state.selectedSvgImageId === element.id"
+          *ngIf="isSelected('svg', element.id)"
           [attr.cx]="element.position.x + element.size.width"
           [attr.cy]="element.position.y + element.size.height"
           r="4"
@@ -130,7 +130,7 @@
           [attr.height]="$any(element).size.height"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -143,7 +143,7 @@
           [attr.r]="getCircleRadius(element)"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -159,7 +159,7 @@
           [attr.ry]="$any(element).size.height / 2"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -174,7 +174,7 @@
             [attr.ry]="8"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </ellipse>
           <!-- Database cylinder - body -->
           <rect
@@ -184,7 +184,7 @@
             [attr.height]="$any(element).size.height - 16"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </rect>
           <!-- Database cylinder - top ellipse (smaller) -->
           <ellipse
@@ -194,7 +194,7 @@
             [attr.ry]="8"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </ellipse>
           <!-- Horizontal lines for database tapes -->
           <line
@@ -214,7 +214,7 @@
           [attr.points]="getDiamondPoints(element)"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -226,7 +226,7 @@
           [attr.points]="getParallelogramPoints(element)"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -242,14 +242,14 @@
             [attr.height]="$any(element).size.height - 15"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </rect>
           <!-- Document wavy bottom -->
           <path
             [attr.d]="getDocumentBottomPath(element)"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </path>
         </g>
 
@@ -264,7 +264,7 @@
           [attr.ry]="10"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -276,7 +276,7 @@
           [attr.points]="getHexagonPoints(element)"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -288,7 +288,7 @@
           [attr.points]="getTrianglePoints(element)"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -300,7 +300,7 @@
           [attr.points]="getTrapezoidPoints(element)"
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '4' : '2'"
+          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -329,7 +329,7 @@
             [attr.r]="$any(element).size.width * 0.12"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </circle>
           <!-- Body -->
           <line
@@ -338,7 +338,7 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
             [attr.y2]="$any(element).position.y + $any(element).size.height * 0.6"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </line>
           <!-- Arms -->
           <line
@@ -347,7 +347,7 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width * 0.7"
             [attr.y2]="$any(element).position.y + $any(element).size.height * 0.4"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </line>
           <!-- Left leg -->
           <line
@@ -356,7 +356,7 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width * 0.35"
             [attr.y2]="$any(element).position.y + $any(element).size.height * 0.9"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </line>
           <!-- Right leg -->
           <line
@@ -365,7 +365,7 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width * 0.65"
             [attr.y2]="$any(element).position.y + $any(element).size.height * 0.9"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </line>
         </g>
 
@@ -381,14 +381,14 @@
             [attr.ry]="10"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </rect>
           <!-- Callout pointer/tail -->
           <polygon
             [attr.points]="getCalloutPointerPoints(element)"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </polygon>
         </g>
 
@@ -402,7 +402,7 @@
             [attr.height]="$any(element).size.height"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="3">
+            stroke-width="2">
           </rect>
           <!-- Inner rectangle -->
           <rect
@@ -425,7 +425,7 @@
             [attr.r]="getTapeRadius(element)"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </circle>
           <!-- Inner circle -->
           <circle
@@ -434,7 +434,7 @@
             [attr.r]="getTapeInnerRadius(element)"
             fill="none"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </circle>
           <!-- Tape lines -->
           <line
@@ -458,14 +458,14 @@
             [attr.height]="$any(element).size.height * 0.8"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="1">
           </rect>
           <!-- Top face -->
           <polygon
             [attr.points]="getCubeTopFacePoints(element)"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2"
+            stroke-width="1"
             opacity="0.8">
           </polygon>
           <!-- Side face -->
@@ -473,14 +473,14 @@
             [attr.points]="getCubeSideFacePoints(element)"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2"
+            stroke-width="1"
             opacity="0.6">
           </polygon>
         </g>
 
         <!-- Resize handles -->
         <circle
-          *ngIf="state.selectedNodeId === element.id"
+          *ngIf="isSelected('node', element.id)"
           [attr.cx]="$any(element).position.x + $any(element).size.width"
           [attr.cy]="$any(element).position.y + $any(element).size.height"
           r="4"
@@ -605,7 +605,7 @@
         class="edge"
         [class.selected]="isSelected('edge', edge.id)"
         stroke="#666"
-        [attr.stroke-width]="isSelected('edge', edge.id) ? '4' : '2'"
+        [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'"
         fill="none"
         marker-end="url(#arrowhead)"
         (click)="onEdgeClick($event, edge)">

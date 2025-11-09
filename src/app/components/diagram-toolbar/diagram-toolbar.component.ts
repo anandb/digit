@@ -344,7 +344,7 @@ export class DiagramToolbarComponent {
     const selectedNodeId = this.selectedNodeId;
     const selectedTendrilId = this.selectedTendrilId;
     if (selectedNodeId && selectedTendrilId) {
-      const tendril = this.diagramService.getTendril(selectedNodeId, selectedTendrilId);
+      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
       return tendril?.name || '';
     }
     return '';
@@ -354,7 +354,7 @@ export class DiagramToolbarComponent {
     const selectedNodeId = this.selectedNodeId;
     const selectedTendrilId = this.selectedTendrilId;
     if (selectedNodeId && selectedTendrilId) {
-      const tendril = this.diagramService.getTendril(selectedNodeId, selectedTendrilId);
+      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
       return tendril?.type === 'incoming' ? 'Incoming Tendril Name' : 'Outgoing Tendril Name';
     }
     return 'Tendril Name';
@@ -373,7 +373,7 @@ export class DiagramToolbarComponent {
     const selectedNodeId = this.selectedNodeId;
     const selectedTendrilId = this.selectedTendrilId;
     if (selectedNodeId && selectedTendrilId) {
-      const tendril = this.diagramService.getTendril(selectedNodeId, selectedTendrilId);
+      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
       return tendril?.exposed || false;
     }
     return false;

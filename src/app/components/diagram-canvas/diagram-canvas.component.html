@@ -659,6 +659,10 @@
                 [attr.stroke]="'#ffffff'"
                 stroke-width="1"
                 class="propagated-tendril"
+                cdkDrag
+                (cdkDragStarted)="onTendrilDragStarted($event, $any(element), tendril)"
+                (cdkDragMoved)="onTendrilDragMoved($event, $any(element), tendril)"
+                (cdkDragEnded)="onTendrilDragEnded($event, $any(element), tendril)"
                 (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
                 (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
                 style="cursor: pointer;">

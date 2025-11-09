@@ -1621,6 +1621,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.diagramService.updateTendril(element.id, tendril.id, {
       position: constrainedPosition
     });
+
+    // Force re-render by triggering change detection
+    // This ensures edges are redrawn with the new tendril positions
+    this.state = { ...this.state };
   }
 
   // Constrain a point to the border of a rectangular element

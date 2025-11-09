@@ -210,27 +210,27 @@
           </button>
         </div>
       </div>
-    </div>
 
-    <div class="toolbar-section" *ngIf="selectedElement && isNode(selectedElement)">
-      <h3>BORDER STYLE:</h3>
-      <div class="radio-group">
-        <label class="radio-label">
-          <input
-            type="radio"
-            [checked]="!getSelectedElementDotted()"
-            (change)="setElementDotted(false)"
-            name="element-dotted">
-          Solid
-        </label>
-        <label class="radio-label">
-          <input
-            type="radio"
-            [checked]="getSelectedElementDotted()"
-            (change)="setElementDotted(true)"
-            name="element-dotted">
-          Dotted
-        </label>
+      <div class="border-style-control" style="margin-top: 15px;">
+        <h3>BORDER STYLE:</h3>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input
+              type="radio"
+              [checked]="!getSelectedElementDotted()"
+              (change)="setElementDotted(false)"
+              name="element-dotted">
+            Solid
+          </label>
+          <label class="radio-label">
+            <input
+              type="radio"
+              [checked]="getSelectedElementDotted()"
+              (change)="setElementDotted(true)"
+              name="element-dotted">
+            Dotted
+          </label>
+        </div>
       </div>
     </div>
 

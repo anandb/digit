@@ -314,9 +314,23 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Keyboard shortcuts for deletion and Ctrl key tracking
+  // Keyboard shortcuts for deletion, undo, save, and Ctrl key tracking
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
+    // Handle Ctrl+Z for undo
+    if (event.ctrlKey && event.key === 'z') {
+      event.preventDefault();
+      this.diagramService.undo();
+      return;
+    }
+
+    // Handle Ctrl+S for save
+    if (event.ctrlKey && event.key === 's') {
+      event.preventDefault();
+      this.saveDiagram();
+      return;
+    }
+
     if (event.key === 'Delete') {
       // Delete all selected items
       this.state.selectedNodeIds.forEach(nodeId => {
@@ -1415,6 +1429,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   isNode(element: DiagramElement): boolean {
     return isNode(element);
+  }
+
+  // Save diagram method for keyboard shortcut
+  saveDiagram(): void {
+    const json = this.diagramService.saveDiagram();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagram.json';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // Navigation methods

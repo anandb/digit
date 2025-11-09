@@ -12,6 +12,7 @@ export class DiagramService {
 
   public state$ = this.stateSubject.asObservable();
   private allDiagrams: Map<string, Diagram> = new Map();
+  private undoStacks: Map<string, DiagramState[]> = new Map(); // Undo stacks per diagram
 
   private initializeState(): DiagramState {
     return {
@@ -30,6 +31,31 @@ export class DiagramService {
   }
 
   private set state(newState: DiagramState) {
+    // Save current state to undo stack before updating
+    const currentDiagramId = this.state.currentDiagram.id;
+    if (!this.undoStacks.has(currentDiagramId)) {
+      this.undoStacks.set(currentDiagramId, []);
+    }
+    const undoStack = this.undoStacks.get(currentDiagramId)!;
+
+    // Only save to undo stack if this is a meaningful change (not just selection changes)
+    const isSelectionOnlyChange =
+      JSON.stringify(this.state.selectedNodeIds) === JSON.stringify(newState.selectedNodeIds) &&
+      this.state.selectedTendrilId === newState.selectedTendrilId &&
+      JSON.stringify(this.state.selectedBoundingBoxIds) === JSON.stringify(newState.selectedBoundingBoxIds) &&
+      JSON.stringify(this.state.selectedSvgImageIds) === JSON.stringify(newState.selectedSvgImageIds) &&
+      JSON.stringify(this.state.selectedEdgeIds) === JSON.stringify(newState.selectedEdgeIds) &&
+      this.state.diagramStack.length === newState.diagramStack.length;
+
+    if (!isSelectionOnlyChange) {
+      // Deep clone the current state for undo
+      undoStack.push(JSON.parse(JSON.stringify(this.state)));
+      // Limit undo stack size to prevent memory issues
+      if (undoStack.length > 50) {
+        undoStack.shift();
+      }
+    }
+
     this.stateSubject.next(newState);
   }
 
@@ -631,6 +657,21 @@ export class DiagramService {
       ...this.state,
       currentDiagram: updatedDiagram
     };
+  }
+
+  // Undo functionality
+  undo(): boolean {
+    const currentDiagramId = this.state.currentDiagram.id;
+    const undoStack = this.undoStacks.get(currentDiagramId);
+
+    if (!undoStack || undoStack.length === 0) {
+      return false; // Nothing to undo
+    }
+
+    // Restore the previous state
+    const previousState = undoStack.pop()!;
+    this.stateSubject.next(previousState);
+    return true;
   }
 
   // Get exposed tendrils from an inner diagram

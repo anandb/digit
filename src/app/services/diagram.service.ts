@@ -124,7 +124,8 @@ export class DiagramService {
       notes: '',
       tendrils: [],
       fillColor: 'rgba(255, 255, 0, 0.3)',
-      borderColor: '#666666'
+      borderColor: '#666666',
+      rounded: false
     };
 
     this.state.currentDiagram.boundingBoxes = [...this.state.currentDiagram.boundingBoxes, newBoundingBox];

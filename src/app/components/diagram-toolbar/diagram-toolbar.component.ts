@@ -511,6 +511,22 @@ export class DiagramToolbarComponent {
     }
   }
 
+  getSelectedBoundingBoxRounded(): boolean {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      const box = this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === selectedBoundingBoxId);
+      return box?.rounded || false;
+    }
+    return false;
+  }
+
+  setBoundingBoxRounded(rounded: boolean): void {
+    const selectedBoundingBoxId = this.selectedBoundingBoxId;
+    if (selectedBoundingBoxId) {
+      this.diagramService.updateBoundingBox(selectedBoundingBoxId, { rounded });
+    }
+  }
+
   getSelectedSvgImageLabel(): string {
     const selectedSvgImageId = this.selectedSvgImageId;
     if (selectedSvgImageId) {

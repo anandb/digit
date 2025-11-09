@@ -39,6 +39,8 @@
         [attr.y]="box.position.y"
         [attr.width]="box.size.width"
         [attr.height]="box.size.height"
+        [attr.rx]="box.rounded ? '10' : '0'"
+        [attr.ry]="box.rounded ? '10' : '0'"
         [attr.fill]="box.fillColor"
         [attr.stroke]="box.borderColor"
         stroke-width="1"

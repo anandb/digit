@@ -51,7 +51,7 @@
     <button (click)="deleteSelectedNode()" class="btn btn-danger">🗑️ Delete Element</button>
 
     <div class="name-control">
-      <label>Element Name:</label>
+      <label>ELEMENT NAME:</label>
       <input
         type="text"
         [value]="getSelectedElementName()"
@@ -61,7 +61,7 @@
     </div>
 
     <div class="shape-control" *ngIf="selectedElement && isNode(selectedElement)">
-      <label>Shape:</label>
+      <label>SHAPE:</label>
       <div class="shape-buttons-grid">
         <div class="shape-row">
           <button
@@ -213,17 +213,17 @@
     </div>
 
     <div class="color-controls" *ngIf="selectedElement && isNode(selectedElement)">
-      <label>Fill Color:</label>
+      <label>FILL COLOR:</label>
       <input
         type="color"
-        [value]="getSelectedElementFillColor()"
+        [attr.value]="getSelectedElementFillColor()"
         (change)="updateElementFillColor($event)"
         class="color-input">
 
-      <label>Border Color:</label>
+      <label>BORDER COLOR:</label>
       <input
         type="color"
-        [value]="getSelectedElementBorderColor()"
+        [attr.value]="getSelectedElementBorderColor()"
         (change)="updateElementBorderColor($event)"
         class="color-input">
     </div>
@@ -264,19 +264,41 @@
     </div>
 
     <div class="color-controls">
-      <label>Fill Color:</label>
+      <label>FILL COLOR:</label>
       <input
         type="color"
-        [value]="getSelectedBoundingBoxFillColor()"
+        [attr.value]="getSelectedBoundingBoxFillColor()"
         (change)="updateBoundingBoxFillColor($event)"
         class="color-input">
 
-      <label>Border Color:</label>
+      <label>BORDER COLOR:</label>
       <input
         type="color"
-        [value]="getSelectedBoundingBoxBorderColor()"
+        [attr.value]="getSelectedBoundingBoxBorderColor()"
         (change)="updateBoundingBoxBorderColor($event)"
         class="color-input">
+    </div>
+
+    <div class="color-controls">
+      <label>ROUNDED EDGES:</label>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input
+            type="radio"
+            [checked]="getSelectedBoundingBoxRounded()"
+            (change)="setBoundingBoxRounded(true)"
+            name="bounding-box-rounded">
+          Yes
+        </label>
+        <label class="radio-label">
+          <input
+            type="radio"
+            [checked]="!getSelectedBoundingBoxRounded()"
+            (change)="setBoundingBoxRounded(false)"
+            name="bounding-box-rounded">
+          No
+        </label>
+      </div>
     </div>
 
     <button (click)="deleteSelectedBoundingBox()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Bounding Box</button>

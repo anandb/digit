@@ -56,6 +56,7 @@ export interface Edge extends HasNotes {
 export interface BoundingBox extends DiagramElement {
   fillColor: string;
   borderColor: string;
+  rounded: boolean;
 }
 
 export interface SvgImage extends DiagramElement {

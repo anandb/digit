@@ -1265,6 +1265,17 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return this.diagramService.getExposedTendrilsFromInnerDiagram(node.id);
   }
 
+  // Get tendril color based on type and whether it's propagated
+  getTendrilColor(tendril: Tendril, isPropagated: boolean): string {
+    if (isPropagated) {
+      // Darker colors for propagated tendrils
+      return tendril.type === 'incoming' ? '#2E7D32' : '#D84315';
+    } else {
+      // Lighter colors for regular tendrils
+      return tendril.type === 'incoming' ? '#81C784' : '#FF8A65';
+    }
+  }
+
   // Check if a tendril is propagated from inner diagram
   isPropagatedTendril(nodeId: string, tendrilId: string): boolean {
     const node = this.state.currentDiagram.elements.find(e => e.id === nodeId && isNode(e)) as Node;
@@ -1273,22 +1284,16 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return propagatedTendrils.some(t => t.id === tendrilId);
   }
 
-  // Get position for propagated tendrils around node perimeter
+  // Get position for propagated tendrils - same as regular tendrils
   getPropagatedTendrilPosition(node: Node, index: number): Position | null {
     const propagatedTendrils = this.getPropagatedTendrils(node);
-    if (propagatedTendrils.length === 0) return null;
+    if (propagatedTendrils.length === 0 || index >= propagatedTendrils.length) return null;
 
-    // Position tendrils around the node perimeter
-    const angleStep = (2 * Math.PI) / propagatedTendrils.length;
-    const angle = index * angleStep - Math.PI / 2; // Start from top
-    const radius = Math.max(node.size.width, node.size.height) / 2 + 15; // Outside the node
-
-    const centerX = node.position.x + node.size.width / 2;
-    const centerY = node.position.y + node.size.height / 2;
-
+    const tendril = propagatedTendrils[index];
+    // Position tendrils the same way as regular tendrils - on the border of the parent node
     return {
-      x: centerX + Math.cos(angle) * radius,
-      y: centerY + Math.sin(angle) * radius
+      x: node.position.x + tendril.position.x,
+      y: node.position.y + tendril.position.y
     };
   }
 

@@ -1573,4 +1573,78 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   goBack(): void {
     this.diagramService.goBack();
   }
+
+  // Tendril drag handling
+  onTendrilDragStarted(event: any, element: DiagramElement, tendril: Tendril): void {
+    // Prevent the drag from interfering with other interactions
+    event.source._dragRef.moved.subscribe(() => {
+      // This will be handled in onTendrilDragMoved
+    });
+  }
+
+  onTendrilDragMoved(event: any, element: DiagramElement, tendril: Tendril): void {
+    // Get the current drag position
+    const dragElement = event.source.element.nativeElement;
+    const rect = this.canvas.nativeElement.getBoundingClientRect();
+
+    // Calculate the absolute position of the tendril
+    const currentX = event.pointerPosition.x - rect.left;
+    const currentY = event.pointerPosition.y - rect.top;
+
+    // Calculate relative position to the element
+    const relativeX = currentX - element.position.x;
+    const relativeY = currentY - element.position.y;
+
+    // Constrain to border: find the closest point on the element's border
+    const constrainedPosition = this.constrainToBorder(relativeX, relativeY, element.size);
+
+    // Update the tendril position temporarily for visual feedback
+    // The actual update happens on drag end
+    dragElement.setAttribute('cx', (element.position.x + constrainedPosition.x).toString());
+    dragElement.setAttribute('cy', (element.position.y + constrainedPosition.y).toString());
+  }
+
+  onTendrilDragEnded(event: any, element: DiagramElement, tendril: Tendril): void {
+    // Get the final position and update the tendril
+    const rect = this.canvas.nativeElement.getBoundingClientRect();
+    const finalX = event.pointerPosition.x - rect.left;
+    const finalY = event.pointerPosition.y - rect.top;
+
+    // Calculate relative position to the element
+    const relativeX = finalX - element.position.x;
+    const relativeY = finalY - element.position.y;
+
+    // Constrain to border
+    const constrainedPosition = this.constrainToBorder(relativeX, relativeY, element.size);
+
+    // Update the tendril position in the service
+    this.diagramService.updateTendril(element.id, tendril.id, {
+      position: constrainedPosition
+    });
+  }
+
+  // Constrain a point to the border of a rectangular element
+  private constrainToBorder(x: number, y: number, size: Size): Position {
+    const { width, height } = size;
+
+    // Calculate distances to each border
+    const distToLeft = x;
+    const distToRight = width - x;
+    const distToTop = y;
+    const distToBottom = height - y;
+
+    // Find the minimum distance
+    const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
+
+    // Snap to the closest border
+    if (minDist === distToLeft) {
+      return { x: 0, y: Math.max(10, Math.min(height - 10, y)) }; // Left border
+    } else if (minDist === distToRight) {
+      return { x: width, y: Math.max(10, Math.min(height - 10, y)) }; // Right border
+    } else if (minDist === distToTop) {
+      return { x: Math.max(10, Math.min(width - 10, x)), y: 0 }; // Top border
+    } else {
+      return { x: Math.max(10, Math.min(width - 10, x)), y: height }; // Bottom border
+    }
+  }
 }

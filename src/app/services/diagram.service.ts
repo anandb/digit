@@ -648,11 +648,10 @@ export class DiagramService {
       element.tendrils.forEach(tendril => {
         if (tendril.exposed) {
           const prefix = isNode(element) ? element.id : `svg-${element.id}`;
-          const namePrefix = element.label;
           allInnerTendrils.push({
             ...tendril,
             id: `${prefix}-${tendril.id}`, // Prefix with element ID to avoid conflicts
-            name: `${namePrefix}: ${tendril.name}`,
+            name: tendril.name, // Use original tendril name without prefix
             notes: tendril.notes // Preserve notes from original tendril
           });
         }

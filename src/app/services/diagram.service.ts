@@ -122,6 +122,7 @@ export class DiagramService {
 
   // Node operations
   addNode(position: Position, options?: { shape?: string; borderColor?: string; fillColor?: string; dotted?: boolean }): void {
+    const shape = (options?.shape as any) || 'rectangle';
     const newNode: Node = {
       id: this.generateId(),
       label: 'New Node',
@@ -130,9 +131,9 @@ export class DiagramService {
       tendrils: [],
       attributes: {},
       notes: '',
-      shape: (options?.shape as any) || 'rectangle',
+      shape: shape,
       borderColor: options?.borderColor || '#000000',
-      fillColor: options?.fillColor || '#ffffff',
+      fillColor: options?.fillColor || (shape === 'note' ? 'corn' : '#ffffff'),
       dotted: options?.dotted || false
     };
 

@@ -230,7 +230,14 @@ export class DiagramToolbarComponent {
 
   get selectedElement(): DiagramElement | undefined {
     const elementId = this.selectedElementId;
-    return elementId ? this.diagramService.getElement(elementId) : undefined;
+    const element = elementId ? this.diagramService.getElement(elementId) : undefined;
+
+    // Auto-expand notes accordion if element has notes
+    if (element && element.notes && element.notes.trim().length > 0) {
+      this.notesExpanded = true;
+    }
+
+    return element;
   }
 
   get selectedNodeId(): string | undefined {
@@ -308,14 +315,7 @@ export class DiagramToolbarComponent {
     const elementId = this.selectedElementId;
     if (elementId) {
       const target = event.target as HTMLInputElement;
-      const element = this.selectedElement;
-      if (element) {
-        if (isNode(element)) {
-          this.diagramService.updateElement(elementId, { name: target.value });
-        } else if (isSvgImage(element)) {
-          this.diagramService.updateElement(elementId, { label: target.value });
-        }
-      }
+      this.diagramService.updateElement(elementId, { label: target.value });
     }
   }
 

@@ -511,6 +511,29 @@
           </polygon>
         </g>
 
+        <!-- Note shape (page with folded corner) -->
+        <g *ngIf="$any(element).shape === 'note'" [class.highlighted]="isHighlighted('node', element.id)" class="note" filter="url(#dropshadow)">
+          <!-- Main rectangle -->
+          <rect
+            [attr.x]="$any(element).position.x"
+            [attr.y]="$any(element).position.y"
+            [attr.width]="$any(element).size.width"
+            [attr.height]="$any(element).size.height"
+            [attr.fill]="$any(element).fillColor"
+            [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+          </rect>
+          <!-- Folded corner triangle -->
+          <polygon
+            [attr.points]="getNoteFoldedCornerPoints(element)"
+            [attr.fill]="$any(element).borderColor"
+            [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+          </polygon>
+        </g>
+
         <!-- Resize handles -->
         <circle
           *ngIf="isSelected('node', element.id)"
@@ -522,15 +545,43 @@
           style="cursor: nw-resize;">
         </circle>
 
-        <!-- Node name - single element with dynamic positioning -->
+        <!-- Node name/text - conditional rendering for note shape -->
         <text
+          *ngIf="$any(element).shape !== 'note'"
           [attr.x]="getNodeTextX(element)"
           [attr.y]="getNodeTextY(element)"
           [attr.text-anchor]="getNodeTextAnchor(element)"
           [attr.dominant-baseline]="getNodeTextBaseline(element)"
+          fill="#000000"
           class="node-name">
-          {{ $any(element).name }}
+          {{ $any(element).label }}
         </text>
+
+        <!-- Note shape: show notes content inside, name below -->
+        <ng-container *ngIf="$any(element).shape === 'note'">
+          <text
+            [attr.x]="getNodeTextX(element)"
+            [attr.text-anchor]="getNodeTextAnchor(element)"
+            fill="#000000"
+            class="node-name">
+            <tspan
+              *ngFor="let line of getWrappedText($any(element).notes, $any(element).size.width - 20); let i = index"
+              [attr.x]="getNodeTextX(element)"
+              [attr.y]="getNodeTextY(element) - (getWrappedText($any(element).notes, $any(element).size.width - 20).length - 1) * 7 + i * 14"
+              dominant-baseline="middle">
+              {{ line }}
+            </tspan>
+          </text>
+          <text
+            [attr.x]="getNodeTextX(element)"
+            [attr.y]="$any(element).position.y + $any(element).size.height + 20"
+            [attr.text-anchor]="getNodeTextAnchor(element)"
+            dominant-baseline="hanging"
+            fill="#000000"
+            class="node-name">
+            {{ $any(element).label }}
+          </text>
+        </ng-container>
       </ng-container>
 
       <!-- Tendrils for all elements -->

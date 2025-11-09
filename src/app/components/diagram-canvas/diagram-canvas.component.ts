@@ -638,7 +638,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get Y position for node text based on shape
   getNodeTextY(node: any): number {
     // Shapes that display text INSIDE the shape
-    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process'];
+    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note'];
 
     if (insideShapes.includes(node.shape)) {
       // Center text within the shape
@@ -678,7 +678,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get baseline alignment for node text based on shape
   getNodeTextBaseline(node: any): string {
     // Shapes that display text INSIDE the shape
-    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process'];
+    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note'];
 
     if (insideShapes.includes(node.shape)) {
       // Center alignment for within-shape positioning
@@ -1240,6 +1240,54 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return centerY + Math.sin(i * Math.PI / 3) * radius;
   }
 
+  getNoteFoldedCornerPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const foldSize = Math.min(w, h) * 0.2; // Size of the folded corner
+
+    // Points for the folded corner triangle: from top-right corner inward
+    const topRightX = x + w;
+    const topRightY = y;
+    const foldX = x + w - foldSize;
+    const foldY = y + foldSize;
+
+    return `${topRightX},${topRightY} ${topRightX},${foldY} ${foldX},${topRightY}`;
+  }
+
+  // Word wrap text for note shapes
+  getWrappedText(text: string, maxWidth: number, fontSize: number = 12): string[] {
+    if (!text) return [];
+
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    // Approximate character width (this is a rough estimate)
+    const avgCharWidth = fontSize * 0.6;
+    const maxCharsPerLine = Math.floor(maxWidth / avgCharWidth);
+
+    for (const word of words) {
+      const testLine = currentLine ? currentLine + ' ' + word : word;
+
+      if (testLine.length <= maxCharsPerLine) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+        currentLine = word;
+      }
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines;
+  }
+
   getShapeTypeLabel(shape: string): string {
     const shapeLabels: { [key: string]: string } = {
       'circle': 'Circle',
@@ -1255,7 +1303,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       'callout': 'Callout',
       'tape': 'Tape',
       'cube': 'Cube',
-      'text': 'Text'
+      'text': 'Text',
+      'note': 'Note'
     };
     return shapeLabels[shape] || shape;
   }
@@ -1388,14 +1437,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const element = this.getElementAny(elementId);
     if (!element || !('tendrils' in element)) return null;
 
-    // Check if element already has an outgoing tendril
-    const existingOutgoing = element.tendrils.find(t => t.type === 'outgoing');
-    if (existingOutgoing) {
-      return existingOutgoing.id;
-    }
-
-    // Create new outgoing tendril using service method
-    const position = { x: element.size.width, y: element.size.height / 2 };
+    // Find an available position on the right border
+    const position = this.findAvailableTendrilPosition(element, 'outgoing');
 
     this.diagramService.addTendril(elementId, 'outgoing', position);
 
@@ -1410,14 +1453,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const element = this.getElementAny(elementId);
     if (!element || !('tendrils' in element)) return null;
 
-    // Check if element already has an incoming tendril
-    const existingIncoming = element.tendrils.find(t => t.type === 'incoming');
-    if (existingIncoming) {
-      return existingIncoming.id;
-    }
-
-    // Create new incoming tendril using service method
-    const position = { x: 0, y: element.size.height / 2 };
+    // Find an available position on the left border
+    const position = this.findAvailableTendrilPosition(element, 'incoming');
 
     this.diagramService.addTendril(elementId, 'incoming', position);
 
@@ -1425,6 +1462,36 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const updatedElement = this.getElementAny(elementId);
     const newIncoming = updatedElement?.tendrils.find(t => t.type === 'incoming');
     return newIncoming?.id || null;
+  }
+
+  // Find an available position for a new tendril that doesn't overlap with existing ones
+  private findAvailableTendrilPosition(element: DiagramElement, type: 'incoming' | 'outgoing'): Position {
+    const border = type === 'incoming' ? 0 : element.size.width; // Left border for incoming, right for outgoing
+    const minDistance = 20; // Minimum distance between tendrils
+
+    // Get all existing tendrils on this border (same type and propagated tendrils)
+    const existingTendrils = [
+      ...element.tendrils.filter(t => t.type === type),
+      ...(isNode(element) ? this.getPropagatedTendrils(element).filter(t => t.type === type) : [])
+    ];
+
+    // Try positions from top to bottom
+    for (let y = 15; y <= element.size.height - 15; y += minDistance) {
+      const position = { x: border, y };
+
+      // Check if this position conflicts with any existing tendril
+      const hasConflict = existingTendrils.some(tendril => {
+        const distance = Math.abs(tendril.position.y - y);
+        return distance < minDistance;
+      });
+
+      if (!hasConflict) {
+        return position;
+      }
+    }
+
+    // If no position found, use a fallback (center of border)
+    return { x: border, y: element.size.height / 2 };
   }
 
   // Template helper methods

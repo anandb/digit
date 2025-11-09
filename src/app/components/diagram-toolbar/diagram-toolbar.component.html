@@ -208,6 +208,14 @@
             <div class="shape-icon">✏️</div>
             <div class="shape-label">Text</div>
           </button>
+          <button
+            (click)="setElementShape('note')"
+            [class.active]="getSelectedElementShape() === 'note'"
+            class="shape-btn"
+            title="Note - Page with Folded Corner">
+            <div class="shape-icon">📄</div>
+            <div class="shape-label">Note</div>
+          </button>
         </div>
       </div>
 

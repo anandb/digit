@@ -72,9 +72,9 @@
   .node-name
     font-family: 'Purisa', Arial, sans-serif
     font-size: 12px
-    fill: #333
+    fill: #333 !important
     pointer-events: none
-    user-select: none
+    user-select: none !important
 
   .node-name-label
     font-family: 'Purisa', Arial, sans-serif
@@ -158,8 +158,8 @@
     &:hover
       fill: #0056b3
 
-// Disable text selection on the entire canvas
-.diagram-canvas *
+// Disable text selection on the entire canvas except for text elements
+.diagram-canvas *:not(text):not(tspan)
   -webkit-user-select: none
   -moz-user-select: none
   -ms-user-select: none

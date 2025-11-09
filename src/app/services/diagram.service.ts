@@ -341,7 +341,17 @@ export class DiagramService {
     // Check if it's a regular node
     const node = this.getNode(elementId);
     if (node) {
-      return node.tendrils.find(tendril => tendril.id === tendrilId);
+      // First check if it's a regular tendril on the node
+      const regularTendril = node.tendrils.find(tendril => tendril.id === tendrilId);
+      if (regularTendril) return regularTendril;
+
+      // Check if it's a propagated tendril (only for nodes)
+      if (node.innerDiagram && tendrilId.includes('-')) {
+        const propagatedTendrils = this.getExposedTendrilsFromInnerDiagram(elementId);
+        return propagatedTendrils.find(t => t.id === tendrilId);
+      }
+
+      return undefined;
     }
 
     // Check if it's an SVG image (elementId might be "svg-{svgImageId}")

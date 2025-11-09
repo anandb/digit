@@ -569,6 +569,61 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `M ${start.x} ${start.y} Q ${midX} ${midY} ${end.x} ${end.y}`;
   }
 
+  // Get two path segments with a gap in the middle for labeled edges
+  getEdgePathSegments(edge: Edge): { first: string, second: string } | null {
+    // Get the elements (could be nodes or SVG images)
+    const fromElement = this.getElementAny(edge.fromNodeId);
+    const toElement = this.getElementAny(edge.toNodeId);
+
+    if (!fromElement || !toElement || !edge.name) return null;
+
+    const fromTendril = this.getTendrilFromElement(fromElement, edge.fromTendrilId);
+    const toTendril = this.getTendrilFromElement(toElement, edge.toTendrilId);
+
+    if (!fromTendril || !toTendril) return null;
+
+    const start = this.getAbsoluteTendrilPositionAny(fromElement, fromTendril);
+    const end = this.getAbsoluteTendrilPositionAny(toElement, toTendril);
+
+    // Calculate points along the quadratic curve
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+
+    // Calculate gap size based on text width (approximate: font-size * char-count * 0.6 + padding)
+    const fontSize = 12; // Approximate font size for edge labels
+    const charWidth = fontSize * 0.6;
+    const textWidth = edge.name.length * charWidth;
+    const gapSize = Math.max(textWidth / 2 + 5, 20); // Minimum 20px gap, add 5px padding
+
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+
+    if (length === 0) return null;
+
+    // Unit vector along the curve direction
+    const ux = dx / length;
+    const uy = dy / length;
+
+    // Points for the gap
+    const gapStartX = midX - ux * gapSize;
+    const gapStartY = midY - uy * gapSize;
+    const gapEndX = midX + ux * gapSize;
+    const gapEndY = midY + uy * gapSize;
+
+    // First segment: from start to gap start
+    const firstMidX = (start.x + gapStartX) / 2;
+    const firstMidY = (start.y + gapStartY) / 2;
+    const first = `M ${start.x} ${start.y} Q ${firstMidX} ${firstMidY} ${gapStartX} ${gapStartY}`;
+
+    // Second segment: from gap end to end
+    const secondMidX = (gapEndX + end.x) / 2;
+    const secondMidY = (gapEndY + end.y) / 2;
+    const second = `M ${gapEndX} ${gapEndY} Q ${secondMidX} ${secondMidY} ${end.x} ${end.y}`;
+
+    return { first, second };
+  }
+
   getTempEdgePath(): string {
     if (!this.isCreatingEdge || !this.edgeStartNodeId || !this.edgeStartTendrilId) {
       return '';
@@ -814,14 +869,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     };
   }
 
-  // Get position for edge label (offset from center for better visibility)
+  // Get position for edge label (on the edge center)
   getEdgeLabelPosition(edge: Edge): Position {
-    const center = this.getEdgeCenter(edge);
-    // Offset the label 15 pixels above the edge center
-    return {
-      x: center.x,
-      y: center.y - 15
-    };
+    return this.getEdgeCenter(edge);
   }
 
   // Check if a tendril has a connected edge with a name

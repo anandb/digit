@@ -684,7 +684,31 @@
   <!-- Edges -->
   <g class="edges">
     <g *ngFor="let edge of getCurrentEdges()" class="edge-group">
+      <!-- For labeled edges, render two path segments with a gap -->
+      <ng-container *ngIf="edge.name && getEdgePathSegments(edge) as segments">
+        <path
+          [attr.d]="segments.first"
+          class="edge"
+          [class.selected]="isSelected('edge', edge.id)"
+          stroke="#666"
+          [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'"
+          fill="none"
+          (click)="onEdgeClick($event, edge)">
+        </path>
+        <path
+          [attr.d]="segments.second"
+          class="edge"
+          [class.selected]="isSelected('edge', edge.id)"
+          stroke="#666"
+          [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'"
+          fill="none"
+          marker-end="url(#arrowhead)"
+          (click)="onEdgeClick($event, edge)">
+        </path>
+      </ng-container>
+      <!-- For unlabeled edges, render single continuous path -->
       <path
+        *ngIf="!edge.name"
         [attr.d]="getEdgePath(edge)"
         class="edge"
         [class.selected]="isSelected('edge', edge.id)"
@@ -731,7 +755,9 @@
       orient="auto">
       <polygon
         points="0 0, 10 3.5, 0 7"
-        fill="#666" />
+        fill="none"
+        stroke="#666"
+        stroke-width="1" />
     </marker>
 
     <pattern

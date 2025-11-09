@@ -14,6 +14,12 @@ export class DiagramToolbarComponent {
   isCollapsed = false;
   sidebarWidth = 380;
 
+  // Default shape settings for new nodes
+  defaultShape: string = 'rectangle';
+  defaultBorderColor: string = '#000000';
+  defaultFillColor: string = '#ffffff';
+  defaultDotted: boolean = false;
+
   // Accordion states - collapsed by default
   notesExpanded = false;
   svgNotesExpanded = false;
@@ -24,6 +30,8 @@ export class DiagramToolbarComponent {
   constructor(private diagramService: DiagramService) {
     // Load saved sidebar state
     this.loadSidebarState();
+    // Load saved default shape settings
+    this.loadDefaultShapeSettings();
   }
 
   newDiagram(): void {
@@ -50,8 +58,13 @@ export class DiagramToolbarComponent {
       y: margin + Math.random() * (canvasHeight - 2 * margin)
     };
 
-    // Create the node and get its ID
-    this.diagramService.addNode(position);
+    // Create the node with default shape settings
+    this.diagramService.addNode(position, {
+      shape: this.defaultShape,
+      borderColor: this.defaultBorderColor,
+      fillColor: this.defaultFillColor,
+      dotted: this.defaultDotted
+    });
 
     // Find the newly created node and select it
     // Since we just added it, it should be the last element in the array
@@ -334,6 +347,9 @@ export class DiagramToolbarComponent {
     const elementId = this.selectedElementId;
     if (elementId) {
       this.diagramService.updateElement(elementId, { shape: shape as any });
+      // Update default shape for new nodes
+      this.defaultShape = shape;
+      this.saveDefaultShapeSettings();
     }
   }
 
@@ -341,6 +357,9 @@ export class DiagramToolbarComponent {
     const elementId = this.selectedElementId;
     if (elementId) {
       this.diagramService.updateElement(elementId, { dotted });
+      // Update default border style for new nodes
+      this.defaultDotted = dotted;
+      this.saveDefaultShapeSettings();
     }
   }
 
@@ -677,6 +696,39 @@ export class DiagramToolbarComponent {
         localStorage.setItem('diagram-sidebar-state', JSON.stringify(state));
       } catch (error) {
         console.warn('Failed to save sidebar state:', error);
+      }
+    }
+  }
+
+  private loadDefaultShapeSettings(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('diagram-default-shape-settings');
+      if (saved) {
+        try {
+          const settings = JSON.parse(saved);
+          this.defaultShape = settings.shape || 'rectangle';
+          this.defaultBorderColor = settings.borderColor || '#000000';
+          this.defaultFillColor = settings.fillColor || '#ffffff';
+          this.defaultDotted = settings.dotted || false;
+        } catch (error) {
+          console.warn('Failed to load default shape settings:', error);
+        }
+      }
+    }
+  }
+
+  private saveDefaultShapeSettings(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const settings = {
+          shape: this.defaultShape,
+          borderColor: this.defaultBorderColor,
+          fillColor: this.defaultFillColor,
+          dotted: this.defaultDotted
+        };
+        localStorage.setItem('diagram-default-shape-settings', JSON.stringify(settings));
+      } catch (error) {
+        console.warn('Failed to save default shape settings:', error);
       }
     }
   }

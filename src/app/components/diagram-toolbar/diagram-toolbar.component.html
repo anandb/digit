@@ -1,5 +1,6 @@
 <div class="toolbar" [class.collapsed]="isCollapsed" [style.width.px]="isCollapsed ? 50 : sidebarWidth">
   <div class="toolbar-header">
+    <div class="app-title" [class.collapsed]="isCollapsed">DIGIT</div>
     <button (click)="toggleSidebar()" class="sidebar-toggle" [title]="isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
       {{ isCollapsed ? '»' : '«' }}
     </button>
@@ -9,7 +10,6 @@
     <div class="toolbar-section" *ngIf="!selectedElementId && !selectedBoundingBoxId && !selectedTendrilId && !selectedEdgeId">
       <h3>Diagram Properties</h3>
       <div class="name-control">
-        <label>Diagram Name:</label>
         <input
           type="text"
           [value]="getCurrentDiagramName()"

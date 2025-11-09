@@ -148,6 +148,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -164,6 +165,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -178,7 +180,8 @@
             [attr.ry]="8"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </ellipse>
           <!-- Database cylinder - body -->
           <rect
@@ -188,7 +191,8 @@
             [attr.height]="$any(element).size.height - 16"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </rect>
           <!-- Database cylinder - top ellipse (smaller) -->
           <ellipse
@@ -198,7 +202,8 @@
             [attr.ry]="8"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </ellipse>
           <!-- Horizontal lines for database tapes -->
           <line
@@ -208,7 +213,8 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width"
             [attr.y2]="$any(element).position.y + 8 + ($any(element).size.height - 16) * i / 4"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </line>
         </g>
 
@@ -219,6 +225,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -231,6 +238,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -246,14 +254,16 @@
             [attr.height]="$any(element).size.height - 15"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </rect>
           <!-- Document wavy bottom -->
           <path
             [attr.d]="getDocumentBottomPath(element)"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </path>
         </g>
 
@@ -269,6 +279,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -281,6 +292,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -293,6 +305,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -305,6 +318,7 @@
           [attr.fill]="$any(element).fillColor"
           [attr.stroke]="$any(element).borderColor"
           [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
           filter="url(#dropshadow)"
           [class.highlighted]="isHighlighted('node', element.id)"
           class="node">
@@ -333,7 +347,8 @@
             [attr.r]="$any(element).size.width * 0.12"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </circle>
           <!-- Body -->
           <line
@@ -342,7 +357,8 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
             [attr.y2]="$any(element).position.y + $any(element).size.height * 0.6"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </line>
           <!-- Arms -->
           <line
@@ -351,7 +367,8 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width * 0.7"
             [attr.y2]="$any(element).position.y + $any(element).size.height * 0.4"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </line>
           <!-- Left leg -->
           <line
@@ -360,7 +377,8 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width * 0.35"
             [attr.y2]="$any(element).position.y + $any(element).size.height * 0.9"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </line>
           <!-- Right leg -->
           <line
@@ -369,7 +387,8 @@
             [attr.x2]="$any(element).position.x + $any(element).size.width * 0.65"
             [attr.y2]="$any(element).position.y + $any(element).size.height * 0.9"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </line>
         </g>
 
@@ -385,14 +404,16 @@
             [attr.ry]="10"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </rect>
           <!-- Callout pointer/tail -->
           <polygon
             [attr.points]="getCalloutPointerPoints(element)"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </polygon>
         </g>
 
@@ -406,7 +427,8 @@
             [attr.height]="$any(element).size.height"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="2">
+            stroke-width="2"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </rect>
           <!-- Inner rectangle -->
           <rect
@@ -416,7 +438,8 @@
             [attr.height]="$any(element).size.height - 6"
             fill="none"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </rect>
         </g>
 
@@ -429,7 +452,8 @@
             [attr.r]="getTapeRadius(element)"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </circle>
           <!-- Inner circle -->
           <circle
@@ -438,7 +462,8 @@
             [attr.r]="getTapeInnerRadius(element)"
             fill="none"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </circle>
           <!-- Tape lines -->
           <line
@@ -448,7 +473,8 @@
             [attr.x2]="getTapeLineX2(element, i)"
             [attr.y2]="getTapeLineY2(element, i)"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </line>
         </g>
 
@@ -462,7 +488,8 @@
             [attr.height]="$any(element).size.height * 0.8"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
-            stroke-width="1">
+            stroke-width="1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </rect>
           <!-- Top face -->
           <polygon
@@ -470,7 +497,8 @@
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
             stroke-width="1"
-            opacity="0.8">
+            opacity="0.8"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </polygon>
           <!-- Side face -->
           <polygon
@@ -478,7 +506,8 @@
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor"
             stroke-width="1"
-            opacity="0.6">
+            opacity="0.6"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
           </polygon>
         </g>
 

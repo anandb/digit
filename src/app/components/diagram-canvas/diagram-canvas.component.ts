@@ -931,13 +931,30 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get tendril from any element (node or SVG image)
   private getTendrilFromElement(element: Node | SvgImage, tendrilId: string): Tendril | undefined {
     if ('tendrils' in element) {
-      return element.tendrils.find(t => t.id === tendrilId);
+      // First check if it's a regular tendril on the element
+      const regularTendril = element.tendrils.find(t => t.id === tendrilId);
+      if (regularTendril) return regularTendril;
+
+      // Check if it's a propagated tendril (only for nodes)
+      if ('innerDiagram' in element && this.isPropagatedTendril(element.id, tendrilId)) {
+        const propagatedTendrils = this.getPropagatedTendrils(element as Node);
+        return propagatedTendrils.find(t => t.id === tendrilId);
+      }
     }
     return undefined;
   }
 
   // Get absolute tendril position from any element (node or SVG image)
   private getAbsoluteTendrilPositionAny(element: Node | SvgImage, tendril: Tendril): Position {
+    // Check if this is a propagated tendril (has a compound ID like "nodeId-tendrilId")
+    if (tendril.id.includes('-') && this.isPropagatedTendril(element.id, tendril.id)) {
+      // For propagated tendrils, calculate position around the node perimeter
+      const propagatedTendrils = this.getPropagatedTendrils(element as Node);
+      const index = propagatedTendrils.findIndex(t => t.id === tendril.id);
+      const pos = this.getPropagatedTendrilPosition(element as Node, index);
+      return pos || { x: element.position.x + tendril.position.x, y: element.position.y + tendril.position.y };
+    }
+
     return {
       x: element.position.x + tendril.position.x,
       y: element.position.y + tendril.position.y
@@ -1166,7 +1183,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
     } else {
-      // Start edge creation - only allow from outgoing tendrils
+      // Start edge creation - allow from outgoing propagated tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
         this.edgeStartNodeId = node.id;

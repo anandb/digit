@@ -16,6 +16,7 @@ export interface HasNotes {
 // Base class for all diagram elements
 export interface DiagramElement extends HasNotes {
   id: string;
+  label: string;
   position: Position;
   size: Size;
   attributes: { [key: string]: any };
@@ -36,9 +37,6 @@ export interface Tendril extends HasNotes {
 export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'cube';
 
 export interface Node extends DiagramElement {
-  name: string;
-  position: Position;
-  size: Size;
   shape: NodeShape;
   borderColor: string;
   fillColor: string;
@@ -56,19 +54,13 @@ export interface Edge extends HasNotes {
 }
 
 export interface BoundingBox extends DiagramElement {
-  position: Position;
-  size: Size;
-  label: string;
   fillColor: string;
   borderColor: string;
 }
 
 export interface SvgImage extends DiagramElement {
-  position: Position;
-  size: Size;
   svgContent: string;
   fileName: string;
-  label: string;
 }
 
 export interface Diagram {

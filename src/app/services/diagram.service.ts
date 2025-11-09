@@ -98,15 +98,15 @@ export class DiagramService {
   addNode(position: Position): void {
     const newNode: Node = {
       id: this.generateId(),
-      name: 'New Node',
+      label: 'New Node',
       position,
       size: { width: 100, height: 60 },
-      shape: 'rectangle',
-      borderColor: '#000000',
-      fillColor: '#ffffff',
       tendrils: [],
       attributes: {},
-      notes: ''
+      notes: '',
+      shape: 'rectangle',
+      borderColor: '#000000',
+      fillColor: '#ffffff'
     };
 
     console.log(this.state);
@@ -120,11 +120,11 @@ export class DiagramService {
       label: 'Group',
       position,
       size: { width: 200, height: 150 },
-      fillColor: 'rgba(255, 255, 0, 0.3)',
-      borderColor: '#666666',
       attributes: {},
       notes: '',
-      tendrils: []
+      tendrils: [],
+      fillColor: 'rgba(255, 255, 0, 0.3)',
+      borderColor: '#666666'
     };
 
     this.state.currentDiagram.boundingBoxes = [...this.state.currentDiagram.boundingBoxes, newBoundingBox];
@@ -648,7 +648,7 @@ export class DiagramService {
       element.tendrils.forEach(tendril => {
         if (tendril.exposed) {
           const prefix = isNode(element) ? element.id : `svg-${element.id}`;
-          const namePrefix = isNode(element) ? element.name : (isSvgImage(element) ? element.label : 'Element');
+          const namePrefix = element.label;
           allInnerTendrils.push({
             ...tendril,
             id: `${prefix}-${tendril.id}`, // Prefix with element ID to avoid conflicts

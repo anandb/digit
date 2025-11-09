@@ -245,7 +245,7 @@ export class DiagramToolbarComponent {
     const element = this.selectedElement;
     if (element) {
       if (isNode(element)) {
-        return element.name || '';
+        return element.label || '';
       } else if (isSvgImage(element)) {
         return element.label || '';
       }

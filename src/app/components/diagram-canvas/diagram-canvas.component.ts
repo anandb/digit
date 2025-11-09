@@ -250,7 +250,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         this.diagramService.deleteEdge(selectedEdgeId);
       } else if (selectedTendrilId && selectedNodeId) {
         // Delete selected tendril
-        this.diagramService.deleteTendril(selectedNodeId, selectedTendrilId);
+          this.diagramService.deleteTendril(selectedNodeId, selectedTendrilId);
       } else if (selectedBoundingBoxId) {
         // Delete selected bounding box
         this.diagramService.deleteBoundingBox(selectedBoundingBoxId);
@@ -343,6 +343,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       }
     });
 
+    // Highlight all SVG images within the bounding box
+    this.state.currentDiagram.svgImages.forEach(svgImage => {
+      if (this.isSvgImageInsideBoundingBox(svgImage, box)) {
+        this.highlightedObjectIds.add(`svg-${svgImage.id}`);
+      }
+    });
+
     // Highlight all bounding boxes within this bounding box
     this.state.currentDiagram.boundingBoxes.forEach(otherBox => {
       if (otherBox.id !== box.id && this.isBoundingBoxInsideBoundingBox(otherBox, box)) {
@@ -383,6 +390,17 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
             y: node.position.y + deltaY
           };
           this.diagramService.updateNode(node.id, { position: newNodePosition });
+        }
+      });
+
+      // Move all SVG images within the bounding box
+      this.state.currentDiagram.svgImages.forEach(svgImage => {
+        if (this.isSvgImageInsideBoundingBox(svgImage, box)) {
+          const newSvgImagePosition: Position = {
+            x: svgImage.position.x + deltaX,
+            y: svgImage.position.y + deltaY
+          };
+          this.diagramService.updateSvgImage(svgImage.id, { position: newSvgImagePosition });
         }
       });
 
@@ -596,6 +614,22 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
     return innerLeft >= outerLeft && innerRight <= outerRight &&
            innerTop >= outerTop && innerBottom <= outerBottom;
+  }
+
+  // Check if an SVG image is inside a bounding box
+  private isSvgImageInsideBoundingBox(svgImage: any, boundingBox: any): boolean {
+    const svgLeft = svgImage.position.x;
+    const svgRight = svgImage.position.x + svgImage.size.width;
+    const svgTop = svgImage.position.y;
+    const svgBottom = svgImage.position.y + svgImage.size.height;
+
+    const boxLeft = boundingBox.position.x;
+    const boxRight = boundingBox.position.x + boundingBox.size.width;
+    const boxTop = boundingBox.position.y;
+    const boxBottom = boundingBox.position.y + boundingBox.size.height;
+
+    return svgLeft >= boxLeft && svgRight <= boxRight &&
+           svgTop >= boxTop && svgBottom <= boxBottom;
   }
 
   // Edge click to select

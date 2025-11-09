@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DiagramService } from '../../services/diagram.service';
+import { DiagramElement, isNode, isSvgImage } from '../../models/diagram.model';
 
 @Component({
   selector: 'app-diagram-toolbar',
@@ -15,6 +16,9 @@ export class DiagramToolbarComponent {
 
   // Accordion states - collapsed by default
   notesExpanded = false;
+  svgNotesExpanded = false;
+  tendrilNotesExpanded = false;
+  edgeNotesExpanded = false;
   instructionsExpanded = false;
 
   constructor(private diagramService: DiagramService) {
@@ -27,8 +31,11 @@ export class DiagramToolbarComponent {
     this.diagramService['stateSubject'].next({
       currentDiagram: this.diagramService['createEmptyDiagram'](),
       diagramStack: [],
-      selectedNodeId: undefined,
-      selectedTendrilId: undefined
+      selectedNodeIds: [],
+      selectedTendrilId: undefined,
+      selectedBoundingBoxIds: [],
+      selectedSvgImageIds: [],
+      selectedEdgeIds: []
     });
   }
 
@@ -42,7 +49,17 @@ export class DiagramToolbarComponent {
       x: margin + Math.random() * (canvasWidth - 2 * margin),
       y: margin + Math.random() * (canvasHeight - 2 * margin)
     };
+
+    // Create the node and get its ID
     this.diagramService.addNode(position);
+
+    // Find the newly created node and select it
+    // Since we just added it, it should be the last element in the array
+    const currentElements = this.diagramService.currentState.currentDiagram.elements;
+    const newNode = currentElements[currentElements.length - 1];
+    if (newNode) {
+      this.diagramService.selectNode(newNode.id);
+    }
   }
 
   addNewBoundingBox(): void {
@@ -52,87 +69,37 @@ export class DiagramToolbarComponent {
   }
 
   addIncomingTendril(): void {
-    const selectedNodeId = this.diagramService.currentState.selectedNodeId;
-    if (selectedNodeId) {
-      const node = this.diagramService.getNode(selectedNodeId);
-      if (node) {
-        // Count existing incoming tendrils
-        const incomingCount = node.tendrils.filter(t => t.type === 'incoming').length;
-
-        // Calculate vertical spacing for incoming tendrils along left edge
-        const spacing = node.size.height / (incomingCount + 1);
-        const y = spacing * (incomingCount + 0.5); // Center between existing tendrils
-
-        const position = {
-          x: 0,
-          y: Math.max(10, Math.min(node.size.height - 10, y)) // Keep within node bounds
-        };
-        this.diagramService.addTendril(selectedNodeId, 'incoming', position);
-      }
+    const selectedElementId = this.diagramService.currentState.selectedNodeId || this.diagramService.currentState.selectedSvgImageId;
+    if (selectedElementId) {
+      this.addTendrilToElement(selectedElementId, 'incoming');
     }
   }
 
   addOutgoingTendril(): void {
-    const selectedNodeId = this.diagramService.currentState.selectedNodeId;
-    if (selectedNodeId) {
-      const node = this.diagramService.getNode(selectedNodeId);
-      if (node) {
-        // Count existing outgoing tendrils
-        const outgoingCount = node.tendrils.filter(t => t.type === 'outgoing').length;
-
-        // Calculate vertical spacing for outgoing tendrils along right edge
-        const spacing = node.size.height / (outgoingCount + 1);
-        const y = spacing * (outgoingCount + 0.5); // Center between existing tendrils
-
-        const position = {
-          x: node.size.width,
-          y: Math.max(10, Math.min(node.size.height - 10, y)) // Keep within node bounds
-        };
-        this.diagramService.addTendril(selectedNodeId, 'outgoing', position);
-      }
+    const selectedElementId = this.diagramService.currentState.selectedNodeId || this.diagramService.currentState.selectedSvgImageId;
+    if (selectedElementId) {
+      this.addTendrilToElement(selectedElementId, 'outgoing');
     }
   }
 
-  addIncomingTendrilToSvgImage(): void {
-    const selectedSvgImageId = this.diagramService.currentState.selectedSvgImageId;
-    if (selectedSvgImageId) {
-      const svgImage = this.diagramService.getSvgImage(selectedSvgImageId);
-      if (svgImage) {
-        // Count existing incoming tendrils
-        const incomingCount = svgImage.tendrils.filter(t => t.type === 'incoming').length;
+  private addTendrilToElement(elementId: string, type: 'incoming' | 'outgoing'): void {
+    // Get the element from the unified elements array
+    const element = this.diagramService.currentState.currentDiagram.elements.find(e => e.id === elementId);
+    if (!element) return;
 
-        // Calculate vertical spacing for incoming tendrils along left edge
-        const spacing = svgImage.size.height / (incomingCount + 1);
-        const y = spacing * (incomingCount + 0.5); // Center between existing tendrils
+    // Count existing tendrils of this type
+    const tendrilCount = element.tendrils.filter(t => t.type === type).length;
 
-        const position = {
-          x: 0,
-          y: Math.max(10, Math.min(svgImage.size.height - 10, y)) // Keep within SVG bounds
-        };
-        this.diagramService.addTendrilToSvgImage(selectedSvgImageId, 'incoming', position);
-      }
-    }
-  }
+    // Calculate vertical spacing for tendrils along the appropriate edge
+    const spacing = element.size.height / (tendrilCount + 1);
+    const y = spacing * (tendrilCount + 0.5); // Center between existing tendrils
 
-  addOutgoingTendrilToSvgImage(): void {
-    const selectedSvgImageId = this.diagramService.currentState.selectedSvgImageId;
-    if (selectedSvgImageId) {
-      const svgImage = this.diagramService.getSvgImage(selectedSvgImageId);
-      if (svgImage) {
-        // Count existing outgoing tendrils
-        const outgoingCount = svgImage.tendrils.filter(t => t.type === 'outgoing').length;
+    const position = {
+      x: type === 'incoming' ? 0 : element.size.width,
+      y: Math.max(10, Math.min(element.size.height - 10, y)) // Keep within element bounds
+    };
 
-        // Calculate vertical spacing for outgoing tendrils along right edge
-        const spacing = svgImage.size.height / (outgoingCount + 1);
-        const y = spacing * (outgoingCount + 0.5); // Center between existing tendrils
-
-        const position = {
-          x: svgImage.size.width,
-          y: Math.max(10, Math.min(svgImage.size.height - 10, y)) // Keep within SVG bounds
-        };
-        this.diagramService.addTendrilToSvgImage(selectedSvgImageId, 'outgoing', position);
-      }
-    }
+    this.diagramService.addTendril(elementId, type, position);
   }
 
   saveDiagram(): void {
@@ -206,6 +173,14 @@ export class DiagramToolbarComponent {
       reader.onload = (e) => {
         const svgContent = e.target?.result as string;
         this.diagramService.addSvgImage(svgContent, file.name);
+
+        // Find the newly created SVG image and select it
+        // Since we just added it, it should be the last element in the array
+        const currentElements = this.diagramService.currentState.currentDiagram.elements;
+        const newSvgImage = currentElements[currentElements.length - 1];
+        if (newSvgImage) {
+          this.diagramService.selectSvgImage(newSvgImage.id);
+        }
       };
       reader.readAsText(file);
     }
@@ -294,7 +269,7 @@ export class DiagramToolbarComponent {
     const selectedNodeId = this.selectedNodeId;
     if (selectedNodeId) {
       const node = this.diagramService.getNode(selectedNodeId);
-      return node?.notes || '';
+      return node?.notes ?? '';
     }
     return '';
   }
@@ -502,6 +477,59 @@ export class DiagramToolbarComponent {
     if (selectedSvgImageId) {
       const target = event.target as HTMLInputElement;
       this.diagramService.updateSvgImage(selectedSvgImageId, { label: target.value });
+    }
+  }
+
+  getSelectedSvgImageNotes(): string {
+    const selectedSvgImageId = this.selectedSvgImageId;
+    if (selectedSvgImageId) {
+      const svgImage = this.diagramService.getSvgImage(selectedSvgImageId);
+      return svgImage?.notes ?? '';
+    }
+    return '';
+  }
+
+  updateSvgImageNotes(event: Event): void {
+    const selectedSvgImageId = this.selectedSvgImageId;
+    if (selectedSvgImageId) {
+      const target = event.target as HTMLTextAreaElement;
+      this.diagramService.updateSvgImage(selectedSvgImageId, { notes: target.value });
+    }
+  }
+
+  getSelectedTendrilNotes(): string {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
+      return tendril?.notes ?? '';
+    }
+    return '';
+  }
+
+  updateTendrilNotes(event: Event): void {
+    const selectedNodeId = this.selectedNodeId;
+    const selectedTendrilId = this.selectedTendrilId;
+    if (selectedNodeId && selectedTendrilId) {
+      const target = event.target as HTMLTextAreaElement;
+      this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, { notes: target.value });
+    }
+  }
+
+  getSelectedEdgeNotes(): string {
+    const selectedEdgeId = this.selectedEdgeId;
+    if (selectedEdgeId) {
+      const edge = this.diagramService.getEdge(selectedEdgeId);
+      return edge?.notes ?? '';
+    }
+    return '';
+  }
+
+  updateEdgeNotes(event: Event): void {
+    const selectedEdgeId = this.selectedEdgeId;
+    if (selectedEdgeId) {
+      const target = event.target as HTMLTextAreaElement;
+      this.diagramService.updateEdge(selectedEdgeId, { notes: target.value });
     }
   }
 

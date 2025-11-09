@@ -293,8 +293,30 @@
         class="name-input">
     </div>
     <div class="action-buttons">
-      <button (click)="addIncomingTendrilToSvgImage()" class="btn btn-tendril">+ Incoming Tendril</button>
-      <button (click)="addOutgoingTendrilToSvgImage()" class="btn btn-tendril">+ Outgoing Tendril</button>
+      <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
+      <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
+    </div>
+
+    <div class="accordion-section">
+      <button
+        type="button"
+        class="accordion-header"
+        (click)="svgNotesExpanded = !svgNotesExpanded"
+        [class.expanded]="svgNotesExpanded">
+        <span class="accordion-icon">{{ svgNotesExpanded ? '▼' : '▶' }}</span>
+        <span class="accordion-title">Notes</span>
+      </button>
+      <div class="accordion-content" [class.expanded]="svgNotesExpanded">
+        <div class="notes-control">
+          <textarea
+            [value]="getSelectedSvgImageNotes()"
+            (input)="updateSvgImageNotes($event)"
+            placeholder="Enter notes for this SVG image..."
+            class="notes-textarea"
+            rows="4">
+          </textarea>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -354,6 +376,28 @@
       </div>
     </div>
 
+    <div class="accordion-section">
+      <button
+        type="button"
+        class="accordion-header"
+        (click)="tendrilNotesExpanded = !tendrilNotesExpanded"
+        [class.expanded]="tendrilNotesExpanded">
+        <span class="accordion-icon">{{ tendrilNotesExpanded ? '▼' : '▶' }}</span>
+        <span class="accordion-title">Notes</span>
+      </button>
+      <div class="accordion-content" [class.expanded]="tendrilNotesExpanded">
+        <div class="notes-control">
+          <textarea
+            [value]="getSelectedTendrilNotes()"
+            (input)="updateTendrilNotes($event)"
+            placeholder="Enter notes for this tendril..."
+            class="notes-textarea"
+            rows="4">
+          </textarea>
+        </div>
+      </div>
+    </div>
+
     <button (click)="deleteSelectedTendril()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Tendril</button>
   </div>
 
@@ -367,6 +411,28 @@
         (input)="updateEdgeName($event)"
         placeholder="Enter edge name..."
         class="name-input">
+    </div>
+
+    <div class="accordion-section">
+      <button
+        type="button"
+        class="accordion-header"
+        (click)="edgeNotesExpanded = !edgeNotesExpanded"
+        [class.expanded]="edgeNotesExpanded">
+        <span class="accordion-icon">{{ edgeNotesExpanded ? '▼' : '▶' }}</span>
+        <span class="accordion-title">Notes</span>
+      </button>
+      <div class="accordion-content" [class.expanded]="edgeNotesExpanded">
+        <div class="notes-control">
+          <textarea
+            [value]="getSelectedEdgeNotes()"
+            (input)="updateEdgeNotes($event)"
+            placeholder="Enter notes for this edge..."
+            class="notes-textarea"
+            rows="4">
+          </textarea>
+        </div>
+      </div>
     </div>
 
     <button (click)="deleteSelectedEdge()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Edge</button>

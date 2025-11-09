@@ -4,7 +4,7 @@ import { DragDropModule, CdkDragEnd, CdkDragMove } from '@angular/cdk/drag-drop'
 import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { DiagramService } from '../../services/diagram.service';
-import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox, SvgImage } from '../../models/diagram.model';
+import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox, SvgImage, DiagramElement, isNode, isSvgImage } from '../../models/diagram.model';
 
 @Component({
   selector: 'app-diagram-canvas',
@@ -56,16 +56,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Canvas click - no longer creates nodes automatically
   onCanvasClick(event: MouseEvent): void {
     // Clear all selections when clicking on empty canvas
-    this.diagramService.selectNode(undefined);
-    this.diagramService.selectBoundingBox(undefined);
-    this.diagramService.selectSvgImage(undefined);
-    this.diagramService.selectEdge(undefined);
+    this.diagramService.clearSelection();
   }
 
-  // Node drag handling
-  onNodeDragEnd(event: CdkDragEnd, node: Node): void {
-    const element = event.source.element.nativeElement;
-    const transform = element.style.transform;
+  // Unified element drag handling
+  onElementDragEnd(event: CdkDragEnd, element: DiagramElement): void {
+    const elementRef = event.source.element.nativeElement;
+    const transform = elementRef.style.transform;
 
     // Parse transform to get new position
     const match = transform.match(/translate3d\(([^,]+)px, ([^,]+)px,/);
@@ -74,11 +71,15 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const deltaY = parseFloat(match[2]);
 
       const newPosition: Position = {
-        x: node.position.x + deltaX,
-        y: node.position.y + deltaY
+        x: element.position.x + deltaX,
+        y: element.position.y + deltaY
       };
 
-      this.diagramService.updateNode(node.id, { position: newPosition });
+      if (isNode(element)) {
+        this.diagramService.updateNode(element.id, { position: newPosition });
+      } else if (isSvgImage(element)) {
+        this.diagramService.updateSvgImage(element.id, { position: newPosition });
+      }
     }
 
     // Clear highlights
@@ -86,7 +87,84 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.highlightedObjectIds.clear();
 
     // Reset transform
-    element.style.transform = '';
+    elementRef.style.transform = '';
+  }
+
+  // Unified element interaction methods
+  onElementClick(event: MouseEvent, element: DiagramElement): void {
+    event.stopPropagation();
+
+    if (this.isCtrlEdgeMode) {
+      this.handleCtrlClick(element.id);
+    } else {
+      const multiSelect = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
+      if (isNode(element)) {
+        this.diagramService.selectNode(element.id, multiSelect);
+      } else if (isSvgImage(element)) {
+        this.diagramService.selectSvgImage(element.id, multiSelect);
+      }
+    }
+  }
+
+  onElementDoubleClick(element: DiagramElement): void {
+    if (isNode(element)) {
+      // If node doesn't have an inner diagram, create one
+      if (!element.innerDiagram) {
+        element.innerDiagram = this.diagramService.createInnerDiagram(element.id);
+      }
+      // Then navigate to it
+      this.diagramService.enterNodeDiagram(element.id);
+    }
+  }
+
+  onElementContextMenu(event: MouseEvent, element: DiagramElement): void {
+    event.preventDefault();
+    if (isNode(element)) {
+      this.diagramService.selectNode(element.id);
+    } else if (isSvgImage(element)) {
+      this.diagramService.selectSvgImage(element.id);
+    }
+    // TODO: Show context menu
+  }
+
+  onElementTendrilClick(event: MouseEvent, element: DiagramElement, tendril: Tendril): void {
+    event.stopPropagation();
+
+    if (this.isCreatingEdge) {
+      // Complete edge creation - only allow connecting to incoming tendrils
+      if (tendril.type === 'incoming' &&
+          this.edgeStartNodeId && this.edgeStartTendrilId &&
+          this.edgeStartNodeId !== element.id) {
+        this.diagramService.addEdge(
+          this.edgeStartNodeId,
+          this.edgeStartTendrilId,
+          element.id,
+          tendril.id
+        );
+      }
+      // Always stop edge creation after attempt
+      this.isCreatingEdge = false;
+      this.edgeStartNodeId = undefined;
+      this.edgeStartTendrilId = undefined;
+    } else {
+      // Start edge creation - only allow from outgoing tendrils
+      if (tendril.type === 'outgoing') {
+        this.isCreatingEdge = true;
+        this.edgeStartNodeId = element.id;
+        this.edgeStartTendrilId = tendril.id;
+      }
+    }
+  }
+
+  onElementTendrilContextMenu(event: MouseEvent, element: DiagramElement, tendril: Tendril): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.diagramService.selectTendril(element.id, tendril.id);
+  }
+
+  // Legacy node drag handling for backward compatibility
+  onNodeDragEnd(event: CdkDragEnd, node: Node): void {
+    this.onElementDragEnd(event, node);
   }
 
   // Node double click to enter inner diagram
@@ -210,7 +288,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       });
 
       // Reposition tendrils to stay on borders
-      this.repositionSvgTendrilsAfterResize(this.resizeSvgImageId, finalWidth, finalHeight);
+      this.repositionTendrilsAfterResize(this.resizeSvgImageId, finalWidth, finalHeight);
     }
   }
 
@@ -240,24 +318,29 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Delete') {
-      const selectedNodeId = this.state.selectedNodeId;
-      const selectedTendrilId = this.state.selectedTendrilId;
-      const selectedBoundingBoxId = this.state.selectedBoundingBoxId;
-      const selectedEdgeId = this.state.selectedEdgeId;
+      // Delete all selected items
+      this.state.selectedNodeIds.forEach(nodeId => {
+        this.diagramService.deleteNode(nodeId);
+      });
 
-      if (selectedEdgeId) {
-        // Delete selected edge
-        this.diagramService.deleteEdge(selectedEdgeId);
-      } else if (selectedTendrilId && selectedNodeId) {
-        // Delete selected tendril
-          this.diagramService.deleteTendril(selectedNodeId, selectedTendrilId);
-      } else if (selectedBoundingBoxId) {
-        // Delete selected bounding box
-        this.diagramService.deleteBoundingBox(selectedBoundingBoxId);
-      } else if (selectedNodeId) {
-        // Delete selected node
-        this.diagramService.deleteNode(selectedNodeId);
-      }
+      this.state.selectedBoundingBoxIds.forEach(boxId => {
+        this.diagramService.deleteBoundingBox(boxId);
+      });
+
+      this.state.selectedSvgImageIds.forEach(svgId => {
+        // Find and delete the SVG image from elements array
+        const svgIndex = this.state.currentDiagram.elements.findIndex(e => e.id === svgId);
+        if (svgIndex > -1) {
+          this.state.currentDiagram.elements.splice(svgIndex, 1);
+        }
+      });
+
+      this.state.selectedEdgeIds.forEach(edgeId => {
+        this.diagramService.deleteEdge(edgeId);
+      });
+
+      // Clear selections after deletion
+      this.diagramService.clearSelection();
     }
 
     // Track Ctrl key for edge creation mode
@@ -320,7 +403,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Bounding box click to select
   onBoundingBoxClick(event: MouseEvent, box: any): void {
     event.stopPropagation();
-    this.diagramService.selectBoundingBox(box.id);
+    const multiSelect = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
+    this.diagramService.selectBoundingBox(box.id, multiSelect);
   }
 
   // Context menu for bounding boxes
@@ -336,17 +420,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.isDraggingBoundingBox = true;
     this.highlightedObjectIds.clear();
 
-    // Highlight all nodes within the bounding box
-    this.state.currentDiagram.nodes.forEach(node => {
-      if (this.isNodeInsideBoundingBox(node, box)) {
-        this.highlightedObjectIds.add(`node-${node.id}`);
-      }
-    });
-
-    // Highlight all SVG images within the bounding box
-    this.state.currentDiagram.svgImages.forEach(svgImage => {
-      if (this.isSvgImageInsideBoundingBox(svgImage, box)) {
-        this.highlightedObjectIds.add(`svg-${svgImage.id}`);
+    // Highlight all elements within the bounding box
+    this.state.currentDiagram.elements.forEach(element => {
+      if (this.isElementInsideBoundingBox(element, box)) {
+        if (isNode(element)) {
+          this.highlightedObjectIds.add(`node-${element.id}`);
+        } else if (isSvgImage(element)) {
+          this.highlightedObjectIds.add(`svg-${element.id}`);
+        }
       }
     });
 
@@ -382,25 +463,19 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       };
       this.diagramService.updateBoundingBox(box.id, { position: newBoxPosition });
 
-      // Move all nodes within the bounding box
-      this.state.currentDiagram.nodes.forEach(node => {
-        if (this.isNodeInsideBoundingBox(node, box)) {
-          const newNodePosition: Position = {
-            x: node.position.x + deltaX,
-            y: node.position.y + deltaY
+      // Move all elements within the bounding box
+      this.state.currentDiagram.elements.forEach(element => {
+        if (this.isElementInsideBoundingBox(element, box)) {
+          const newElementPosition: Position = {
+            x: element.position.x + deltaX,
+            y: element.position.y + deltaY
           };
-          this.diagramService.updateNode(node.id, { position: newNodePosition });
-        }
-      });
 
-      // Move all SVG images within the bounding box
-      this.state.currentDiagram.svgImages.forEach(svgImage => {
-        if (this.isSvgImageInsideBoundingBox(svgImage, box)) {
-          const newSvgImagePosition: Position = {
-            x: svgImage.position.x + deltaX,
-            y: svgImage.position.y + deltaY
-          };
-          this.diagramService.updateSvgImage(svgImage.id, { position: newSvgImagePosition });
+          if (isNode(element)) {
+            this.diagramService.updateNode(element.id, { position: newElementPosition });
+          } else if (isSvgImage(element)) {
+            this.diagramService.updateSvgImage(element.id, { position: newElementPosition });
+          }
         }
       });
 
@@ -535,9 +610,26 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return path;
   }
 
+  // Get X position for node text based on shape
+  getNodeTextX(node: any): number {
+    if (node.shape === 'text') {
+      // Position text at the left edge for text-only nodes
+      return node.position.x + 5;
+    } else {
+      // Center text horizontally for all other shapes
+      return node.position.x + node.size.width / 2;
+    }
+  }
+
   // Get Y position for node text based on shape
   getNodeTextY(node: any): number {
-    if (node.shape === 'circle' || node.shape === 'cylinder') {
+    // Shapes that display text INSIDE the shape
+    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process'];
+
+    if (insideShapes.includes(node.shape)) {
+      // Center text within the shape
+      return node.position.y + node.size.height / 2;
+    } else if (node.shape === 'circle' || node.shape === 'cylinder') {
       // Position text below the shape
       return node.position.y + node.size.height + 20;
     } else if (node.shape === 'triangle') {
@@ -553,19 +645,33 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       // Position text at the top of the text area for text-only nodes
       return node.position.y + 20;
     } else {
-      // Center text within the shape (rectangle, pill, diamond, parallelogram, document, roundedRectangle, hexagon, trapezoid)
-      return node.position.y + node.size.height / 2;
+      // Default: position below the shape for any other shapes
+      return node.position.y + node.size.height + 25;
+    }
+  }
+
+  // Get text anchor for node text based on shape
+  getNodeTextAnchor(node: any): string {
+    if (node.shape === 'text') {
+      // Left-align text for text-only nodes
+      return 'start';
+    } else {
+      // Center-align text for all other shapes
+      return 'middle';
     }
   }
 
   // Get baseline alignment for node text based on shape
   getNodeTextBaseline(node: any): string {
-    if (node.shape === 'circle' || node.shape === 'cylinder') {
-      // Align to top of text for below-shape positioning
-      return 'hanging';
-    } else {
+    // Shapes that display text INSIDE the shape
+    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process'];
+
+    if (insideShapes.includes(node.shape)) {
       // Center alignment for within-shape positioning
       return 'middle';
+    } else {
+      // Align to top of text for below-shape positioning
+      return 'hanging';
     }
   }
 
@@ -582,6 +688,22 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Check if an object is highlighted during drag
   isHighlighted(objectType: string, objectId: string): boolean {
     return this.highlightedObjectIds.has(`${objectType}-${objectId}`);
+  }
+
+  // Check if an element is selected (for multi-selection support)
+  isSelected(elementType: string, elementId: string): boolean {
+    switch (elementType) {
+      case 'node':
+        return this.state.selectedNodeIds.includes(elementId);
+      case 'svg':
+        return this.state.selectedSvgImageIds.includes(elementId);
+      case 'boundingBox':
+        return this.state.selectedBoundingBoxIds.includes(elementId);
+      case 'edge':
+        return this.state.selectedEdgeIds.includes(elementId);
+      default:
+        return false;
+    }
   }
 
   // Check if a node is inside a bounding box
@@ -616,6 +738,22 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
            innerTop >= outerTop && innerBottom <= outerBottom;
   }
 
+  // Check if an element is inside a bounding box
+  private isElementInsideBoundingBox(element: DiagramElement, boundingBox: any): boolean {
+    const elementLeft = element.position.x;
+    const elementRight = element.position.x + element.size.width;
+    const elementTop = element.position.y;
+    const elementBottom = element.position.y + element.size.height;
+
+    const boxLeft = boundingBox.position.x;
+    const boxRight = boundingBox.position.x + boundingBox.size.width;
+    const boxTop = boundingBox.position.y;
+    const boxBottom = boundingBox.position.y + boundingBox.size.height;
+
+    return elementLeft >= boxLeft && elementRight <= boxRight &&
+           elementTop >= boxTop && elementBottom <= boxBottom;
+  }
+
   // Check if an SVG image is inside a bounding box
   private isSvgImageInsideBoundingBox(svgImage: any, boundingBox: any): boolean {
     const svgLeft = svgImage.position.x;
@@ -635,7 +773,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Edge click to select
   onEdgeClick(event: MouseEvent, edge: Edge): void {
     event.stopPropagation();
-    this.diagramService.selectEdge(edge.id);
+    const multiSelect = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
+    this.diagramService.selectEdge(edge.id, multiSelect);
   }
 
   // Get center point of an edge for label positioning
@@ -678,11 +817,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const fromMatch = (edge.fromNodeId === elementId && edge.fromTendrilId === tendrilId);
       const toMatch = (edge.toNodeId === elementId && edge.toTendrilId === tendrilId);
 
-      // Check SVG matches (with "svg-" prefix)
-      const fromSvgMatch = (edge.fromNodeId === `svg-${elementId}` && edge.fromTendrilId === tendrilId);
-      const toSvgMatch = (edge.toNodeId === `svg-${elementId}` && edge.toTendrilId === tendrilId);
-
-      return (fromMatch || toMatch || fromSvgMatch || toSvgMatch) &&
+      return (fromMatch || toMatch) &&
              edge.name && edge.name.trim() !== '';
     });
   }
@@ -690,7 +825,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Check if a propagated tendril has a connected edge
   hasPropagatedEdgeName(nodeId: string, tendrilId: string): boolean {
     // For propagated tendrils, we need to check if the original tendril in the inner diagram has an edge
-    const node = this.state.currentDiagram.nodes.find(n => n.id === nodeId);
+    const node = this.state.currentDiagram.elements.find(e => e.id === nodeId && isNode(e)) as Node;
     if (!node?.innerDiagram) return false;
 
     // Parse the tendril ID to find the original element and tendril
@@ -723,26 +858,35 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
 
 
-  // Reposition tendrils to stay on borders after node resize
-  private repositionTendrilsAfterResize(nodeId: string, newWidth: number, newHeight: number): void {
-    const node = this.state.currentDiagram.nodes.find(n => n.id === nodeId);
-    if (!node) return;
+  // Reposition tendrils to stay on borders after element resize
+  private repositionTendrilsAfterResize(elementId: string, newWidth: number, newHeight: number): void {
+    const element = this.state.currentDiagram.elements.find(e => e.id === elementId);
+    if (!element) return;
 
     // Separate incoming and outgoing tendrils
-    const incomingTendrils = node.tendrils.filter(t => t.type === 'incoming');
-    const outgoingTendrils = node.tendrils.filter(t => t.type === 'outgoing');
+    const incomingTendrils = element.tendrils.filter(t => t.type === 'incoming');
+    const outgoingTendrils = element.tendrils.filter(t => t.type === 'outgoing');
 
     // Reposition incoming tendrils along left edge
     incomingTendrils.forEach((tendril, index) => {
       const spacing = newHeight / (incomingTendrils.length + 1);
       const y = spacing * (index + 1); // Distribute evenly
 
-      this.diagramService.updateTendril(nodeId, tendril.id, {
-        position: {
-          x: 0, // Left border
-          y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
-        }
-      });
+      if (isSvgImage(element)) {
+        this.diagramService.updateSvgTendril(elementId, tendril.id, {
+          position: {
+            x: 0, // Left border
+            y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
+          }
+        });
+      } else {
+        this.diagramService.updateTendril(elementId, tendril.id, {
+          position: {
+            x: 0, // Left border
+            y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
+          }
+        });
+      }
     });
 
     // Reposition outgoing tendrils along right edge
@@ -750,48 +894,21 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const spacing = newHeight / (outgoingTendrils.length + 1);
       const y = spacing * (index + 1); // Distribute evenly
 
-      this.diagramService.updateTendril(nodeId, tendril.id, {
-        position: {
-          x: newWidth, // Right border
-          y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
-        }
-      });
-    });
-  }
-
-  // Reposition tendrils to stay on borders after SVG image resize
-  private repositionSvgTendrilsAfterResize(svgImageId: string, newWidth: number, newHeight: number): void {
-    const svgImage = this.state.currentDiagram.svgImages.find(s => s.id === svgImageId);
-    if (!svgImage) return;
-
-    // Separate incoming and outgoing tendrils
-    const incomingTendrils = svgImage.tendrils.filter(t => t.type === 'incoming');
-    const outgoingTendrils = svgImage.tendrils.filter(t => t.type === 'outgoing');
-
-    // Reposition incoming tendrils along left edge
-    incomingTendrils.forEach((tendril, index) => {
-      const spacing = newHeight / (incomingTendrils.length + 1);
-      const y = spacing * (index + 1); // Distribute evenly
-
-      this.diagramService.updateSvgTendril(svgImageId, tendril.id, {
-        position: {
-          x: 0, // Left border
-          y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
-        }
-      });
-    });
-
-    // Reposition outgoing tendrils along right edge
-    outgoingTendrils.forEach((tendril, index) => {
-      const spacing = newHeight / (outgoingTendrils.length + 1);
-      const y = spacing * (index + 1); // Distribute evenly
-
-      this.diagramService.updateSvgTendril(svgImageId, tendril.id, {
-        position: {
-          x: newWidth, // Right border
-          y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
-        }
-      });
+      if (isSvgImage(element)) {
+        this.diagramService.updateSvgTendril(elementId, tendril.id, {
+          position: {
+            x: newWidth, // Right border
+            y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
+          }
+        });
+      } else {
+        this.diagramService.updateTendril(elementId, tendril.id, {
+          position: {
+            x: newWidth, // Right border
+            y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
+          }
+        });
+      }
     });
   }
 
@@ -811,21 +928,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return [];
   }
 
-  getCurrentNodes() : Node[] {
-    if (this.state.currentDiagram && this.state.currentDiagram.nodes) {
-      return this.state.currentDiagram.nodes;
-    }
 
-    return [];
-  }
-
-  // SVG Image methods
-  getSvgImages(): SvgImage[] {
-    if (this.state.currentDiagram && this.state.currentDiagram.svgImages) {
-      return this.state.currentDiagram.svgImages;
-    }
-    return [];
-  }
 
   // Sanitize SVG content for safe HTML binding
   sanitizeSvgContent(svgContent: string): SafeHtml {
@@ -884,7 +987,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         this.diagramService.addEdge(
           this.edgeStartNodeId,
           this.edgeStartTendrilId,
-          `svg-${svgImage.id}`,
+          svgImage.id,
           tendril.id
         );
       }
@@ -896,7 +999,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       // Start edge creation - only allow from outgoing tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
-        this.edgeStartNodeId = `svg-${svgImage.id}`;
+        this.edgeStartNodeId = svgImage.id;
         this.edgeStartTendrilId = tendril.id;
       }
     }
@@ -944,42 +1047,37 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   // Get any element (node or SVG image) by ID
-  private getElementAny(elementId: string): Node | SvgImage | undefined {
-    // Check if it's a regular node
-    const node = this.state.currentDiagram.nodes.find(n => n.id === elementId);
-    if (node) return node;
-
-    // Check if it's an SVG image
-    const svgImage = this.state.currentDiagram.svgImages.find(s => s.id === elementId);
-    if (svgImage) return svgImage;
+  private getElementAny(elementId: string): DiagramElement | undefined {
+    // Check if it's a regular element
+    const element = this.state.currentDiagram.elements.find(e => e.id === elementId);
+    if (element) return element;
 
     // Check if it's an SVG image with "svg-" prefix
     if (elementId.startsWith('svg-')) {
       const svgImageId = elementId.substring(4);
-      return this.state.currentDiagram.svgImages.find(s => s.id === svgImageId);
+      return this.state.currentDiagram.elements.find(e => e.id === svgImageId);
     }
 
     return undefined;
   }
 
   // Get tendril from any element (node or SVG image)
-  private getTendrilFromElement(element: Node | SvgImage, tendrilId: string): Tendril | undefined {
-    if ('tendrils' in element) {
-      // First check if it's a regular tendril on the element
-      const regularTendril = element.tendrils.find(t => t.id === tendrilId);
-      if (regularTendril) return regularTendril;
+  private getTendrilFromElement(element: DiagramElement, tendrilId: string): Tendril | undefined {
+    // First check if it's a regular tendril on the element
+    const regularTendril = element.tendrils.find(t => t.id === tendrilId);
+    if (regularTendril) return regularTendril;
 
-      // Check if it's a propagated tendril (only for nodes)
-      if ('innerDiagram' in element && this.isPropagatedTendril(element.id, tendrilId)) {
-        const propagatedTendrils = this.getPropagatedTendrils(element as Node);
-        return propagatedTendrils.find(t => t.id === tendrilId);
-      }
+    // Check if it's a propagated tendril (only for nodes)
+    if (isNode(element) && this.isPropagatedTendril(element.id, tendrilId)) {
+      const propagatedTendrils = this.getPropagatedTendrils(element);
+      return propagatedTendrils.find(t => t.id === tendrilId);
     }
+
     return undefined;
   }
 
   // Get absolute tendril position from any element (node or SVG image)
-  private getAbsoluteTendrilPositionAny(element: Node | SvgImage, tendril: Tendril): Position {
+  private getAbsoluteTendrilPositionAny(element: DiagramElement, tendril: Tendril): Position {
     // Check if this is a propagated tendril (has a compound ID like "nodeId-tendrilId")
     if (tendril.id.includes('-') && this.isPropagatedTendril(element.id, tendril.id)) {
       // For propagated tendrils, calculate position around the node perimeter
@@ -1173,7 +1271,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Check if a tendril is propagated from inner diagram
   isPropagatedTendril(nodeId: string, tendrilId: string): boolean {
-    const propagatedTendrils = this.getPropagatedTendrils(this.state.currentDiagram.nodes.find(n => n.id === nodeId)!);
+    const node = this.state.currentDiagram.elements.find(e => e.id === nodeId && isNode(e)) as Node;
+    if (!node) return false;
+    const propagatedTendrils = this.getPropagatedTendrils(node);
     return propagatedTendrils.some(t => t.id === tendrilId);
   }
 
@@ -1245,7 +1345,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get tooltip for propagated tendrils
   getPropagatedTendrilTooltip(nodeId: string, tendrilId: string): string {
     // Get the propagated tendril object to show its name
-    const node = this.state.currentDiagram.nodes.find(n => n.id === nodeId);
+    const node = this.state.currentDiagram.elements.find(e => e.id === nodeId && isNode(e)) as Node;
     if (!node) return 'Propagated Tendril';
     const propagatedTendrils = this.getPropagatedTendrils(node);
     const tendril = propagatedTendrils.find(t => t.id === tendrilId);
@@ -1338,5 +1438,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const updatedElement = this.getElementAny(elementId);
     const newIncoming = updatedElement?.tendrils.find(t => t.type === 'incoming');
     return newIncoming?.id || null;
+  }
+
+  // Template helper methods
+  isSvgImage(element: DiagramElement): boolean {
+    return isSvgImage(element);
+  }
+
+  isNode(element: DiagramElement): boolean {
+    return isNode(element);
   }
 }

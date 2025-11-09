@@ -1199,32 +1199,23 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.diagramService.selectTendril(node.id, tendril.id);
   }
 
-  // Get tooltip for tendrils (shows edge name if connected, otherwise tendril name)
+  // Get tooltip for tendrils (shows tendril name)
   getTendrilTooltip(elementId: string, tendrilId: string): string {
-    // Find the edge connected to this tendril
-    const edge = this.state.currentDiagram.edges.find(edge => {
-      const fromMatch = (edge.fromNodeId === elementId && edge.fromTendrilId === tendrilId);
-      const toMatch = (edge.toNodeId === elementId && edge.toTendrilId === tendrilId);
-      const fromSvgMatch = (edge.fromNodeId === `svg-${elementId}` && edge.fromTendrilId === tendrilId);
-      const toSvgMatch = (edge.toNodeId === `svg-${elementId}` && edge.toTendrilId === tendrilId);
-
-      return (fromMatch || toMatch || fromSvgMatch || toSvgMatch) && edge.name && edge.name.trim() !== '';
-    });
-
-    return edge?.name || 'Tendril';
+    // Get the tendril object to show its name
+    const element = this.getElementAny(elementId);
+    if (!element) return 'Tendril';
+    const tendril = this.getTendrilFromElement(element, tendrilId);
+    return tendril?.name || 'Tendril';
   }
 
   // Get tooltip for propagated tendrils
   getPropagatedTendrilTooltip(nodeId: string, tendrilId: string): string {
-    // Find the edge connected to this propagated tendril
-    const edge = this.state.currentDiagram.edges.find(edge => {
-      const fromMatch = (edge.fromNodeId === nodeId && edge.fromTendrilId === tendrilId);
-      const toMatch = (edge.toNodeId === nodeId && edge.toTendrilId === tendrilId);
-
-      return (fromMatch || toMatch) && edge.name && edge.name.trim() !== '';
-    });
-
-    return edge?.name || 'Propagated Tendril';
+    // Get the propagated tendril object to show its name
+    const node = this.state.currentDiagram.nodes.find(n => n.id === nodeId);
+    if (!node) return 'Propagated Tendril';
+    const propagatedTendrils = this.getPropagatedTendrils(node);
+    const tendril = propagatedTendrils.find(t => t.id === tendrilId);
+    return tendril?.name || 'Propagated Tendril';
   }
 
   // Handle Ctrl+click edge creation

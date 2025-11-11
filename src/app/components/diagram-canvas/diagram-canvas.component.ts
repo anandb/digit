@@ -1267,13 +1267,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const w = node.size.width;
     const h = node.size.height;
 
-    // Callout pointer points: from bottom-right of bubble to point downward
-    const bubbleRight = x + w * 0.8;
-    const bubbleBottom = y + h * 0.8;
-    const pointerX = x + w * 0.9;
-    const pointerY = y + h;
+    // Callout pointer: triangular pointer extending from right side
+    const pointerBaseY = y + h * 0.4; // Middle of right side
+    const pointerTipX = x + w + 15; // Extend 15px to the right
+    const pointerTopY = pointerBaseY - 8;
+    const pointerBottomY = pointerBaseY + 8;
 
-    return `${bubbleRight},${bubbleBottom} ${pointerX},${bubbleBottom} ${pointerX},${pointerY}`;
+    return `${x + w},${pointerTopY} ${pointerTipX},${pointerBaseY} ${x + w},${pointerBottomY}`;
   }
 
   getCubeTopFacePoints(node: any): string {

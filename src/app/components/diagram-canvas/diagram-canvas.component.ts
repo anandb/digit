@@ -18,7 +18,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   state!: DiagramState;
   private subscription!: Subscription;
-  private forceUpdate = 0; // Used to force re-rendering of edge paths
+  public forceUpdate = 0; // Used to force re-rendering of edge paths
 
   // For edge creation
   isCreatingEdge = false;
@@ -41,6 +41,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // For drag highlighting
   private isDraggingBoundingBox = false;
   private highlightedObjectIds: Set<string> = new Set();
+
+  // For custom tendril dragging
+  private isDraggingTendril = false;
+  private draggedTendrilElementId?: string;
+  private draggedTendrilId?: string;
 
   constructor(private diagramService: DiagramService, private sanitizer: DomSanitizer) {}
 
@@ -147,13 +152,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.isCreatingEdge = false;
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
-    } else {
-      // Start edge creation - only allow from outgoing tendrils
+    } else if (event.ctrlKey || event.metaKey || this.isCtrlEdgeMode) {
+      // Ctrl+click: Start edge creation from outgoing tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
         this.edgeStartNodeId = element.id;
         this.edgeStartTendrilId = tendril.id;
       }
+    } else {
+      // Regular click: Start custom tendril dragging
+      this.isDraggingTendril = true;
+      this.draggedTendrilElementId = element.id;
+      this.draggedTendrilId = tendril.id;
     }
   }
 
@@ -208,10 +218,33 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Mouse move for temp edge rendering and resizing
+  // Mouse move for temp edge rendering, resizing, and custom tendril dragging
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
-    if (this.isCreatingEdge) {
+    if (this.isDraggingTendril && this.draggedTendrilElementId && this.draggedTendrilId) {
+      // Handle custom tendril dragging
+      const rect = this.canvas.nativeElement.getBoundingClientRect();
+      const currentX = event.clientX - rect.left;
+      const currentY = event.clientY - rect.top;
+
+      const element = this.getElementAny(this.draggedTendrilElementId);
+      if (element) {
+        // Calculate relative position to the element
+        const relativeX = currentX - element.position.x;
+        const relativeY = currentY - element.position.y;
+
+        // Constrain to border: find the closest point on the element's border
+        const constrainedPosition = this.constrainToBorder(relativeX, relativeY, element.size);
+
+        // Update the tendril position in the data model during drag for live edge updates
+        this.diagramService.updateTendril(this.draggedTendrilElementId, this.draggedTendrilId, {
+          position: constrainedPosition
+        });
+
+        // Force re-render of edge paths during drag
+        this.forceUpdate++;
+      }
+    } else if (this.isCreatingEdge) {
       const rect = this.canvas.nativeElement.getBoundingClientRect();
       this.tempEdgeEnd = {
         x: event.clientX - rect.left,
@@ -293,7 +326,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Mouse up to stop resizing
+  // Mouse up to stop resizing and custom tendril dragging
   @HostListener('document:mouseup', ['$event'])
   onMouseUp(event: MouseEvent): void {
     if (this.isResizing) {
@@ -301,6 +334,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.resizeNodeId = undefined;
       this.resizeBoundingBoxId = undefined;
       this.resizeSvgImageId = undefined;
+    }
+
+    if (this.isDraggingTendril) {
+      this.isDraggingTendril = false;
+      this.draggedTendrilElementId = undefined;
+      this.draggedTendrilId = undefined;
     }
   }
 
@@ -343,11 +382,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       });
 
       this.state.selectedSvgImageIds.forEach(svgId => {
-        // Find and delete the SVG image from elements array
+              // Find and delete the SVG image from elements array
         const svgIndex = this.state.currentDiagram.elements.findIndex(e => e.id === svgId);
-        if (svgIndex > -1) {
-          this.state.currentDiagram.elements.splice(svgIndex, 1);
-        }
+              if (svgIndex > -1) {
+                this.state.currentDiagram.elements.splice(svgIndex, 1);
+              }
       });
 
       this.state.selectedEdgeIds.forEach(edgeId => {
@@ -355,7 +394,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       });
 
       // Clear selections after deletion
-      this.diagramService.clearSelection();
+        this.diagramService.clearSelection();
     }
 
     // Track Ctrl key for edge creation mode
@@ -1517,32 +1556,66 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Find an available position for a new tendril that doesn't overlap with existing ones
   private findAvailableTendrilPosition(element: DiagramElement, type: 'incoming' | 'outgoing'): Position {
-    const border = type === 'incoming' ? 0 : element.size.width; // Left border for incoming, right for outgoing
-    const minDistance = 20; // Minimum distance between tendrils
+    const fontSize = 16; // Font size for tendril labels
+    const minDistance = fontSize * 2; // Minimum distance between tendrils
 
-    // Get all existing tendrils on this border (same type and propagated tendrils)
+    // Get all existing tendrils (any type, on any border)
     const existingTendrils = [
-      ...element.tendrils.filter(t => t.type === type),
-      ...(isNode(element) ? this.getPropagatedTendrils(element).filter(t => t.type === type) : [])
+      ...element.tendrils,
+      ...(isNode(element) ? this.getPropagatedTendrils(element) : [])
     ];
 
-    // Try positions from top to bottom
-    for (let y = 15; y <= element.size.height - 15; y += minDistance) {
-      const position = { x: border, y };
+    // Define the four borders: left, right, top, bottom
+    const borders = [
+      { x: 0, y: null, isVertical: true }, // Left border (x=0, y varies)
+      { x: element.size.width, y: null, isVertical: true }, // Right border (x=width, y varies)
+      { x: null, y: 0, isVertical: false }, // Top border (y=0, x varies)
+      { x: null, y: element.size.height, isVertical: false } // Bottom border (y=height, x varies)
+    ];
 
-      // Check if this position conflicts with any existing tendril
-      const hasConflict = existingTendrils.some(tendril => {
-        const distance = Math.abs(tendril.position.y - y);
-        return distance < minDistance;
-      });
+    // Try each border in order
+    for (const border of borders) {
+      if (border.isVertical) {
+        // Vertical border (left or right) - vary y, fixed x
+        for (let y = 15; y <= element.size.height - 15; y += minDistance) {
+          const position = { x: border.x!, y };
 
-      if (!hasConflict) {
-        return position;
+          // Check if this position conflicts with any existing tendril
+          const hasConflict = existingTendrils.some(tendril => {
+            const distance = Math.sqrt(
+              Math.pow(tendril.position.x - position.x, 2) +
+              Math.pow(tendril.position.y - position.y, 2)
+            );
+            return distance < minDistance;
+          });
+
+          if (!hasConflict) {
+            return position;
+          }
+        }
+      } else {
+        // Horizontal border (top or bottom) - vary x, fixed y
+        for (let x = 15; x <= element.size.width - 15; x += minDistance) {
+          const position = { x, y: border.y! };
+
+          // Check if this position conflicts with any existing tendril
+          const hasConflict = existingTendrils.some(tendril => {
+            const distance = Math.sqrt(
+              Math.pow(tendril.position.x - position.x, 2) +
+              Math.pow(tendril.position.y - position.y, 2)
+            );
+            return distance < minDistance;
+          });
+
+          if (!hasConflict) {
+            return position;
+          }
+        }
       }
     }
 
-    // If no position found, use a fallback (center of border)
-    return { x: border, y: element.size.height / 2 };
+    // If no position found on any border, use a fallback (center of right border)
+    return { x: element.size.width, y: element.size.height / 2 };
   }
 
   // Template helper methods
@@ -1577,15 +1650,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Tendril drag handling
   onTendrilDragStarted(event: any, element: DiagramElement, tendril: Tendril): void {
-    // Prevent the drag from interfering with other interactions
-    event.source._dragRef.moved.subscribe(() => {
-      // This will be handled in onTendrilDragMoved
-    });
+    // Allow default drag behavior
   }
 
   onTendrilDragMoved(event: any, element: DiagramElement, tendril: Tendril): void {
     // Get the current drag position
-    const dragElement = event.source.element.nativeElement;
     const rect = this.canvas.nativeElement.getBoundingClientRect();
 
     // Calculate the absolute position of the tendril
@@ -1599,10 +1668,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Constrain to border: find the closest point on the element's border
     const constrainedPosition = this.constrainToBorder(relativeX, relativeY, element.size);
 
-    // Update the tendril position temporarily for visual feedback
-    // The actual update happens on drag end
-    dragElement.setAttribute('cx', (element.position.x + constrainedPosition.x).toString());
-    dragElement.setAttribute('cy', (element.position.y + constrainedPosition.y).toString());
+    // Update the tendril position in the data model during drag for live edge updates
+    this.diagramService.updateTendril(element.id, tendril.id, {
+      position: constrainedPosition
+    });
+
+    // Force re-render of edge paths during drag
+    this.forceUpdate++;
   }
 
   onTendrilDragEnded(event: any, element: DiagramElement, tendril: Tendril): void {

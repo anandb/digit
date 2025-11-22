@@ -1506,7 +1506,30 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       }
     } else if (this.ctrlEdgeStartElementId !== elementId) {
       // Complete edge creation - auto-create incoming tendril
-      const incomingTendrilId = this.autoCreateIncomingTendril(elementId);
+      // First, get the start element to calculate direction
+      const startElement = this.getElementAny(this.ctrlEdgeStartElementId);
+      const endElement = this.getElementAny(elementId);
+
+      let startCenter: Position | undefined;
+      let endCenter: Position | undefined;
+
+      if (startElement) {
+        startCenter = {
+          x: startElement.position.x + startElement.size.width / 2,
+          y: startElement.position.y + startElement.size.height / 2
+        };
+      }
+
+      if (endElement) {
+        endCenter = {
+          x: endElement.position.x + endElement.size.width / 2,
+          y: endElement.position.y + endElement.size.height / 2
+        };
+      }
+
+      // Create incoming tendril on the end element, targeting the start element
+      const incomingTendrilId = this.autoCreateIncomingTendril(elementId, startCenter);
+
       if (incomingTendrilId) {
         this.diagramService.addEdge(
           this.edgeStartNodeId!,
@@ -1514,6 +1537,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
           elementId,
           incomingTendrilId
         );
+
+        // Optimize the outgoing tendril position on the start element
+        if (startElement && endCenter && this.edgeStartTendrilId) {
+          const newPosition = this.findAvailableTendrilPosition(startElement, 'outgoing', endCenter);
+          this.diagramService.updateTendril(this.ctrlEdgeStartElementId, this.edgeStartTendrilId, {
+            position: newPosition
+          });
+        }
       }
       // Reset edge creation state
       this.ctrlEdgeStartElementId = undefined;
@@ -1535,18 +1566,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   // Auto-create an incoming tendril on an element
-  private autoCreateIncomingTendril(elementId: string): string | null {
+  private autoCreateIncomingTendril(elementId: string, targetPosition?: Position): string | null {
     const element = this.getElementAny(elementId);
     if (!element || !('tendrils' in element)) return null;
 
     // Find an available position on the left border
-    const position = this.findAvailableTendrilPosition(element, 'incoming');
+    const position = this.findAvailableTendrilPosition(element, 'incoming', targetPosition);
 
     return this.diagramService.addTendril(elementId, 'incoming', position);
   }
 
   // Find an available position for a new tendril that doesn't overlap with existing ones
-  private findAvailableTendrilPosition(element: DiagramElement, type: 'incoming' | 'outgoing'): Position {
+  private findAvailableTendrilPosition(element: DiagramElement, type: 'incoming' | 'outgoing', targetPosition?: Position): Position {
     const fontSize = 16; // Font size for tendril labels
     const minDistance = fontSize * 2; // Minimum distance between tendrils
 
@@ -1557,12 +1588,47 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     ];
 
     // Define the four borders: left, right, top, bottom
-    const borders = [
-      { x: 0, y: null, isVertical: true }, // Left border (x=0, y varies)
-      { x: element.size.width, y: null, isVertical: true }, // Right border (x=width, y varies)
-      { x: null, y: 0, isVertical: false }, // Top border (y=0, x varies)
-      { x: null, y: element.size.height, isVertical: false } // Bottom border (y=height, x varies)
+    let borders = [
+      { x: 0, y: null, isVertical: true, side: 'left' }, // Left border (x=0, y varies)
+      { x: element.size.width, y: null, isVertical: true, side: 'right' }, // Right border (x=width, y varies)
+      { x: null, y: 0, isVertical: false, side: 'top' }, // Top border (y=0, x varies)
+      { x: null, y: element.size.height, isVertical: false, side: 'bottom' } // Bottom border (y=height, x varies)
     ];
+
+    // If target position is provided, prioritize the border facing the target
+    if (targetPosition) {
+      const center = {
+        x: element.position.x + element.size.width / 2,
+        y: element.position.y + element.size.height / 2
+      };
+
+      const dx = targetPosition.x - center.x;
+      const dy = targetPosition.y - center.y;
+
+      // Determine primary and secondary directions
+      const isHorizontal = Math.abs(dx) > Math.abs(dy);
+
+      let preferredSides: string[] = [];
+
+      if (isHorizontal) {
+        if (dx > 0) { // Target is to the right
+          preferredSides = ['right', 'top', 'bottom', 'left'];
+        } else { // Target is to the left
+          preferredSides = ['left', 'top', 'bottom', 'right'];
+        }
+      } else {
+        if (dy > 0) { // Target is below
+          preferredSides = ['bottom', 'left', 'right', 'top'];
+        } else { // Target is above
+          preferredSides = ['top', 'left', 'right', 'bottom'];
+        }
+      }
+
+      // Sort borders based on preference
+      borders.sort((a, b) => {
+        return preferredSides.indexOf(a.side) - preferredSides.indexOf(b.side);
+      });
+    }
 
     // Try each border in order
     for (const border of borders) {

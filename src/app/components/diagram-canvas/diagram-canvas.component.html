@@ -154,6 +154,32 @@
           class="node">
         </circle>
 
+        <!-- Numbered circle shape -->
+        <g *ngIf="$any(element).shape === 'numberedCircle'" [class.highlighted]="isHighlighted('node', element.id)" class="numbered-circle" filter="url(#dropshadow)">
+          <circle
+            [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+            [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+            [attr.r]="getCircleRadius(element)"
+            [attr.fill]="$any(element).fillColor"
+            [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
+            class="node">
+          </circle>
+          <!-- Number text inside circle -->
+          <text
+            [attr.x]="$any(element).position.x + $any(element).size.width / 2"
+            [attr.y]="$any(element).position.y + $any(element).size.height / 2"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            fill="#000000"
+            font-size="16"
+            font-weight="bold"
+            class="numbered-circle-text">
+            {{ $any(element).label || '1' }}
+          </text>
+        </g>
+
         <rect
           *ngIf="$any(element).shape === 'pill'"
           [attr.x]="$any(element).position.x"
@@ -545,9 +571,9 @@
           style="cursor: nw-resize;">
         </circle>
 
-        <!-- Node name/text - conditional rendering for note shape -->
+        <!-- Node name/text - conditional rendering for note and numbered circle shapes -->
         <text
-          *ngIf="$any(element).shape !== 'note'"
+          *ngIf="$any(element).shape !== 'note' && $any(element).shape !== 'numberedCircle'"
           [attr.x]="getNodeTextX(element)"
           [attr.y]="getNodeTextY(element)"
           [attr.text-anchor]="getNodeTextAnchor(element)"

@@ -270,7 +270,7 @@ export class DiagramService {
   }
 
   // Tendril operations
-  addTendril(elementId: string, type: 'incoming' | 'outgoing', position: Position): void {
+  addTendril(elementId: string, type: 'incoming' | 'outgoing', position: Position): string {
     const newTendril: Tendril = {
       id: this.generateId(),
       name: type === 'incoming' ? 'Incoming Tendril' : 'Outgoing Tendril',
@@ -288,7 +288,9 @@ export class DiagramService {
       element.tendrils = [...element.tendrils, newTendril];
       // Trigger state update
       this.state = { ...this.state };
+      return newTendril.id;
     }
+    return '';
   }
 
   updateTendril(elementId: string, tendrilId: string, updates: Partial<Tendril>): void {

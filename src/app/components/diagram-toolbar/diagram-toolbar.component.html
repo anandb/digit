@@ -201,6 +201,14 @@
         </div>
         <div class="shape-row">
           <button
+            (click)="setElementShape('numberedCircle')"
+            [class.active]="getSelectedElementShape() === 'numberedCircle'"
+            class="shape-btn"
+            title="Numbered Circle - Sequential Numbering">
+            <div class="shape-icon">⓵</div>
+            <div class="shape-label">Numbered</div>
+          </button>
+          <button
             (click)="setElementShape('text')"
             [class.active]="getSelectedElementShape() === 'text'"
             class="shape-btn"

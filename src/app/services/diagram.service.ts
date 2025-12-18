@@ -121,7 +121,7 @@ export class DiagramService {
   }
 
   // Node operations
-  addNode(position: Position, options?: { shape?: string; borderColor?: string; fillColor?: string; dotted?: boolean }): void {
+  addNode(position: Position, options?: { shape?: string; borderColor?: string; fillColor?: string; dotted?: boolean; fontFamily?: string }): void {
     const shape = (options?.shape as any) || 'rectangle';
     const newNode: Node = {
       id: this.generateId(),
@@ -134,11 +134,28 @@ export class DiagramService {
       shape: shape,
       borderColor: options?.borderColor || '#000000',
       fillColor: options?.fillColor || (shape === 'note' ? 'corn' : '#ffffff'),
-      dotted: options?.dotted || false
+      dotted: options?.dotted || false,
+      fontFamily: options?.fontFamily || 'Purisa, Chalkboard'
     };
 
     console.log(this.state);
     this.state.currentDiagram.elements.push(newNode);
+  }
+
+  updateAllNodesFont(fontFamily: string): void {
+    // Update all nodes in the current diagram
+    this.state.currentDiagram.elements = this.state.currentDiagram.elements.map(element => {
+      if (isNode(element)) {
+        return { ...element, fontFamily };
+      }
+      return element;
+    });
+
+    // Also need to trigger state update deeply for undo stack if we want this undoable
+    // The simple assignment above mutates the array but we need to re-emit state
+    this.state = {
+      ...this.state
+    };
   }
 
   // Bounding box operations

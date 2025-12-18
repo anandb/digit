@@ -19,6 +19,7 @@ export class DiagramToolbarComponent {
   defaultBorderColor: string = '#000000';
   defaultFillColor: string = '#ffffff';
   defaultDotted: boolean = false;
+  defaultFont: string = 'Purisa';
 
   // Accordion states - collapsed by default
   notesExpanded = false;
@@ -63,7 +64,8 @@ export class DiagramToolbarComponent {
       shape: this.defaultShape,
       borderColor: this.defaultBorderColor,
       fillColor: this.defaultFillColor,
-      dotted: this.defaultDotted
+      dotted: this.defaultDotted,
+      fontFamily: this.defaultFont
     });
 
     // Find the newly created node and select it
@@ -300,6 +302,38 @@ export class DiagramToolbarComponent {
       return element.shape || 'rectangle';
     }
     return 'rectangle';
+  }
+
+  getSelectedElementFont(): string {
+    const element = this.selectedElement;
+    if (element && isNode(element)) {
+      return element.fontFamily || 'Purisa, Chalkboard';
+    }
+    return 'Purisa, Chalkboard';
+  }
+
+  availableFonts: string[] = [
+    'Purisa',
+    'Chalkboard SE',
+    'Segoe Script',
+    'Lucida Handwriting',
+    'Brush Script MT',
+    'Bradley Hand',
+    'Ink Free',
+    'Kristen ITC',
+    'Vivaldi'
+  ];
+
+  updateElementFont(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const font = target.value;
+
+    // Update default font setting
+    this.defaultFont = font;
+    this.saveDefaultShapeSettings();
+
+    // Update ALL nodes in the diagram
+    this.diagramService.updateAllNodesFont(font);
   }
 
   getSelectedElementDotted(): boolean {
@@ -710,6 +744,7 @@ export class DiagramToolbarComponent {
           this.defaultBorderColor = settings.borderColor || '#000000';
           this.defaultFillColor = settings.fillColor || '#ffffff';
           this.defaultDotted = settings.dotted || false;
+          this.defaultFont = settings.fontFamily || 'Purisa, Chalkboard';
         } catch (error) {
           console.warn('Failed to load default shape settings:', error);
         }
@@ -724,7 +759,8 @@ export class DiagramToolbarComponent {
           shape: this.defaultShape,
           borderColor: this.defaultBorderColor,
           fillColor: this.defaultFillColor,
-          dotted: this.defaultDotted
+          dotted: this.defaultDotted,
+          fontFamily: this.defaultFont
         };
         localStorage.setItem('diagram-default-shape-settings', JSON.stringify(settings));
       } catch (error) {

@@ -40,6 +40,7 @@ export interface Node extends DiagramElement {
   shape: NodeShape;
   borderColor: string;
   fillColor: string;
+  fontFamily?: string;
   innerDiagram?: Diagram;
   dotted: boolean;
 }

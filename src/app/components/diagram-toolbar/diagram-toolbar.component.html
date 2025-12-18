@@ -1,21 +1,19 @@
 <div class="toolbar" [class.collapsed]="isCollapsed" [style.width.px]="isCollapsed ? 50 : sidebarWidth">
   <div class="toolbar-header">
     <div class="app-title" [class.collapsed]="isCollapsed">DIGIT</div>
-    <button (click)="toggleSidebar()" class="sidebar-toggle" [title]="isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
+    <button (click)="toggleSidebar()" class="sidebar-toggle"
+      [title]="isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
       {{ isCollapsed ? '»' : '«' }}
     </button>
   </div>
 
   <div class="toolbar-content" [class.collapsed]="isCollapsed">
-    <div class="toolbar-section" *ngIf="!selectedElementId && !selectedBoundingBoxId && !selectedTendrilId && !selectedEdgeId">
+    <div class="toolbar-section"
+      *ngIf="!selectedElementId && !selectedBoundingBoxId && !selectedTendrilId && !selectedEdgeId">
       <h3>Diagram Properties</h3>
       <div class="name-control">
-        <input
-          type="text"
-          [value]="getCurrentDiagramName()"
-          (input)="updateCurrentDiagramName($event)"
-          placeholder="Enter diagram name..."
-          class="name-input">
+        <input type="text" [value]="getCurrentDiagramName()" (input)="updateCurrentDiagramName($event)"
+          placeholder="Enter diagram name..." class="name-input">
       </div>
     </div>
 
@@ -24,474 +22,344 @@
       <div class="action-buttons">
         <button (click)="newDiagram()" class="btn action-btn" title="New Diagram">🆕</button>
         <button (click)="saveDiagram()" class="btn action-btn" title="Save Diagram">💾</button>
-        <input
-          type="file"
-          accept=".json"
-          (change)="loadDiagram($event)"
-          style="display: none"
-          #fileInput>
+        <input type="file" accept=".json" (change)="loadDiagram($event)" style="display: none" #fileInput>
         <button (click)="fileInput.click()" class="btn action-btn" title="Load Diagram">📁</button>
         <button (click)="exportToSvg()" class="btn action-btn" title="Export to SVG">📤</button>
         <button (click)="addNewNode()" class="btn btn-light-grey action-btn" title="Add Node">➕</button>
         <button (click)="addNewBoundingBox()" class="btn btn-light-grey action-btn" title="Add Bounding Box">▭</button>
-        <input
-          type="file"
-          accept=".svg"
-          (change)="loadSvgImage($event)"
-          style="display: none"
-          #svgInput>
+        <input type="file" accept=".svg" (change)="loadSvgImage($event)" style="display: none" #svgInput>
         <button (click)="svgInput.click()" class="btn btn-light-grey action-btn" title="Load SVG Image">🖼️</button>
       </div>
     </div>
 
     <div class="toolbar-section" *ngIf="selectedElementId">
-    <h3>Element Actions</h3>
-    <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
-    <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
-    <button (click)="deleteSelectedNode()" class="btn btn-danger">🗑️ Delete Element</button>
+      <h3>Element Actions</h3>
+      <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
+      <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
+      <button (click)="deleteSelectedNode()" class="btn btn-danger">🗑️ Delete Element</button>
 
-    <div class="name-control">
-      <label>ELEMENT NAME:</label>
-      <input
-        type="text"
-        [value]="getSelectedElementName()"
-        (input)="updateElementName($event)"
-        placeholder="Enter element name..."
-        class="name-input">
-    </div>
+      <div class="name-control">
+        <label>ELEMENT NAME:</label>
+        <input type="text" [value]="getSelectedElementName()" (input)="updateElementName($event)"
+          placeholder="Enter element name..." class="name-input">
+      </div>
 
-    <div class="shape-control" *ngIf="selectedElement && isNode(selectedElement)">
-      <label>SHAPE:</label>
-      <div class="shape-buttons-grid">
-        <div class="shape-row">
-          <button
-            (click)="setElementShape('rectangle')"
-            [class.active]="getSelectedElementShape() === 'rectangle'"
-            class="shape-btn"
-            title="Rectangle - Process/Action">
-            <div class="shape-icon">▬</div>
-            <div class="shape-label">Rectangle</div>
-          </button>
-          <button
-            (click)="setElementShape('circle')"
-            [class.active]="getSelectedElementShape() === 'circle'"
-            class="shape-btn"
-            title="Circle - Start/End">
-            <div class="shape-icon">●</div>
-            <div class="shape-label">Circle</div>
-          </button>
-          <button
-            (click)="setElementShape('pill')"
-            [class.active]="getSelectedElementShape() === 'pill'"
-            class="shape-btn"
-            title="Pill - Input/Output">
-            <div class="shape-icon">💊</div>
-            <div class="shape-label">Pill</div>
-          </button>
-          <button
-            (click)="setElementShape('cylinder')"
-            [class.active]="getSelectedElementShape() === 'cylinder'"
-            class="shape-btn"
-            title="Cylinder - Database">
-            <div class="shape-icon">⛁</div>
-            <div class="shape-label">Cylinder</div>
-          </button>
+      <div class="shape-control" *ngIf="selectedElement && isNode(selectedElement)">
+        <label>SHAPE:</label>
+        <div class="shape-buttons-grid">
+          <div class="shape-row">
+            <button (click)="setElementShape('rectangle')" [class.active]="getSelectedElementShape() === 'rectangle'"
+              class="shape-btn" title="Rectangle - Process/Action">
+              <div class="shape-icon">▬</div>
+              <div class="shape-label">Rectangle</div>
+            </button>
+            <button (click)="setElementShape('circle')" [class.active]="getSelectedElementShape() === 'circle'"
+              class="shape-btn" title="Circle - Start/End">
+              <div class="shape-icon">●</div>
+              <div class="shape-label">Circle</div>
+            </button>
+            <button (click)="setElementShape('pill')" [class.active]="getSelectedElementShape() === 'pill'"
+              class="shape-btn" title="Pill - Input/Output">
+              <div class="shape-icon">💊</div>
+              <div class="shape-label">Pill</div>
+            </button>
+            <button (click)="setElementShape('cylinder')" [class.active]="getSelectedElementShape() === 'cylinder'"
+              class="shape-btn" title="Cylinder - Database">
+              <div class="shape-icon">⛁</div>
+              <div class="shape-label">Cylinder</div>
+            </button>
+          </div>
+          <div class="shape-row">
+            <button (click)="setElementShape('diamond')" [class.active]="getSelectedElementShape() === 'diamond'"
+              class="shape-btn" title="Diamond - Decision">
+              <div class="shape-icon">◆</div>
+              <div class="shape-label">Diamond</div>
+            </button>
+            <button (click)="setElementShape('parallelogram')"
+              [class.active]="getSelectedElementShape() === 'parallelogram'" class="shape-btn"
+              title="Parallelogram - Input/Output">
+              <div class="shape-icon">▰</div>
+              <div class="shape-label">Parallelogram</div>
+            </button>
+            <button (click)="setElementShape('document')" [class.active]="getSelectedElementShape() === 'document'"
+              class="shape-btn" title="Document - Document">
+              <div class="shape-icon">📋</div>
+              <div class="shape-label">Document</div>
+            </button>
+            <button (click)="setElementShape('roundedRectangle')"
+              [class.active]="getSelectedElementShape() === 'roundedRectangle'" class="shape-btn"
+              title="Rounded Rectangle - Process">
+              <div class="shape-icon">▢</div>
+              <div class="shape-label">Rounded</div>
+            </button>
+          </div>
+          <div class="shape-row">
+            <button (click)="setElementShape('hexagon')" [class.active]="getSelectedElementShape() === 'hexagon'"
+              class="shape-btn" title="Hexagon - Preparation">
+              <div class="shape-icon">⬡</div>
+              <div class="shape-label">Hexagon</div>
+            </button>
+            <button (click)="setElementShape('triangle')" [class.active]="getSelectedElementShape() === 'triangle'"
+              class="shape-btn" title="Triangle - Manual Operation">
+              <div class="shape-icon">▲</div>
+              <div class="shape-label">Triangle</div>
+            </button>
+            <button (click)="setElementShape('trapezoid')" [class.active]="getSelectedElementShape() === 'trapezoid'"
+              class="shape-btn" title="Trapezoid - Manual Input">
+              <div class="shape-icon">▱</div>
+              <div class="shape-label">Trapezoid</div>
+            </button>
+            <button (click)="setElementShape('stickman')" [class.active]="getSelectedElementShape() === 'stickman'"
+              class="shape-btn" title="Stickman - Person/Actor">
+              <div class="shape-icon">🧑</div>
+              <div class="shape-label">Stickman</div>
+            </button>
+          </div>
+          <div class="shape-row">
+            <button (click)="setElementShape('callout')" [class.active]="getSelectedElementShape() === 'callout'"
+              class="shape-btn" title="Callout - Speech Bubble">
+              <div class="shape-icon">💬</div>
+              <div class="shape-label">Callout</div>
+            </button>
+            <button (click)="setElementShape('process')" [class.active]="getSelectedElementShape() === 'process'"
+              class="shape-btn" title="Process - Emphasized Process">
+              <div class="shape-icon">⚙️</div>
+              <div class="shape-label">Process</div>
+            </button>
+            <button (click)="setElementShape('tape')" [class.active]="getSelectedElementShape() === 'tape'"
+              class="shape-btn" title="Tape - Magnetic Tape">
+              <div class="shape-icon">📼</div>
+              <div class="shape-label">Tape</div>
+            </button>
+            <button (click)="setElementShape('cube')" [class.active]="getSelectedElementShape() === 'cube'"
+              class="shape-btn" title="Cube - 3D Object">
+              <div class="shape-icon">🧊</div>
+              <div class="shape-label">Cube</div>
+            </button>
+          </div>
+          <div class="shape-row">
+            <button (click)="setElementShape('numberedCircle')"
+              [class.active]="getSelectedElementShape() === 'numberedCircle'" class="shape-btn"
+              title="Numbered Circle - Sequential Numbering">
+              <div class="shape-icon">⓵</div>
+              <div class="shape-label">Numbered</div>
+            </button>
+            <button (click)="setElementShape('text')" [class.active]="getSelectedElementShape() === 'text'"
+              class="shape-btn" title="Text - Plain Text Label">
+              <div class="shape-icon">✏️</div>
+              <div class="shape-label">Text</div>
+            </button>
+            <button (click)="setElementShape('note')" [class.active]="getSelectedElementShape() === 'note'"
+              class="shape-btn" title="Note - Page with Folded Corner">
+              <div class="shape-icon">📄</div>
+              <div class="shape-label">Note</div>
+            </button>
+          </div>
         </div>
-        <div class="shape-row">
-          <button
-            (click)="setElementShape('diamond')"
-            [class.active]="getSelectedElementShape() === 'diamond'"
-            class="shape-btn"
-            title="Diamond - Decision">
-            <div class="shape-icon">◆</div>
-            <div class="shape-label">Diamond</div>
-          </button>
-          <button
-            (click)="setElementShape('parallelogram')"
-            [class.active]="getSelectedElementShape() === 'parallelogram'"
-            class="shape-btn"
-            title="Parallelogram - Input/Output">
-            <div class="shape-icon">▰</div>
-            <div class="shape-label">Parallelogram</div>
-          </button>
-          <button
-            (click)="setElementShape('document')"
-            [class.active]="getSelectedElementShape() === 'document'"
-            class="shape-btn"
-            title="Document - Document">
-            <div class="shape-icon">📋</div>
-            <div class="shape-label">Document</div>
-          </button>
-          <button
-            (click)="setElementShape('roundedRectangle')"
-            [class.active]="getSelectedElementShape() === 'roundedRectangle'"
-            class="shape-btn"
-            title="Rounded Rectangle - Process">
-            <div class="shape-icon">▢</div>
-            <div class="shape-label">Rounded</div>
-          </button>
-        </div>
-        <div class="shape-row">
-          <button
-            (click)="setElementShape('hexagon')"
-            [class.active]="getSelectedElementShape() === 'hexagon'"
-            class="shape-btn"
-            title="Hexagon - Preparation">
-            <div class="shape-icon">⬡</div>
-            <div class="shape-label">Hexagon</div>
-          </button>
-          <button
-            (click)="setElementShape('triangle')"
-            [class.active]="getSelectedElementShape() === 'triangle'"
-            class="shape-btn"
-            title="Triangle - Manual Operation">
-            <div class="shape-icon">▲</div>
-            <div class="shape-label">Triangle</div>
-          </button>
-          <button
-            (click)="setElementShape('trapezoid')"
-            [class.active]="getSelectedElementShape() === 'trapezoid'"
-            class="shape-btn"
-            title="Trapezoid - Manual Input">
-            <div class="shape-icon">▱</div>
-            <div class="shape-label">Trapezoid</div>
-          </button>
-          <button
-            (click)="setElementShape('stickman')"
-            [class.active]="getSelectedElementShape() === 'stickman'"
-            class="shape-btn"
-            title="Stickman - Person/Actor">
-            <div class="shape-icon">🧑</div>
-            <div class="shape-label">Stickman</div>
-          </button>
-        </div>
-        <div class="shape-row">
-          <button
-            (click)="setElementShape('callout')"
-            [class.active]="getSelectedElementShape() === 'callout'"
-            class="shape-btn"
-            title="Callout - Speech Bubble">
-            <div class="shape-icon">💬</div>
-            <div class="shape-label">Callout</div>
-          </button>
-          <button
-            (click)="setElementShape('process')"
-            [class.active]="getSelectedElementShape() === 'process'"
-            class="shape-btn"
-            title="Process - Emphasized Process">
-            <div class="shape-icon">⚙️</div>
-            <div class="shape-label">Process</div>
-          </button>
-          <button
-            (click)="setElementShape('tape')"
-            [class.active]="getSelectedElementShape() === 'tape'"
-            class="shape-btn"
-            title="Tape - Magnetic Tape">
-            <div class="shape-icon">📼</div>
-            <div class="shape-label">Tape</div>
-          </button>
-          <button
-            (click)="setElementShape('cube')"
-            [class.active]="getSelectedElementShape() === 'cube'"
-            class="shape-btn"
-            title="Cube - 3D Object">
-            <div class="shape-icon">🧊</div>
-            <div class="shape-label">Cube</div>
-          </button>
-        </div>
-        <div class="shape-row">
-          <button
-            (click)="setElementShape('numberedCircle')"
-            [class.active]="getSelectedElementShape() === 'numberedCircle'"
-            class="shape-btn"
-            title="Numbered Circle - Sequential Numbering">
-            <div class="shape-icon">⓵</div>
-            <div class="shape-label">Numbered</div>
-          </button>
-          <button
-            (click)="setElementShape('text')"
-            [class.active]="getSelectedElementShape() === 'text'"
-            class="shape-btn"
-            title="Text - Plain Text Label">
-            <div class="shape-icon">✏️</div>
-            <div class="shape-label">Text</div>
-          </button>
-          <button
-            (click)="setElementShape('note')"
-            [class.active]="getSelectedElementShape() === 'note'"
-            class="shape-btn"
-            title="Note - Page with Folded Corner">
-            <div class="shape-icon">📄</div>
-            <div class="shape-label">Note</div>
-          </button>
+
+        <div class="border-style-control" style="margin-top: 15px;">
+          <h3>BORDER STYLE:</h3>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" [checked]="!getSelectedElementDotted()" (change)="setElementDotted(false)"
+                name="element-dotted">
+              Solid
+            </label>
+            <label class="radio-label">
+              <input type="radio" [checked]="getSelectedElementDotted()" (change)="setElementDotted(true)"
+                name="element-dotted">
+              Dotted
+            </label>
+          </div>
         </div>
       </div>
 
-      <div class="border-style-control" style="margin-top: 15px;">
-        <h3>BORDER STYLE:</h3>
+      <div class="color-controls" *ngIf="selectedElement && isNode(selectedElement)">
+        <label>FILL COLOR:</label>
+        <input type="color" [attr.value]="getSelectedElementFillColor()" (change)="updateElementFillColor($event)"
+          class="color-input">
+
+        <label>BORDER COLOR:</label>
+        <input type="color" [attr.value]="getSelectedElementBorderColor()" (change)="updateElementBorderColor($event)"
+          class="color-input">
+
+        <label>FONT FAMILY:</label>
+        <select [value]="getSelectedElementFont()" (change)="updateElementFont($event)" class="font-select"
+          style="width: 100%; margin-bottom: 10px; padding: 5px;">
+          <option *ngFor="let font of availableFonts" [value]="font" [style.font-family]="font">
+            {{ font }}
+          </option>
+        </select>
+      </div>
+
+      <div class="accordion-section">
+        <button type="button" class="accordion-header" (click)="notesExpanded = !notesExpanded"
+          [class.expanded]="notesExpanded">
+          <span class="accordion-icon">{{ notesExpanded ? '▼' : '▶' }}</span>
+          <span class="accordion-title">Notes</span>
+        </button>
+        <div class="accordion-content" [class.expanded]="notesExpanded">
+          <div class="notes-control">
+            <textarea [value]="getSelectedElementNotes()" (input)="updateElementNotes($event)"
+              placeholder="Enter notes for this element..." class="notes-textarea" rows="4">
+          </textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar-section" *ngIf="selectedBoundingBoxId">
+      <h3>Bounding Box Actions</h3>
+      <div class="name-control">
+        <label>Label:</label>
+        <input type="text" [value]="getSelectedBoundingBoxLabel()" (input)="updateBoundingBoxLabel($event)"
+          placeholder="Enter box label..." class="name-input">
+      </div>
+
+      <div class="color-controls">
+        <label>FILL COLOR:</label>
+        <input type="color" [attr.value]="getSelectedBoundingBoxFillColor()"
+          (change)="updateBoundingBoxFillColor($event)" class="color-input">
+
+        <label>BORDER COLOR:</label>
+        <input type="color" [attr.value]="getSelectedBoundingBoxBorderColor()"
+          (change)="updateBoundingBoxBorderColor($event)" class="color-input">
+      </div>
+
+      <div class="color-controls">
+        <label>ROUNDED EDGES:</label>
         <div class="radio-group">
           <label class="radio-label">
-            <input
-              type="radio"
-              [checked]="!getSelectedElementDotted()"
-              (change)="setElementDotted(false)"
-              name="element-dotted">
-            Solid
+            <input type="radio" [checked]="getSelectedBoundingBoxRounded()" (change)="setBoundingBoxRounded(true)"
+              name="bounding-box-rounded">
+            Yes
           </label>
           <label class="radio-label">
-            <input
-              type="radio"
-              [checked]="getSelectedElementDotted()"
-              (change)="setElementDotted(true)"
-              name="element-dotted">
-            Dotted
+            <input type="radio" [checked]="!getSelectedBoundingBoxRounded()" (change)="setBoundingBoxRounded(false)"
+              name="bounding-box-rounded">
+            No
           </label>
         </div>
       </div>
+
+      <button (click)="deleteSelectedBoundingBox()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Bounding
+        Box</button>
     </div>
 
-    <div class="color-controls" *ngIf="selectedElement && isNode(selectedElement)">
-      <label>FILL COLOR:</label>
-      <input
-        type="color"
-        [attr.value]="getSelectedElementFillColor()"
-        (change)="updateElementFillColor($event)"
-        class="color-input">
 
-      <label>BORDER COLOR:</label>
-      <input
-        type="color"
-        [attr.value]="getSelectedElementBorderColor()"
-        (change)="updateElementBorderColor($event)"
-        class="color-input">
-    </div>
 
-    <div class="accordion-section">
-      <button
-        type="button"
-        class="accordion-header"
-        (click)="notesExpanded = !notesExpanded"
-        [class.expanded]="notesExpanded">
-        <span class="accordion-icon">{{ notesExpanded ? '▼' : '▶' }}</span>
-        <span class="accordion-title">Notes</span>
-      </button>
-      <div class="accordion-content" [class.expanded]="notesExpanded">
-        <div class="notes-control">
-          <textarea
-            [value]="getSelectedElementNotes()"
-            (input)="updateElementNotes($event)"
-            placeholder="Enter notes for this element..."
-            class="notes-textarea"
-            rows="4">
+    <div class="toolbar-section" *ngIf="selectedTendrilId">
+      <h3>Tendril Actions</h3>
+      <div class="name-control">
+        <label>{{ getSelectedTendrilTypeLabel() }}:</label>
+        <input type="text" [value]="getSelectedTendrilName()" (input)="updateTendrilName($event)"
+          placeholder="Enter tendril name..." class="name-input">
+      </div>
+
+      <div class="type-control">
+        <label>Type:</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" [checked]="getSelectedTendrilType() === 'incoming'"
+              (change)="setTendrilType('incoming')" name="tendril-type">
+            Incoming
+          </label>
+          <label class="radio-label">
+            <input type="radio" [checked]="getSelectedTendrilType() === 'outgoing'"
+              (change)="setTendrilType('outgoing')" name="tendril-type">
+            Outgoing
+          </label>
+        </div>
+      </div>
+
+      <div class="exposure-control">
+        <label>Visibility:</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" [checked]="getSelectedTendrilExposed()" (change)="setTendrilExposed(true)"
+              name="tendril-exposure">
+            Exposed
+          </label>
+          <label class="radio-label">
+            <input type="radio" [checked]="!getSelectedTendrilExposed()" (change)="setTendrilExposed(false)"
+              name="tendril-exposure">
+            Internal
+          </label>
+        </div>
+      </div>
+
+      <div class="accordion-section">
+        <button type="button" class="accordion-header" (click)="tendrilNotesExpanded = !tendrilNotesExpanded"
+          [class.expanded]="tendrilNotesExpanded">
+          <span class="accordion-icon">{{ tendrilNotesExpanded ? '▼' : '▶' }}</span>
+          <span class="accordion-title">Notes</span>
+        </button>
+        <div class="accordion-content" [class.expanded]="tendrilNotesExpanded">
+          <div class="notes-control">
+            <textarea [value]="getSelectedTendrilNotes()" (input)="updateTendrilNotes($event)"
+              placeholder="Enter notes for this tendril..." class="notes-textarea" rows="4">
           </textarea>
+          </div>
+        </div>
+      </div>
+
+      <button (click)="deleteSelectedTendril()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete
+        Tendril</button>
+    </div>
+
+    <div class="toolbar-section" *ngIf="selectedEdgeId">
+      <h3>Edge Actions</h3>
+      <div class="name-control">
+        <label>Edge Name:</label>
+        <input type="text" [value]="getSelectedEdgeName()" (input)="updateEdgeName($event)"
+          placeholder="Enter edge name..." class="name-input">
+      </div>
+
+      <div class="accordion-section">
+        <button type="button" class="accordion-header" (click)="edgeNotesExpanded = !edgeNotesExpanded"
+          [class.expanded]="edgeNotesExpanded">
+          <span class="accordion-icon">{{ edgeNotesExpanded ? '▼' : '▶' }}</span>
+          <span class="accordion-title">Notes</span>
+        </button>
+        <div class="accordion-content" [class.expanded]="edgeNotesExpanded">
+          <div class="notes-control">
+            <textarea [value]="getSelectedEdgeNotes()" (input)="updateEdgeNotes($event)"
+              placeholder="Enter notes for this edge..." class="notes-textarea" rows="4">
+          </textarea>
+          </div>
+        </div>
+      </div>
+
+      <button (click)="deleteSelectedEdge()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Edge</button>
+    </div>
+
+    <div class="toolbar-section">
+      <div class="accordion-section">
+        <button type="button" class="accordion-header" (click)="instructionsExpanded = !instructionsExpanded"
+          [class.expanded]="instructionsExpanded">
+          <span class="accordion-icon">{{ instructionsExpanded ? '▼' : '▶' }}</span>
+          <span class="accordion-title">Instructions</span>
+        </button>
+        <div class="accordion-content" [class.expanded]="instructionsExpanded">
+          <ul class="instructions">
+            <li>Use "New Node" button to add nodes, or "Add Bounding Box" for grouping</li>
+            <li>Load SVG images using the image button for custom graphics</li>
+            <li>Drag nodes/elements to reposition, drag blue circles to resize</li>
+            <li>Right-click nodes to rename, change shapes, customize colors & add notes</li>
+            <li>Right-click tendrils to rename them and set visibility (exposed/internal)</li>
+            <li>Double-click nodes to enter inner diagrams for hierarchical modeling</li>
+            <li>Click orange tendrils to start edges, green tendrils to complete them</li>
+            <li>Drag tendrils to reposition them along element borders (left, right, top, bottom)</li>
+            <li>Ctrl+click elements to quickly create edges (auto-creates tendrils)</li>
+            <li>Edge labels appear in gaps within the edge line (not overlaid)</li>
+            <li>Arrow heads are unfilled for cleaner appearance</li>
+            <li>Right-click to cancel edge creation, right-click items to select for deletion</li>
+            <li>Press Delete key to remove selected items</li>
+            <li>Use Save/Load buttons to persist diagrams as JSON files</li>
+            <li>Export diagrams to SVG format for external use</li>
+          </ul>
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="toolbar-section" *ngIf="selectedBoundingBoxId">
-    <h3>Bounding Box Actions</h3>
-    <div class="name-control">
-      <label>Label:</label>
-      <input
-        type="text"
-        [value]="getSelectedBoundingBoxLabel()"
-        (input)="updateBoundingBoxLabel($event)"
-        placeholder="Enter box label..."
-        class="name-input">
-    </div>
-
-    <div class="color-controls">
-      <label>FILL COLOR:</label>
-      <input
-        type="color"
-        [attr.value]="getSelectedBoundingBoxFillColor()"
-        (change)="updateBoundingBoxFillColor($event)"
-        class="color-input">
-
-      <label>BORDER COLOR:</label>
-      <input
-        type="color"
-        [attr.value]="getSelectedBoundingBoxBorderColor()"
-        (change)="updateBoundingBoxBorderColor($event)"
-        class="color-input">
-    </div>
-
-    <div class="color-controls">
-      <label>ROUNDED EDGES:</label>
-      <div class="radio-group">
-        <label class="radio-label">
-          <input
-            type="radio"
-            [checked]="getSelectedBoundingBoxRounded()"
-            (change)="setBoundingBoxRounded(true)"
-            name="bounding-box-rounded">
-          Yes
-        </label>
-        <label class="radio-label">
-          <input
-            type="radio"
-            [checked]="!getSelectedBoundingBoxRounded()"
-            (change)="setBoundingBoxRounded(false)"
-            name="bounding-box-rounded">
-          No
-        </label>
-      </div>
-    </div>
-
-    <button (click)="deleteSelectedBoundingBox()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Bounding Box</button>
-  </div>
-
-
-
-  <div class="toolbar-section" *ngIf="selectedTendrilId">
-    <h3>Tendril Actions</h3>
-    <div class="name-control">
-      <label>{{ getSelectedTendrilTypeLabel() }}:</label>
-      <input
-        type="text"
-        [value]="getSelectedTendrilName()"
-        (input)="updateTendrilName($event)"
-        placeholder="Enter tendril name..."
-        class="name-input">
-    </div>
-
-    <div class="type-control">
-      <label>Type:</label>
-      <div class="radio-group">
-        <label class="radio-label">
-          <input
-            type="radio"
-            [checked]="getSelectedTendrilType() === 'incoming'"
-            (change)="setTendrilType('incoming')"
-            name="tendril-type">
-          Incoming
-        </label>
-        <label class="radio-label">
-          <input
-            type="radio"
-            [checked]="getSelectedTendrilType() === 'outgoing'"
-            (change)="setTendrilType('outgoing')"
-            name="tendril-type">
-          Outgoing
-        </label>
-      </div>
-    </div>
-
-    <div class="exposure-control">
-      <label>Visibility:</label>
-      <div class="radio-group">
-        <label class="radio-label">
-          <input
-            type="radio"
-            [checked]="getSelectedTendrilExposed()"
-            (change)="setTendrilExposed(true)"
-            name="tendril-exposure">
-          Exposed
-        </label>
-        <label class="radio-label">
-          <input
-            type="radio"
-            [checked]="!getSelectedTendrilExposed()"
-            (change)="setTendrilExposed(false)"
-            name="tendril-exposure">
-          Internal
-        </label>
-      </div>
-    </div>
-
-    <div class="accordion-section">
-      <button
-        type="button"
-        class="accordion-header"
-        (click)="tendrilNotesExpanded = !tendrilNotesExpanded"
-        [class.expanded]="tendrilNotesExpanded">
-        <span class="accordion-icon">{{ tendrilNotesExpanded ? '▼' : '▶' }}</span>
-        <span class="accordion-title">Notes</span>
-      </button>
-      <div class="accordion-content" [class.expanded]="tendrilNotesExpanded">
-        <div class="notes-control">
-          <textarea
-            [value]="getSelectedTendrilNotes()"
-            (input)="updateTendrilNotes($event)"
-            placeholder="Enter notes for this tendril..."
-            class="notes-textarea"
-            rows="4">
-          </textarea>
-        </div>
-      </div>
-    </div>
-
-    <button (click)="deleteSelectedTendril()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Tendril</button>
-  </div>
-
-  <div class="toolbar-section" *ngIf="selectedEdgeId">
-    <h3>Edge Actions</h3>
-    <div class="name-control">
-      <label>Edge Name:</label>
-      <input
-        type="text"
-        [value]="getSelectedEdgeName()"
-        (input)="updateEdgeName($event)"
-        placeholder="Enter edge name..."
-        class="name-input">
-    </div>
-
-    <div class="accordion-section">
-      <button
-        type="button"
-        class="accordion-header"
-        (click)="edgeNotesExpanded = !edgeNotesExpanded"
-        [class.expanded]="edgeNotesExpanded">
-        <span class="accordion-icon">{{ edgeNotesExpanded ? '▼' : '▶' }}</span>
-        <span class="accordion-title">Notes</span>
-      </button>
-      <div class="accordion-content" [class.expanded]="edgeNotesExpanded">
-        <div class="notes-control">
-          <textarea
-            [value]="getSelectedEdgeNotes()"
-            (input)="updateEdgeNotes($event)"
-            placeholder="Enter notes for this edge..."
-            class="notes-textarea"
-            rows="4">
-          </textarea>
-        </div>
-      </div>
-    </div>
-
-    <button (click)="deleteSelectedEdge()" class="btn btn-danger" style="margin-top: 15px;">🗑️ Delete Edge</button>
-  </div>
-
-  <div class="toolbar-section">
-    <div class="accordion-section">
-      <button
-        type="button"
-        class="accordion-header"
-        (click)="instructionsExpanded = !instructionsExpanded"
-        [class.expanded]="instructionsExpanded">
-        <span class="accordion-icon">{{ instructionsExpanded ? '▼' : '▶' }}</span>
-        <span class="accordion-title">Instructions</span>
-      </button>
-      <div class="accordion-content" [class.expanded]="instructionsExpanded">
-        <ul class="instructions">
-          <li>Use "New Node" button to add nodes, or "Add Bounding Box" for grouping</li>
-          <li>Load SVG images using the image button for custom graphics</li>
-          <li>Drag nodes/elements to reposition, drag blue circles to resize</li>
-          <li>Right-click nodes to rename, change shapes, customize colors & add notes</li>
-          <li>Right-click tendrils to rename them and set visibility (exposed/internal)</li>
-          <li>Double-click nodes to enter inner diagrams for hierarchical modeling</li>
-          <li>Click orange tendrils to start edges, green tendrils to complete them</li>
-          <li>Drag tendrils to reposition them along element borders (left, right, top, bottom)</li>
-          <li>Ctrl+click elements to quickly create edges (auto-creates tendrils)</li>
-          <li>Edge labels appear in gaps within the edge line (not overlaid)</li>
-          <li>Arrow heads are unfilled for cleaner appearance</li>
-          <li>Right-click to cancel edge creation, right-click items to select for deletion</li>
-          <li>Press Delete key to remove selected items</li>
-          <li>Use Save/Load buttons to persist diagrams as JSON files</li>
-          <li>Export diagrams to SVG format for external use</li>
-        </ul>
-      </div>
-    </div>
-  </div>
   </div>
 </div>

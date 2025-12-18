@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:digit": "node dist/digit/server/server.mjs"
+    "serve:ssr:digit": "node dist/digit/server/server.mjs",
+    "build:single": "ng build && node scripts/package-single-html.js"
   },
   "private": true,
   "dependencies": {

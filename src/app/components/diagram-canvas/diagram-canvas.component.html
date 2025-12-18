@@ -7,834 +7,536 @@
     </div>
   </div>
 
-  <svg
-    #canvas
-    class="diagram-canvas"
-    width="100%"
-    height="100%"
-    (click)="onCanvasClick($event)">
+  <svg #canvas class="diagram-canvas" width="100%" height="100%" (click)="onCanvasClick($event)">
 
-  <!-- Grid background -->
-  <rect
-    width="100%"
-    height="100%"
-    fill="url(#grid)">
-  </rect>
+    <!-- Grid background -->
+    <rect width="100%" height="100%" fill="url(#grid)">
+    </rect>
 
-  <!-- Bounding boxes - bottom layer -->
-  <g class="bounding-boxes">
-    <g
-      *ngFor="let box of getBoundingBoxes()"
-      class="bounding-box-group"
-      cdkDrag
-      (cdkDragStarted)="onBoundingBoxDragStarted(box)"
-      (cdkDragMoved)="onBoundingBoxDragMoved($event, box)"
-      (cdkDragEnded)="onBoundingBoxDragEnd($event, box)"
-      (click)="onBoundingBoxClick($event, box)"
-      (contextmenu)="onBoundingBoxContextMenu($event, box)">
+    <!-- Bounding boxes - bottom layer -->
+    <g class="bounding-boxes">
+      <g *ngFor="let box of getBoundingBoxes()" class="bounding-box-group" cdkDrag
+        (cdkDragStarted)="onBoundingBoxDragStarted(box)" (cdkDragMoved)="onBoundingBoxDragMoved($event, box)"
+        (cdkDragEnded)="onBoundingBoxDragEnd($event, box)" (click)="onBoundingBoxClick($event, box)"
+        (contextmenu)="onBoundingBoxContextMenu($event, box)">
 
-      <!-- Bounding box rectangle -->
-      <rect
-        [attr.x]="box.position.x"
-        [attr.y]="box.position.y"
-        [attr.width]="box.size.width"
-        [attr.height]="box.size.height"
-        [attr.rx]="box.rounded ? '10' : '0'"
-        [attr.ry]="box.rounded ? '10' : '0'"
-        [attr.fill]="box.fillColor"
-        [attr.stroke]="box.borderColor"
-        stroke-width="1"
-        stroke-dasharray="8,4"
-        class="bounding-box">
-      </rect>
-
-      <!-- Resize handle -->
-      <circle
-        *ngIf="isSelected('boundingBox', box.id)"
-        [attr.cx]="box.position.x + box.size.width"
-        [attr.cy]="box.position.y + box.size.height"
-        r="4"
-        class="resize-handle"
-        (mousedown)="startBoundingBoxResize($event, box, 'se')"
-        style="cursor: nw-resize;">
-      </circle>
-
-      <!-- Bounding box label -->
-      <text
-        [attr.x]="box.position.x + box.size.width - 10"
-        [attr.y]="box.position.y + 20"
-        text-anchor="end"
-        dominant-baseline="hanging"
-        class="bounding-box-label">
-        {{ box.label }}
-      </text>
-    </g>
-  </g>
-
-  <!-- Elements (Nodes and SVG Images) -->
-  <g class="elements">
-    <g
-      *ngFor="let element of state.currentDiagram.elements"
-      class="element-group"
-      cdkDrag
-      (cdkDragEnded)="onElementDragEnd($event, element)"
-      (click)="onElementClick($event, element)"
-      (dblclick)="onElementDoubleClick(element)"
-      (contextmenu)="onElementContextMenu($event, element)">
-
-      <!-- SVG Image content -->
-      <ng-container *ngIf="isSvgImage(element)">
-        <!-- SVG content -->
-        <g [innerHTML]="sanitizeSvgContent($any(element).svgContent)"
-           [attr.transform]="'translate(' + element.position.x + ',' + element.position.y + ')'">
-        </g>
-
-        <!-- Bounding box for SVG (invisible but for selection) -->
-        <rect
-          [attr.x]="element.position.x"
-          [attr.y]="element.position.y"
-          [attr.width]="element.size.width"
-          [attr.height]="element.size.height"
-          fill="transparent"
-          stroke="transparent"
-          class="svg-image-bounds">
+        <!-- Bounding box rectangle -->
+        <rect [attr.x]="box.position.x" [attr.y]="box.position.y" [attr.width]="box.size.width"
+          [attr.height]="box.size.height" [attr.rx]="box.rounded ? '10' : '0'" [attr.ry]="box.rounded ? '10' : '0'"
+          [attr.fill]="box.fillColor" [attr.stroke]="box.borderColor" stroke-width="1" stroke-dasharray="8,4"
+          class="bounding-box">
         </rect>
 
         <!-- Resize handle -->
-        <circle
-          *ngIf="isSelected('svg', element.id)"
-          [attr.cx]="element.position.x + element.size.width"
-          [attr.cy]="element.position.y + element.size.height"
-          r="4"
-          class="resize-handle"
-          (mousedown)="startSvgImageResize($event, $any(element), 'se')"
-          style="cursor: nw-resize;">
+        <circle *ngIf="isSelected('boundingBox', box.id)" [attr.cx]="box.position.x + box.size.width"
+          [attr.cy]="box.position.y + box.size.height" r="4" class="resize-handle"
+          (mousedown)="startBoundingBoxResize($event, box, 'se')" style="cursor: nw-resize;">
         </circle>
 
-        <!-- SVG Image Label -->
-        <text
-          *ngIf="$any(element).label"
-          [attr.x]="element.position.x + element.size.width / 2"
-          [attr.y]="element.position.y + element.size.height + 20"
-          text-anchor="middle"
-          dominant-baseline="hanging"
-          class="svg-image-label">
-          {{ $any(element).label }}
+        <!-- Bounding box label -->
+        <text [attr.x]="box.position.x + box.size.width - 10" [attr.y]="box.position.y + 20" text-anchor="end"
+          dominant-baseline="hanging" class="bounding-box-label">
+          {{ box.label }}
         </text>
-      </ng-container>
+      </g>
+    </g>
 
-      <!-- Node shapes -->
-      <ng-container *ngIf="isNode(element)">
-        <rect
-          *ngIf="$any(element).shape === 'rectangle'"
-          [attr.x]="$any(element).position.x"
-          [attr.y]="$any(element).position.y"
-          [attr.width]="$any(element).size.width"
-          [attr.height]="$any(element).size.height"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </rect>
+    <!-- Elements (Nodes and SVG Images) -->
+    <g class="elements">
+      <g *ngFor="let element of state.currentDiagram.elements" class="element-group" cdkDrag
+        (cdkDragEnded)="onElementDragEnd($event, element)" (click)="onElementClick($event, element)"
+        (dblclick)="onElementDoubleClick(element)" (contextmenu)="onElementContextMenu($event, element)">
 
-        <circle
-          *ngIf="$any(element).shape === 'circle'"
-          [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-          [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
-          [attr.r]="getCircleRadius(element)"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </circle>
+        <!-- SVG Image content -->
+        <ng-container *ngIf="isSvgImage(element)">
+          <!-- SVG content -->
+          <g [innerHTML]="sanitizeSvgContent($any(element).svgContent)"
+            [attr.transform]="'translate(' + element.position.x + ',' + element.position.y + ')'">
+          </g>
 
-        <!-- Numbered circle shape -->
-        <g *ngIf="$any(element).shape === 'numberedCircle'" [class.highlighted]="isHighlighted('node', element.id)" class="numbered-circle" filter="url(#dropshadow)">
-          <circle
-            [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
-            [attr.r]="getCircleRadius(element)"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-            class="node">
+          <!-- Bounding box for SVG (invisible but for selection) -->
+          <rect [attr.x]="element.position.x" [attr.y]="element.position.y" [attr.width]="element.size.width"
+            [attr.height]="element.size.height" fill="transparent" stroke="transparent" class="svg-image-bounds">
+          </rect>
+
+          <!-- Resize handle -->
+          <circle *ngIf="isSelected('svg', element.id)" [attr.cx]="element.position.x + element.size.width"
+            [attr.cy]="element.position.y + element.size.height" r="4" class="resize-handle"
+            (mousedown)="startSvgImageResize($event, $any(element), 'se')" style="cursor: nw-resize;">
           </circle>
-          <!-- Number text inside circle -->
-          <text
-            [attr.x]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.y]="$any(element).position.y + $any(element).size.height / 2"
-            text-anchor="middle"
-            dominant-baseline="middle"
-            fill="#000000"
-            font-size="16"
-            font-weight="bold"
-            class="numbered-circle-text">
-            {{ $any(element).label || '1' }}
-          </text>
-        </g>
 
-        <rect
-          *ngIf="$any(element).shape === 'pill'"
-          [attr.x]="$any(element).position.x"
-          [attr.y]="$any(element).position.y"
-          [attr.width]="$any(element).size.width"
-          [attr.height]="$any(element).size.height"
-          [attr.rx]="$any(element).size.height / 2"
-          [attr.ry]="$any(element).size.height / 2"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </rect>
-
-        <g *ngIf="$any(element).shape === 'cylinder'" [class.highlighted]="isHighlighted('node', element.id)" class="cylinder" filter="url(#dropshadow)">
-          <!-- Database cylinder - bottom ellipse -->
-          <ellipse
-            [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.cy]="$any(element).position.y + $any(element).size.height - 8"
-            [attr.rx]="$any(element).size.width / 2"
-            [attr.ry]="8"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </ellipse>
-          <!-- Database cylinder - body -->
-          <rect
-            [attr.x]="$any(element).position.x"
-            [attr.y]="$any(element).position.y + 8"
-            [attr.width]="$any(element).size.width"
-            [attr.height]="$any(element).size.height - 16"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </rect>
-          <!-- Database cylinder - top ellipse (smaller) -->
-          <ellipse
-            [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.cy]="$any(element).position.y + 8"
-            [attr.rx]="$any(element).size.width / 3"
-            [attr.ry]="8"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </ellipse>
-          <!-- Horizontal lines for database tapes -->
-          <line
-            *ngFor="let i of [1,2,3]"
-            [attr.x1]="$any(element).position.x"
-            [attr.y1]="$any(element).position.y + 8 + ($any(element).size.height - 16) * i / 4"
-            [attr.x2]="$any(element).position.x + $any(element).size.width"
-            [attr.y2]="$any(element).position.y + 8 + ($any(element).size.height - 16) * i / 4"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </line>
-        </g>
-
-        <!-- Diamond shape for decision -->
-        <polygon
-          *ngIf="$any(element).shape === 'diamond'"
-          [attr.points]="getDiamondPoints(element)"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </polygon>
-
-        <!-- Parallelogram shape for input/output -->
-        <polygon
-          *ngIf="$any(element).shape === 'parallelogram'"
-          [attr.points]="getParallelogramPoints(element)"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </polygon>
-
-        <!-- Document shape -->
-        <g *ngIf="$any(element).shape === 'document'" [class.highlighted]="isHighlighted('node', element.id)" class="document" filter="url(#dropshadow)">
-          <!-- Document rectangle -->
-          <rect
-            [attr.x]="$any(element).position.x"
-            [attr.y]="$any(element).position.y"
-            [attr.width]="$any(element).size.width"
-            [attr.height]="$any(element).size.height - 15"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </rect>
-          <!-- Document wavy bottom -->
-          <path
-            [attr.d]="getDocumentBottomPath(element)"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </path>
-        </g>
-
-        <!-- Rounded rectangle shape -->
-        <rect
-          *ngIf="$any(element).shape === 'roundedRectangle'"
-          [attr.x]="$any(element).position.x"
-          [attr.y]="$any(element).position.y"
-          [attr.width]="$any(element).size.width"
-          [attr.height]="$any(element).size.height"
-          [attr.rx]="10"
-          [attr.ry]="10"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </rect>
-
-        <!-- Hexagon shape for preparation -->
-        <polygon
-          *ngIf="$any(element).shape === 'hexagon'"
-          [attr.points]="getHexagonPoints(element)"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </polygon>
-
-        <!-- Triangle shape for manual operation -->
-        <polygon
-          *ngIf="$any(element).shape === 'triangle'"
-          [attr.points]="getTrianglePoints(element)"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </polygon>
-
-        <!-- Trapezoid shape for manual input -->
-        <polygon
-          *ngIf="$any(element).shape === 'trapezoid'"
-          [attr.points]="getTrapezoidPoints(element)"
-          [attr.fill]="$any(element).fillColor"
-          [attr.stroke]="$any(element).borderColor"
-          [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-          [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
-          filter="url(#dropshadow)"
-          [class.highlighted]="isHighlighted('node', element.id)"
-          class="node">
-        </polygon>
-
-        <!-- Text-only node (no shape, just text) -->
-        <g *ngIf="$any(element).shape === 'text'" [class.highlighted]="isHighlighted('node', element.id)" class="text-node">
-          <!-- Invisible background for selection and interaction -->
-          <rect
-            [attr.x]="$any(element).position.x"
-            [attr.y]="$any(element).position.y"
-            [attr.width]="$any(element).size.width"
-            [attr.height]="$any(element).size.height"
-            fill="transparent"
-            stroke="transparent"
-            class="text-node-background">
-          </rect>
-        </g>
-
-        <!-- Stickman shape -->
-        <g *ngIf="$any(element).shape === 'stickman'" [class.highlighted]="isHighlighted('node', element.id)" class="stickman" filter="url(#dropshadow)">
-          <!-- Head -->
-          <circle
-            [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.cy]="$any(element).position.y + $any(element).size.height * 0.15"
-            [attr.r]="$any(element).size.width * 0.12"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </circle>
-          <!-- Body -->
-          <line
-            [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.y1]="$any(element).position.y + $any(element).size.height * 0.27"
-            [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.y2]="$any(element).position.y + $any(element).size.height * 0.6"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </line>
-          <!-- Arms -->
-          <line
-            [attr.x1]="$any(element).position.x + $any(element).size.width * 0.3"
-            [attr.y1]="$any(element).position.y + $any(element).size.height * 0.4"
-            [attr.x2]="$any(element).position.x + $any(element).size.width * 0.7"
-            [attr.y2]="$any(element).position.y + $any(element).size.height * 0.4"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </line>
-          <!-- Left leg -->
-          <line
-            [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.y1]="$any(element).position.y + $any(element).size.height * 0.6"
-            [attr.x2]="$any(element).position.x + $any(element).size.width * 0.35"
-            [attr.y2]="$any(element).position.y + $any(element).size.height * 0.9"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </line>
-          <!-- Right leg -->
-          <line
-            [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.y1]="$any(element).position.y + $any(element).size.height * 0.6"
-            [attr.x2]="$any(element).position.x + $any(element).size.width * 0.65"
-            [attr.y2]="$any(element).position.y + $any(element).size.height * 0.9"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </line>
-        </g>
-
-        <!-- Callout shape -->
-        <g *ngIf="$any(element).shape === 'callout'" [class.highlighted]="isHighlighted('node', element.id)" class="callout" filter="url(#dropshadow)">
-          <!-- Callout bubble -->
-          <rect
-            [attr.x]="$any(element).position.x"
-            [attr.y]="$any(element).position.y"
-            [attr.width]="$any(element).size.width * 0.8"
-            [attr.height]="$any(element).size.height * 0.8"
-            [attr.rx]="10"
-            [attr.ry]="10"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </rect>
-          <!-- Callout pointer/tail -->
-          <polygon
-            [attr.points]="getCalloutPointerPoints(element)"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </polygon>
-        </g>
-
-        <!-- Process shape (rectangle with double border) -->
-        <g *ngIf="$any(element).shape === 'process'" [class.highlighted]="isHighlighted('node', element.id)" class="process" filter="url(#dropshadow)">
-          <!-- Outer rectangle -->
-          <rect
-            [attr.x]="$any(element).position.x"
-            [attr.y]="$any(element).position.y"
-            [attr.width]="$any(element).size.width"
-            [attr.height]="$any(element).size.height"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="2"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </rect>
-          <!-- Inner rectangle -->
-          <rect
-            [attr.x]="$any(element).position.x + 3"
-            [attr.y]="$any(element).position.y + 3"
-            [attr.width]="$any(element).size.width - 6"
-            [attr.height]="$any(element).size.height - 6"
-            fill="none"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </rect>
-        </g>
-
-        <!-- Tape shape (magnetic tape reel) -->
-        <g *ngIf="$any(element).shape === 'tape'" [class.highlighted]="isHighlighted('node', element.id)" class="tape" filter="url(#dropshadow)">
-          <!-- Outer circle -->
-          <circle
-            [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
-            [attr.r]="getTapeRadius(element)"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </circle>
-          <!-- Inner circle -->
-          <circle
-            [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
-            [attr.r]="getTapeInnerRadius(element)"
-            fill="none"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </circle>
-          <!-- Tape lines -->
-          <line
-            *ngFor="let i of [0,1,2,3,4,5]"
-            [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
-            [attr.y1]="$any(element).position.y + $any(element).size.height / 2"
-            [attr.x2]="getTapeLineX2(element, i)"
-            [attr.y2]="getTapeLineY2(element, i)"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </line>
-        </g>
-
-        <!-- Cube shape (3D perspective) -->
-        <g *ngIf="$any(element).shape === 'cube'" [class.highlighted]="isHighlighted('node', element.id)" class="cube" filter="url(#dropshadow)">
-          <!-- Front face -->
-          <rect
-            [attr.x]="$any(element).position.x + $any(element).size.width * 0.1"
-            [attr.y]="$any(element).position.y + $any(element).size.height * 0.1"
-            [attr.width]="$any(element).size.width * 0.8"
-            [attr.height]="$any(element).size.height * 0.8"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </rect>
-          <!-- Top face -->
-          <polygon
-            [attr.points]="getCubeTopFacePoints(element)"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            opacity="0.8"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </polygon>
-          <!-- Side face -->
-          <polygon
-            [attr.points]="getCubeSideFacePoints(element)"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            stroke-width="1"
-            opacity="0.6"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </polygon>
-        </g>
-
-        <!-- Note shape (page with folded corner) -->
-        <g *ngIf="$any(element).shape === 'note'" [class.highlighted]="isHighlighted('node', element.id)" class="note" filter="url(#dropshadow)">
-          <!-- Main rectangle -->
-          <rect
-            [attr.x]="$any(element).position.x"
-            [attr.y]="$any(element).position.y"
-            [attr.width]="$any(element).size.width"
-            [attr.height]="$any(element).size.height"
-            [attr.fill]="$any(element).fillColor"
-            [attr.stroke]="$any(element).borderColor"
-            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </rect>
-          <!-- Folded corner triangle -->
-          <polygon
-            [attr.points]="getNoteFoldedCornerPoints(element)"
-            [attr.fill]="$any(element).borderColor"
-            [attr.stroke]="$any(element).borderColor"
-            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-          </polygon>
-        </g>
-
-        <!-- Resize handles -->
-        <circle
-          *ngIf="isSelected('node', element.id)"
-          [attr.cx]="$any(element).position.x + $any(element).size.width"
-          [attr.cy]="$any(element).position.y + $any(element).size.height"
-          r="4"
-          class="resize-handle"
-          (mousedown)="startResize($event, $any(element), 'se')"
-          style="cursor: nw-resize;">
-        </circle>
-
-        <!-- Node name/text - conditional rendering for note and numbered circle shapes -->
-        <text
-          *ngIf="$any(element).shape !== 'note' && $any(element).shape !== 'numberedCircle'"
-          [attr.x]="getNodeTextX(element)"
-          [attr.y]="getNodeTextY(element)"
-          [attr.text-anchor]="getNodeTextAnchor(element)"
-          [attr.dominant-baseline]="getNodeTextBaseline(element)"
-          fill="#000000"
-          class="node-name">
-          {{ $any(element).label }}
-        </text>
-
-        <!-- Note shape: show notes content inside, name below -->
-        <ng-container *ngIf="$any(element).shape === 'note'">
-          <text
-            [attr.x]="getNodeTextX(element)"
-            [attr.text-anchor]="getNodeTextAnchor(element)"
-            fill="#000000"
-            class="node-name">
-            <tspan
-              *ngFor="let line of getWrappedText($any(element).notes, $any(element).size.width - 20); let i = index"
-              [attr.x]="getNodeTextX(element)"
-              [attr.y]="getNodeTextY(element) - (getWrappedText($any(element).notes, $any(element).size.width - 20).length - 1) * 7 + i * 14"
-              dominant-baseline="middle">
-              {{ line }}
-            </tspan>
-          </text>
-          <text
-            [attr.x]="getNodeTextX(element)"
-            [attr.y]="$any(element).position.y + $any(element).size.height + 20"
-            [attr.text-anchor]="getNodeTextAnchor(element)"
-            dominant-baseline="hanging"
-            fill="#000000"
-            class="node-name">
+          <!-- SVG Image Label -->
+          <text *ngIf="$any(element).label" [attr.x]="element.position.x + element.size.width / 2"
+            [attr.y]="element.position.y + element.size.height + 20" text-anchor="middle" dominant-baseline="hanging"
+            class="svg-image-label">
             {{ $any(element).label }}
           </text>
         </ng-container>
-      </ng-container>
 
-      <!-- Tendrils for all elements -->
-      <g class="tendrils">
-        <ng-container *ngFor="let tendril of element.tendrils">
-          <!-- Invisible larger click area -->
-          <rect
-            [attr.x]="tendril.type === 'incoming' ? $any(element).position.x + tendril.position.x - 30 : $any(element).position.x + tendril.position.x - 10"
-            [attr.y]="$any(element).position.y + tendril.position.y - 15"
-            [attr.width]="tendril.type === 'incoming' ? 45 : 45"
-            [attr.height]="30"
-            fill="transparent"
-            (click)="onElementTendrilClick($event, element, tendril)"
-            (contextmenu)="onElementTendrilContextMenu($event, element, tendril)"
-            class="tendril-click-area">
+        <!-- Node shapes -->
+        <ng-container *ngIf="isNode(element)">
+          <rect *ngIf="$any(element).shape === 'rectangle'" [attr.x]="$any(element).position.x"
+            [attr.y]="$any(element).position.y" [attr.width]="$any(element).size.width"
+            [attr.height]="$any(element).size.height" [attr.fill]="$any(element).fillColor"
+            [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </rect>
 
-          <!-- Tendril circles -->
-          <circle
-            [attr.cx]="$any(element).position.x + tendril.position.x"
-            [attr.cy]="$any(element).position.y + tendril.position.y"
-            r="5"
-            [attr.fill]="getTendrilColor(tendril, false)"
-            [attr.stroke]="'#ffffff'"
-            stroke-width="1"
-            class="tendril"
-            cdkDrag
-            (cdkDragStarted)="onTendrilDragStarted($event, element, tendril)"
-            (cdkDragMoved)="onTendrilDragMoved($event, element, tendril)"
-            (cdkDragEnded)="onTendrilDragEnded($event, element, tendril)"
-            (click)="onElementTendrilClick($event, element, tendril)"
-            (contextmenu)="onElementTendrilContextMenu($event, element, tendril)"
-            style="cursor: pointer;">
-            <title>{{ getTendrilTooltip(element.id, tendril.id) }}</title>
+          <circle *ngIf="$any(element).shape === 'circle'"
+            [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+            [attr.cy]="$any(element).position.y + $any(element).size.height / 2" [attr.r]="getCircleRadius(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </circle>
 
-          <!-- Tendril name - only hide when there's an edge name -->
-          <text
-            *ngIf="!hasEdgeName(element.id, tendril.id)"
-            [attr.x]="tendril.position.x < $any(element).size.width / 2 ? $any(element).position.x + tendril.position.x - 25 : $any(element).position.x + tendril.position.x + 25"
-            [attr.y]="$any(element).position.y + tendril.position.y - 8"
-            [attr.text-anchor]="tendril.position.x < $any(element).size.width / 2 ? 'end' : 'start'"
-            dominant-baseline="middle"
-            class="tendril-name"
-            (click)="onElementTendrilClick($event, element, tendril)"
-            (contextmenu)="onElementTendrilContextMenu($event, element, tendril)"
-            style="cursor: pointer;">
-            {{ tendril.name }}
+          <!-- Numbered circle shape -->
+          <g *ngIf="$any(element).shape === 'numberedCircle'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="numbered-circle" filter="url(#dropshadow)">
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2" [attr.r]="getCircleRadius(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" class="node">
+            </circle>
+            <!-- Number text inside circle -->
+            <text [attr.x]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y]="$any(element).position.y + $any(element).size.height / 2" text-anchor="middle"
+              dominant-baseline="middle" fill="#000000" font-size="16" font-weight="bold" class="numbered-circle-text">
+              {{ $any(element).label || '1' }}
+            </text>
+          </g>
+
+          <rect *ngIf="$any(element).shape === 'pill'" [attr.x]="$any(element).position.x"
+            [attr.y]="$any(element).position.y" [attr.width]="$any(element).size.width"
+            [attr.height]="$any(element).size.height" [attr.rx]="$any(element).size.height / 2"
+            [attr.ry]="$any(element).size.height / 2" [attr.fill]="$any(element).fillColor"
+            [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </rect>
+
+          <g *ngIf="$any(element).shape === 'cylinder'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="cylinder" filter="url(#dropshadow)">
+            <!-- Database cylinder - bottom ellipse -->
+            <ellipse [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height - 8"
+              [attr.rx]="$any(element).size.width / 2" [attr.ry]="8" [attr.fill]="$any(element).fillColor"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </ellipse>
+            <!-- Database cylinder - body -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y + 8"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height - 16"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Database cylinder - top ellipse (smaller) -->
+            <ellipse [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + 8" [attr.rx]="$any(element).size.width / 3" [attr.ry]="8"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </ellipse>
+            <!-- Horizontal lines for database tapes -->
+            <line *ngFor="let i of [1,2,3]" [attr.x1]="$any(element).position.x"
+              [attr.y1]="$any(element).position.y + 8 + ($any(element).size.height - 16) * i / 4"
+              [attr.x2]="$any(element).position.x + $any(element).size.width"
+              [attr.y2]="$any(element).position.y + 8 + ($any(element).size.height - 16) * i / 4"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </line>
+          </g>
+
+          <!-- Diamond shape for decision -->
+          <polygon *ngIf="$any(element).shape === 'diamond'" [attr.points]="getDiamondPoints(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </polygon>
+
+          <!-- Parallelogram shape for input/output -->
+          <polygon *ngIf="$any(element).shape === 'parallelogram'" [attr.points]="getParallelogramPoints(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </polygon>
+
+          <!-- Document shape -->
+          <g *ngIf="$any(element).shape === 'document'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="document" filter="url(#dropshadow)">
+            <!-- Document rectangle -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height - 15"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Document wavy bottom -->
+            <path [attr.d]="getDocumentBottomPath(element)" [attr.fill]="$any(element).fillColor"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </path>
+          </g>
+
+          <!-- Rounded rectangle shape -->
+          <rect *ngIf="$any(element).shape === 'roundedRectangle'" [attr.x]="$any(element).position.x"
+            [attr.y]="$any(element).position.y" [attr.width]="$any(element).size.width"
+            [attr.height]="$any(element).size.height" [attr.rx]="10" [attr.ry]="10"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </rect>
+
+          <!-- Hexagon shape for preparation -->
+          <polygon *ngIf="$any(element).shape === 'hexagon'" [attr.points]="getHexagonPoints(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </polygon>
+
+          <!-- Triangle shape for manual operation -->
+          <polygon *ngIf="$any(element).shape === 'triangle'" [attr.points]="getTrianglePoints(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </polygon>
+
+          <!-- Trapezoid shape for manual input -->
+          <polygon *ngIf="$any(element).shape === 'trapezoid'" [attr.points]="getTrapezoidPoints(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </polygon>
+
+          <!-- Text-only node (no shape, just text) -->
+          <g *ngIf="$any(element).shape === 'text'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="text-node">
+            <!-- Invisible background for selection and interaction -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" fill="transparent"
+              stroke="transparent" class="text-node-background">
+            </rect>
+          </g>
+
+          <!-- Stickman shape -->
+          <g *ngIf="$any(element).shape === 'stickman'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="stickman" filter="url(#dropshadow)">
+            <!-- Head -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height * 0.15"
+              [attr.r]="$any(element).size.width * 0.12" [attr.fill]="$any(element).fillColor"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </circle>
+            <!-- Body -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y1]="$any(element).position.y + $any(element).size.height * 0.27"
+              [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y2]="$any(element).position.y + $any(element).size.height * 0.6"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </line>
+            <!-- Arms -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width * 0.3"
+              [attr.y1]="$any(element).position.y + $any(element).size.height * 0.4"
+              [attr.x2]="$any(element).position.x + $any(element).size.width * 0.7"
+              [attr.y2]="$any(element).position.y + $any(element).size.height * 0.4"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </line>
+            <!-- Left leg -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y1]="$any(element).position.y + $any(element).size.height * 0.6"
+              [attr.x2]="$any(element).position.x + $any(element).size.width * 0.35"
+              [attr.y2]="$any(element).position.y + $any(element).size.height * 0.9"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </line>
+            <!-- Right leg -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y1]="$any(element).position.y + $any(element).size.height * 0.6"
+              [attr.x2]="$any(element).position.x + $any(element).size.width * 0.65"
+              [attr.y2]="$any(element).position.y + $any(element).size.height * 0.9"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </line>
+          </g>
+
+          <!-- Callout shape -->
+          <g *ngIf="$any(element).shape === 'callout'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="callout" filter="url(#dropshadow)">
+            <!-- Callout bubble -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width * 0.8" [attr.height]="$any(element).size.height * 0.8"
+              [attr.rx]="10" [attr.ry]="10" [attr.fill]="$any(element).fillColor"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Callout pointer/tail -->
+            <polygon [attr.points]="getCalloutPointerPoints(element)" [attr.fill]="$any(element).fillColor"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </polygon>
+          </g>
+
+          <!-- Process shape (rectangle with double border) -->
+          <g *ngIf="$any(element).shape === 'process'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="process" filter="url(#dropshadow)">
+            <!-- Outer rectangle -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor" stroke-width="2"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Inner rectangle -->
+            <rect [attr.x]="$any(element).position.x + 3" [attr.y]="$any(element).position.y + 3"
+              [attr.width]="$any(element).size.width - 6" [attr.height]="$any(element).size.height - 6" fill="none"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+          </g>
+
+          <!-- Tape shape (magnetic tape reel) -->
+          <g *ngIf="$any(element).shape === 'tape'" [class.highlighted]="isHighlighted('node', element.id)" class="tape"
+            filter="url(#dropshadow)">
+            <!-- Outer circle -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2" [attr.r]="getTapeRadius(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </circle>
+            <!-- Inner circle -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.r]="getTapeInnerRadius(element)" fill="none" [attr.stroke]="$any(element).borderColor"
+              stroke-width="1" [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </circle>
+            <!-- Tape lines -->
+            <line *ngFor="let i of [0,1,2,3,4,5]" [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y1]="$any(element).position.y + $any(element).size.height / 2" [attr.x2]="getTapeLineX2(element, i)"
+              [attr.y2]="getTapeLineY2(element, i)" [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </line>
+          </g>
+
+          <!-- Cube shape (3D perspective) -->
+          <g *ngIf="$any(element).shape === 'cube'" [class.highlighted]="isHighlighted('node', element.id)" class="cube"
+            filter="url(#dropshadow)">
+            <!-- Front face -->
+            <rect [attr.x]="$any(element).position.x + $any(element).size.width * 0.1"
+              [attr.y]="$any(element).position.y + $any(element).size.height * 0.1"
+              [attr.width]="$any(element).size.width * 0.8" [attr.height]="$any(element).size.height * 0.8"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor" stroke-width="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Top face -->
+            <polygon [attr.points]="getCubeTopFacePoints(element)" [attr.fill]="$any(element).fillColor"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1" opacity="0.8"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </polygon>
+            <!-- Side face -->
+            <polygon [attr.points]="getCubeSideFacePoints(element)" [attr.fill]="$any(element).fillColor"
+              [attr.stroke]="$any(element).borderColor" stroke-width="1" opacity="0.6"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </polygon>
+          </g>
+
+          <!-- Note shape (page with folded corner) -->
+          <g *ngIf="$any(element).shape === 'note'" [class.highlighted]="isHighlighted('node', element.id)" class="note"
+            filter="url(#dropshadow)">
+            <!-- Main rectangle -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Folded corner triangle -->
+            <polygon [attr.points]="getNoteFoldedCornerPoints(element)" [attr.fill]="$any(element).borderColor"
+              [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="isSelected('node', element.id) ? '2' : '1'"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </polygon>
+          </g>
+
+          <!-- Resize handles -->
+          <circle *ngIf="isSelected('node', element.id)" [attr.cx]="$any(element).position.x + $any(element).size.width"
+            [attr.cy]="$any(element).position.y + $any(element).size.height" r="4" class="resize-handle"
+            (mousedown)="startResize($event, $any(element), 'se')" style="cursor: nw-resize;">
+          </circle>
+
+          <!-- Node name/text - conditional rendering for note and numbered circle shapes -->
+          <text *ngIf="$any(element).shape !== 'note' && $any(element).shape !== 'numberedCircle'"
+            [attr.x]="getNodeTextX(element)" [attr.y]="getNodeTextY(element)"
+            [attr.text-anchor]="getNodeTextAnchor(element)" [attr.dominant-baseline]="getNodeTextBaseline(element)"
+            [style.font-family]="$any(element).fontFamily ? $any(element).fontFamily + ', cursive' : 'Purisa, Chalkboard'"
+            fill="#000000" class="node-name">
+            {{ $any(element).label }}
           </text>
-        </ng-container>
 
-        <!-- Propagated tendrils from inner diagram (only for nodes) -->
-        <ng-container *ngIf="isNode(element)">
-          <ng-container *ngFor="let tendril of getPropagatedTendrils($any(element)); let i = index">
-            <!-- Position propagated tendrils around the node perimeter -->
-            <ng-container *ngIf="getPropagatedTendrilPosition($any(element), i) as pos">
-              <!-- Invisible larger click area -->
-              <rect
-                [attr.x]="tendril.type === 'incoming' ? pos.x - 30 : pos.x - 10"
-                [attr.y]="pos.y - 15"
-                [attr.width]="tendril.type === 'incoming' ? 45 : 45"
-                [attr.height]="30"
-                fill="transparent"
-                (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
-                (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
-                class="tendril-click-area">
-              </rect>
-
-              <!-- Tendril circles -->
-              <circle
-                [attr.cx]="pos.x"
-                [attr.cy]="pos.y"
-                r="5"
-                [attr.fill]="getTendrilColor(tendril, true)"
-                [attr.stroke]="'#ffffff'"
-                stroke-width="1"
-                class="propagated-tendril"
-                cdkDrag
-                (cdkDragStarted)="onTendrilDragStarted($event, $any(element), tendril)"
-                (cdkDragMoved)="onTendrilDragMoved($event, $any(element), tendril)"
-                (cdkDragEnded)="onTendrilDragEnded($event, $any(element), tendril)"
-                (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
-                (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
-                style="cursor: pointer;">
-                <title>{{ getPropagatedTendrilTooltip(element.id, tendril.id) }}</title>
-              </circle>
-
-              <!-- Tendril name - only hide when there's an edge name -->
-              <text
-                *ngIf="!hasPropagatedEdgeName(element.id, tendril.id)"
-                [attr.x]="pos.x < $any(element).position.x + $any(element).size.width / 2 ? pos.x - 25 : pos.x + 25"
-                [attr.y]="pos.y - 8"
-                [attr.text-anchor]="pos.x < $any(element).position.x + $any(element).size.width / 2 ? 'end' : 'start'"
-                dominant-baseline="middle"
-                class="propagated-tendril-name"
-                (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
-                (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
-                style="cursor: pointer;">
-                {{ tendril.name }}
-              </text>
-            </ng-container>
+          <!-- Note shape: show notes content inside, name below -->
+          <ng-container *ngIf="$any(element).shape === 'note'">
+            <text [attr.x]="getNodeTextX(element)" [attr.text-anchor]="getNodeTextAnchor(element)"
+              [style.font-family]="$any(element).fontFamily ? $any(element).fontFamily + ', cursive' : 'Purisa, Chalkboard'"
+              fill="#000000" class="node-name">
+              <tspan
+                *ngFor="let line of getWrappedText($any(element).notes, $any(element).size.width - 20); let i = index"
+                [attr.x]="getNodeTextX(element)"
+                [attr.y]="getNodeTextY(element) - (getWrappedText($any(element).notes, $any(element).size.width - 20).length - 1) * 7 + i * 14"
+                dominant-baseline="middle">
+                {{ line }}
+              </tspan>
+            </text>
+            <text [attr.x]="getNodeTextX(element)" [attr.y]="$any(element).position.y + $any(element).size.height + 20"
+              [attr.text-anchor]="getNodeTextAnchor(element)" dominant-baseline="hanging"
+              [style.font-family]="$any(element).fontFamily ? $any(element).fontFamily + ', cursive' : 'Purisa, Chalkboard'"
+              fill="#000000" class="node-name">
+              {{ $any(element).label }}
+            </text>
           </ng-container>
         </ng-container>
+
+        <!-- Tendrils for all elements -->
+        <g class="tendrils">
+          <ng-container *ngFor="let tendril of element.tendrils">
+            <!-- Invisible larger click area -->
+            <rect
+              [attr.x]="tendril.type === 'incoming' ? $any(element).position.x + tendril.position.x - 30 : $any(element).position.x + tendril.position.x - 10"
+              [attr.y]="$any(element).position.y + tendril.position.y - 15"
+              [attr.width]="tendril.type === 'incoming' ? 45 : 45" [attr.height]="30" fill="transparent"
+              (click)="onElementTendrilClick($event, element, tendril)"
+              (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" class="tendril-click-area">
+            </rect>
+
+            <!-- Tendril circles -->
+            <circle [attr.cx]="$any(element).position.x + tendril.position.x"
+              [attr.cy]="$any(element).position.y + tendril.position.y" r="5"
+              [attr.fill]="getTendrilColor(tendril, false)" [attr.stroke]="'#ffffff'" stroke-width="1" class="tendril"
+              cdkDrag (cdkDragStarted)="onTendrilDragStarted($event, element, tendril)"
+              (cdkDragMoved)="onTendrilDragMoved($event, element, tendril)"
+              (cdkDragEnded)="onTendrilDragEnded($event, element, tendril)"
+              (click)="onElementTendrilClick($event, element, tendril)"
+              (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" style="cursor: pointer;">
+              <title>{{ getTendrilTooltip(element.id, tendril.id) }}</title>
+            </circle>
+
+            <!-- Tendril name - only hide when there's an edge name -->
+            <text *ngIf="!hasEdgeName(element.id, tendril.id)"
+              [attr.x]="tendril.position.x < $any(element).size.width / 2 ? $any(element).position.x + tendril.position.x - 25 : $any(element).position.x + tendril.position.x + 25"
+              [attr.y]="$any(element).position.y + tendril.position.y - 8"
+              [attr.text-anchor]="tendril.position.x < $any(element).size.width / 2 ? 'end' : 'start'"
+              dominant-baseline="middle" class="tendril-name" (click)="onElementTendrilClick($event, element, tendril)"
+              (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" style="cursor: pointer;">
+              {{ tendril.name }}
+            </text>
+          </ng-container>
+
+          <!-- Propagated tendrils from inner diagram (only for nodes) -->
+          <ng-container *ngIf="isNode(element)">
+            <ng-container *ngFor="let tendril of getPropagatedTendrils($any(element)); let i = index">
+              <!-- Position propagated tendrils around the node perimeter -->
+              <ng-container *ngIf="getPropagatedTendrilPosition($any(element), i) as pos">
+                <!-- Invisible larger click area -->
+                <rect [attr.x]="tendril.type === 'incoming' ? pos.x - 30 : pos.x - 10" [attr.y]="pos.y - 15"
+                  [attr.width]="tendril.type === 'incoming' ? 45 : 45" [attr.height]="30" fill="transparent"
+                  (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
+                  (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
+                  class="tendril-click-area">
+                </rect>
+
+                <!-- Tendril circles -->
+                <circle [attr.cx]="pos.x" [attr.cy]="pos.y" r="5" [attr.fill]="getTendrilColor(tendril, true)"
+                  [attr.stroke]="'#ffffff'" stroke-width="1" class="propagated-tendril" cdkDrag
+                  (cdkDragStarted)="onTendrilDragStarted($event, $any(element), tendril)"
+                  (cdkDragMoved)="onTendrilDragMoved($event, $any(element), tendril)"
+                  (cdkDragEnded)="onTendrilDragEnded($event, $any(element), tendril)"
+                  (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
+                  (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
+                  style="cursor: pointer;">
+                  <title>{{ getPropagatedTendrilTooltip(element.id, tendril.id) }}</title>
+                </circle>
+
+                <!-- Tendril name - only hide when there's an edge name -->
+                <text *ngIf="!hasPropagatedEdgeName(element.id, tendril.id)"
+                  [attr.x]="pos.x < $any(element).position.x + $any(element).size.width / 2 ? pos.x - 25 : pos.x + 25"
+                  [attr.y]="pos.y - 8"
+                  [attr.text-anchor]="pos.x < $any(element).position.x + $any(element).size.width / 2 ? 'end' : 'start'"
+                  dominant-baseline="middle" class="propagated-tendril-name"
+                  (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
+                  (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
+                  style="cursor: pointer;">
+                  {{ tendril.name }}
+                </text>
+              </ng-container>
+            </ng-container>
+          </ng-container>
+        </g>
       </g>
     </g>
-  </g>
 
-  <!-- Edges -->
-  <g class="edges">
-    <g *ngFor="let edge of getCurrentEdges()" class="edge-group">
-      <!-- For labeled edges, render two path segments with a gap -->
-      <ng-container *ngIf="edge.name && getEdgePathSegments(edge) as segments">
-        <path
-          [attr.d]="segments.first + forceUpdate"
-          class="edge"
-          [class.selected]="isSelected('edge', edge.id)"
-          stroke="#666"
-          [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'"
-          fill="none"
+    <!-- Edges -->
+    <g class="edges">
+      <g *ngFor="let edge of getCurrentEdges()" class="edge-group">
+        <!-- For labeled edges, render two path segments with a gap -->
+        <ng-container *ngIf="edge.name && getEdgePathSegments(edge) as segments">
+          <path [attr.d]="segments.first + forceUpdate" class="edge" [class.selected]="isSelected('edge', edge.id)"
+            stroke="#666" [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'" fill="none"
+            (click)="onEdgeClick($event, edge)">
+          </path>
+          <path [attr.d]="segments.second + forceUpdate" class="edge" [class.selected]="isSelected('edge', edge.id)"
+            stroke="#666" [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'" fill="none"
+            marker-end="url(#arrowhead)" (click)="onEdgeClick($event, edge)">
+          </path>
+        </ng-container>
+        <!-- For unlabeled edges, render single continuous path -->
+        <path *ngIf="!edge.name" [attr.d]="getEdgePath(edge)" class="edge"
+          [class.selected]="isSelected('edge', edge.id)" stroke="#666"
+          [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'" fill="none" marker-end="url(#arrowhead)"
           (click)="onEdgeClick($event, edge)">
         </path>
-        <path
-          [attr.d]="segments.second + forceUpdate"
-          class="edge"
-          [class.selected]="isSelected('edge', edge.id)"
-          stroke="#666"
-          [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'"
-          fill="none"
-          marker-end="url(#arrowhead)"
-          (click)="onEdgeClick($event, edge)">
-        </path>
-      </ng-container>
-      <!-- For unlabeled edges, render single continuous path -->
-      <path
-        *ngIf="!edge.name"
-        [attr.d]="getEdgePath(edge)"
-        class="edge"
-        [class.selected]="isSelected('edge', edge.id)"
-        stroke="#666"
-        [attr.stroke-width]="isSelected('edge', edge.id) ? '2' : '1'"
-        fill="none"
-        marker-end="url(#arrowhead)"
-        (click)="onEdgeClick($event, edge)">
-      </path>
-      <!-- Edge name label -->
-      <text
-        *ngIf="edge.name"
-        [attr.x]="getEdgeLabelPosition(edge).x"
-        [attr.y]="getEdgeLabelPosition(edge).y"
-        text-anchor="middle"
-        dominant-baseline="middle"
-        class="edge-name">
-        {{ edge.name }}
-      </text>
+        <!-- Edge name label -->
+        <text *ngIf="edge.name" [attr.x]="getEdgeLabelPosition(edge).x" [attr.y]="getEdgeLabelPosition(edge).y"
+          text-anchor="middle" dominant-baseline="middle" class="edge-name">
+          {{ edge.name }}
+        </text>
+      </g>
     </g>
-  </g>
 
-  <!-- Temporary edge during creation -->
-  <path
-    *ngIf="isCreatingEdge"
-    [attr.d]="getTempEdgePath()"
-    class="temp-edge"
-    stroke="#999"
-    stroke-width="2"
-    stroke-dasharray="5,5"
-    fill="none">
-  </path>
+    <!-- Temporary edge during creation -->
+    <path *ngIf="isCreatingEdge" [attr.d]="getTempEdgePath()" class="temp-edge" stroke="#999" stroke-width="2"
+      stroke-dasharray="5,5" fill="none">
+    </path>
 
 
 
-  <!-- Arrow marker, grid pattern, and drop shadow filter definitions -->
-  <defs>
-    <marker
-      id="arrowhead"
-      markerWidth="10"
-      markerHeight="7"
-      refX="9"
-      refY="3.5"
-      orient="auto">
-      <polygon
-        points="0 0, 10 3.5, 0 7"
-        fill="none"
-        stroke="#666"
-        stroke-width="1" />
-    </marker>
+    <!-- Arrow marker, grid pattern, and drop shadow filter definitions -->
+    <defs>
+      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="none" stroke="#666" stroke-width="1" />
+      </marker>
 
-    <pattern
-      id="grid"
-      width="20"
-      height="20"
-      patternUnits="userSpaceOnUse">
-      <circle
-        cx="10"
-        cy="10"
-        r="1"
-        fill="#cccccc">
-      </circle>
-    </pattern>
+      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <circle cx="10" cy="10" r="1" fill="#cccccc">
+        </circle>
+      </pattern>
 
-    <filter
-      id="dropshadow"
-      x="-20%"
-      y="-20%"
-      width="140%"
-      height="140%">
-      <feDropShadow
-        dx="3"
-        dy="3"
-        stdDeviation="2"
-        flood-color="#000000"
-        flood-opacity="0.3"/>
-    </filter>
+      <filter id="dropshadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="3" dy="3" stdDeviation="2" flood-color="#000000" flood-opacity="0.3" />
+      </filter>
 
-    <filter
-      id="glow"
-      x="-50%"
-      y="-50%"
-      width="200%"
-      height="200%">
-      <feGaussianBlur
-        stdDeviation="3"
-        result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-</svg>
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+        <feMerge>
+          <feMergeNode in="coloredBlur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+  </svg>
 </div>

@@ -397,15 +397,15 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.diagramService.clearSelection();
     }
 
-    // Track Ctrl key for edge creation mode
-    if (event.key === 'Control') {
+    // Track Ctrl or Meta key for edge creation mode
+    if (event.key === 'Control' || event.key === 'Meta') {
       this.isCtrlEdgeMode = true;
     }
   }
 
   @HostListener('document:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent): void {
-    if (event.key === 'Control') {
+    if (event.key === 'Control' || event.key === 'Meta') {
       this.isCtrlEdgeMode = false;
       // Cancel any pending Ctrl edge creation
       if (this.ctrlEdgeStartElementId) {

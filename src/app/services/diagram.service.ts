@@ -133,11 +133,19 @@ export class DiagramService {
   // Node operations
   addNode(position: Position, options?: { shape?: string; borderColor?: string; fillColor?: string; dotted?: boolean; fontFamily?: string }): void {
     const shape = (options?.shape as any) || 'rectangle';
+
+    let size = { width: 100, height: 60 };
+    if (shape === 'verticalLine') {
+      size = { width: 40, height: 100 };
+    } else if (shape === 'horizontalLine') {
+      size = { width: 100, height: 40 };
+    }
+
     const newNode: Node = {
       id: this.generateId(),
-      label: 'New Node',
+      label: (shape === 'verticalLine' || shape === 'horizontalLine') ? '' : 'New Node',
       position,
-      size: { width: 100, height: 60 },
+      size,
       tendrils: [],
       attributes: {},
       notes: '',
@@ -635,43 +643,57 @@ export class DiagramService {
     );
   }
 
-  // Todo operations
+  // Todo operations - always operate on the root diagram
+  private getRootDiagram(state: DiagramState): Diagram {
+    return state.diagramStack.length > 0 ? state.diagramStack[0] : state.currentDiagram;
+  }
+
+  private updateRootTodos(newTodos: import('../models/diagram.model').TodoItem[]): void {
+    if (this.state.diagramStack.length > 0) {
+      // Update root diagram in stack
+      const updatedRoot = { ...this.state.diagramStack[0], todos: newTodos };
+      const newStack = [updatedRoot, ...this.state.diagramStack.slice(1)];
+
+      this.state = {
+        ...this.state,
+        diagramStack: newStack
+      };
+    } else {
+      // Update current diagram (which is root)
+      this.state = {
+        ...this.state,
+        currentDiagram: {
+          ...this.state.currentDiagram,
+          todos: newTodos
+        }
+      };
+    }
+  }
+
   addTodo(text: string): void {
+    const rootDiagram = this.getRootDiagram(this.state);
     const newTodo: import('../models/diagram.model').TodoItem = {
       id: this.generateId(),
       text,
       completed: false
     };
 
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        todos: [...(this.state.currentDiagram.todos || []), newTodo]
-      }
-    };
+    const newTodos = [...(rootDiagram.todos || []), newTodo];
+    this.updateRootTodos(newTodos);
   }
 
   deleteTodo(todoId: string): void {
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        todos: (this.state.currentDiagram.todos || []).filter(t => t.id !== todoId)
-      }
-    };
+    const rootDiagram = this.getRootDiagram(this.state);
+    const newTodos = (rootDiagram.todos || []).filter(t => t.id !== todoId);
+    this.updateRootTodos(newTodos);
   }
 
   toggleTodo(todoId: string): void {
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        todos: (this.state.currentDiagram.todos || []).map(t =>
-          t.id === todoId ? { ...t, completed: !t.completed } : t
-        )
-      }
-    };
+    const rootDiagram = this.getRootDiagram(this.state);
+    const newTodos = (rootDiagram.todos || []).map(t =>
+      t.id === todoId ? { ...t, completed: !t.completed } : t
+    );
+    this.updateRootTodos(newTodos);
   }
 
   updateCurrentDiagramName(name: string): void {

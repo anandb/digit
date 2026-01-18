@@ -36,8 +36,10 @@
 
     <div class="toolbar-section" *ngIf="selectedElementId">
       <h3>Element Actions</h3>
-      <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
-      <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
+      <div *ngIf="getSelectedElementShape() !== 'verticalLine' && getSelectedElementShape() !== 'horizontalLine'">
+        <button (click)="addIncomingTendril()" class="btn btn-tendril">+ Incoming Tendril</button>
+        <button (click)="addOutgoingTendril()" class="btn btn-tendril">+ Outgoing Tendril</button>
+      </div>
       <button (click)="deleteSelectedNode()" class="btn btn-danger">🗑️ Delete Element</button>
 
       <div class="name-control">
@@ -155,6 +157,19 @@
               class="shape-btn" title="Note - Page with Folded Corner">
               <div class="shape-icon">📄</div>
               <div class="shape-label">Note</div>
+            </button>
+          </div>
+
+          <div class="shape-row">
+            <button (click)="setElementShape('verticalLine')"
+              [class.active]="getSelectedElementShape() === 'verticalLine'" class="shape-btn" title="Vertical Line">
+              <div class="shape-icon">│</div>
+              <div class="shape-label">Vertical</div>
+            </button>
+            <button (click)="setElementShape('horizontalLine')"
+              [class.active]="getSelectedElementShape() === 'horizontalLine'" class="shape-btn" title="Horizontal Line">
+              <div class="shape-icon">─</div>
+              <div class="shape-label">Horizontal</div>
             </button>
           </div>
         </div>

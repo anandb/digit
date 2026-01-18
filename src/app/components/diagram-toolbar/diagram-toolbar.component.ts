@@ -380,7 +380,20 @@ export class DiagramToolbarComponent {
   setElementShape(shape: string): void {
     const elementId = this.selectedElementId;
     if (elementId) {
-      this.diagramService.updateElement(elementId, { shape: shape as any });
+      const updates: any = { shape: shape as any };
+
+      const element = this.diagramService.getElement(elementId);
+      if (element && isNode(element)) {
+        if (shape === 'verticalLine') {
+          updates.size = { width: 40, height: element.size.height };
+          updates.tendrils = []; // Remove tendrils
+        } else if (shape === 'horizontalLine') {
+          updates.size = { width: element.size.width, height: 40 };
+          updates.tendrils = []; // Remove tendrils
+        }
+      }
+
+      this.diagramService.updateElement(elementId, updates);
       // Update default shape for new nodes
       this.defaultShape = shape;
       this.saveDefaultShapeSettings();

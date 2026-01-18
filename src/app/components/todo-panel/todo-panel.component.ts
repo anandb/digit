@@ -20,7 +20,10 @@ export class TodoPanelComponent implements OnInit {
 
     constructor(private diagramService: DiagramService) {
         this.todos$ = this.diagramService.state$.pipe(
-            map(state => state.currentDiagram.todos || [])
+            map(state => {
+                const rootDiagram = state.diagramStack.length > 0 ? state.diagramStack[0] : state.currentDiagram;
+                return rootDiagram.todos || [];
+            })
         );
     }
 

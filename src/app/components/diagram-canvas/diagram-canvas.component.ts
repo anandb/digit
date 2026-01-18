@@ -114,6 +114,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   onElementDoubleClick(element: DiagramElement): void {
     if (isNode(element)) {
+      // Line shapes don't support inner diagrams
+      if (element.shape === 'verticalLine' || element.shape === 'horizontalLine') {
+        return;
+      }
+
       // If node doesn't have an inner diagram, create one
       if (!element.innerDiagram) {
         element.innerDiagram = this.diagramService.createInnerDiagram(element.id);
@@ -180,6 +185,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Node double click to enter inner diagram
   onNodeDoubleClick(node: Node): void {
+    // Line shapes don't support inner diagrams
+    if (node.shape === 'verticalLine' || node.shape === 'horizontalLine') {
+      return;
+    }
+
     // If node doesn't have an inner diagram, create one
     if (!node.innerDiagram) {
       node.innerDiagram = this.diagramService.createInnerDiagram(node.id);
@@ -260,8 +270,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const deltaX = currentPos.x - this.resizeStartPos.x;
       const deltaY = currentPos.y - this.resizeStartPos.y;
 
-      const newWidth = Math.max(50, this.resizeStartSize.width + deltaX);
-      const newHeight = Math.max(30, this.resizeStartSize.height + deltaY);
+      let newWidth = Math.max(50, this.resizeStartSize.width + deltaX);
+      let newHeight = Math.max(30, this.resizeStartSize.height + deltaY);
+
+      // Constrain resize for line shapes
+      const node = this.diagramService.getNode(this.resizeNodeId);
+      if (node) {
+        if (node.shape === 'verticalLine') {
+          newWidth = this.resizeStartSize.width; // Lock width
+        } else if (node.shape === 'horizontalLine') {
+          newHeight = this.resizeStartSize.height; // Lock height
+        }
+      }
 
       // Update node size
       this.diagramService.updateNode(this.resizeNodeId, {
@@ -1495,6 +1515,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Handle Ctrl+click edge creation
   private handleCtrlClick(elementId: string): void {
+    const element = this.getElementAny(elementId);
+    if (!element) return;
+
+    // Don't allow connections to/from line shapes
+    if (isNode(element) && (element.shape === 'verticalLine' || element.shape === 'horizontalLine')) {
+      return;
+    }
+
     if (!this.ctrlEdgeStartElementId) {
       // Start edge creation - auto-create outgoing tendril
       const outgoingTendrilId = this.autoCreateOutgoingTendril(elementId);

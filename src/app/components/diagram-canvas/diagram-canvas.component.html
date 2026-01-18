@@ -365,6 +365,40 @@
             </polygon>
           </g>
 
+          <!-- Vertical Line shape -->
+          <g *ngIf="$any(element).shape === 'verticalLine'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="node">
+            <!-- Invisible background for selection -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" fill="transparent"
+              stroke="transparent">
+            </rect>
+            <!-- The line itself -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y1]="$any(element).position.y" [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y2]="$any(element).position.y + $any(element).size.height" [attr.stroke]="$any(element).borderColor"
+              stroke-width="2" [attr.stroke-dasharray]="$any(element).dotted ? '12,8' : null">
+            </line>
+          </g>
+
+          <!-- Horizontal Line shape -->
+          <g *ngIf="$any(element).shape === 'horizontalLine'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="node">
+            <!-- Invisible background for selection -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" fill="transparent"
+              stroke="transparent">
+            </rect>
+            <!-- The line itself -->
+            <line [attr.x1]="$any(element).position.x"
+              [attr.y1]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.x2]="$any(element).position.x + $any(element).size.width"
+              [attr.y2]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.stroke]="$any(element).borderColor" stroke-width="2"
+              [attr.stroke-dasharray]="$any(element).dotted ? '12,8' : null">
+            </line>
+          </g>
+
           <!-- Resize handles -->
           <circle *ngIf="isSelected('node', element.id)" [attr.cx]="$any(element).position.x + $any(element).size.width"
             [attr.cy]="$any(element).position.y + $any(element).size.height" r="4" class="resize-handle"

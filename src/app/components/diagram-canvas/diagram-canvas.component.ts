@@ -417,9 +417,22 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.diagramService.clearSelection();
     }
 
-    // Track Ctrl or Meta key for edge creation mode
     if (event.key === 'Control' || event.key === 'Meta') {
       this.isCtrlEdgeMode = true;
+    }
+
+    // Copy (Ctrl+C)
+    if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+      event.preventDefault();
+      this.diagramService.copySelection();
+      return;
+    }
+
+    // Paste (Ctrl+V)
+    if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+      event.preventDefault();
+      this.diagramService.pasteClipboard();
+      return;
     }
   }
 

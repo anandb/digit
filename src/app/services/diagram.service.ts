@@ -37,10 +37,15 @@ export class DiagramService {
     return this.stateSubject.value;
   }
 
+  // Clipboard for copy-paste
+  private clipboard: DiagramElement[] = [];
+
+  constructor() { }
+
   private set state(newState: DiagramState) {
     // Save current state to undo stack before updating
-    const currentDiagramId = this.state.currentDiagram.id;
-    if (!this.undoStacks.has(currentDiagramId)) {
+    const currentDiagramId = this.state?.currentDiagram?.id;
+    if (currentDiagramId && !this.undoStacks.has(currentDiagramId)) {
       this.undoStacks.set(currentDiagramId, []);
     }
     const undoStack = this.undoStacks.get(currentDiagramId)!;
@@ -121,7 +126,39 @@ export class DiagramService {
 
   goBack(): void {
     if (this.state.diagramStack.length > 0) {
-      const previousDiagram = this.allDiagrams.get(this.state.diagramStack[this.state.diagramStack.length - 1].id)!;
+      // Check if current diagram is empty
+      const current = this.state.currentDiagram;
+      const isEmpty = current.elements.length === 0 &&
+        current.edges.length === 0 &&
+        current.boundingBoxes.length === 0;
+
+      const previousDiagramId = this.state.diagramStack[this.state.diagramStack.length - 1].id;
+      let previousDiagram = this.allDiagrams.get(previousDiagramId)!;
+
+      if (isEmpty) {
+        // Find parent node in previous diagram
+        const parentNode = previousDiagram.elements.find(el => isNode(el) && el.innerDiagram?.id === current.id) as Node | undefined;
+
+        if (parentNode) {
+          // Remove innerDiagram from parent node
+          const updatedElements = previousDiagram.elements.map(el => {
+            if (el.id === parentNode.id) {
+              const node = el as Node;
+              return { ...node, innerDiagram: undefined };
+            }
+            return el;
+          });
+
+          previousDiagram = {
+            ...previousDiagram,
+            elements: updatedElements
+          };
+
+          this.allDiagrams.set(previousDiagram.id, previousDiagram);
+          this.allDiagrams.delete(current.id);
+        }
+      }
+
       this.state = {
         ...this.state,
         currentDiagram: previousDiagram,
@@ -851,6 +888,76 @@ export class DiagramService {
       console.error('Failed to load state from localStorage:', error);
       return null;
     }
+  }
+
+  // Copy-Paste Functionality
+  copySelection(): void {
+    const selectedElements: DiagramElement[] = [];
+
+    // Collect selected nodes
+    this.state.selectedNodeIds.forEach(id => {
+      const node = this.getNode(id);
+      if (node) selectedElements.push(JSON.parse(JSON.stringify(node)));
+    });
+
+    // Collect selected SVG images
+    this.state.selectedSvgImageIds.forEach(id => {
+      const svg = this.getSvgImage(id);
+      if (svg) selectedElements.push(JSON.parse(JSON.stringify(svg)));
+    });
+
+    // Store in clipboard
+    if (selectedElements.length > 0) {
+      this.clipboard = selectedElements;
+    }
+  }
+
+  pasteClipboard(): void {
+    if (this.clipboard.length === 0) return;
+
+    const newElements: DiagramElement[] = [];
+    const newSelectedNodeIds: string[] = [];
+    const newSelectedSvgImageIds: string[] = [];
+
+    this.clipboard.forEach(element => {
+      // Clone element
+      const newElement = JSON.parse(JSON.stringify(element));
+
+      // Generate new ID
+      newElement.id = this.generateId();
+
+      // Offset position
+      newElement.position.x += 20;
+      newElement.position.y += 20;
+
+      // Handle specific element types
+      if (isNode(newElement)) {
+        // Remove inner diagram for pasted nodes
+        newElement.innerDiagram = undefined;
+        // Reset tendrils (we don't copy connections)
+        newElement.tendrils = [];
+        newSelectedNodeIds.push(newElement.id);
+      } else if (isSvgImage(newElement)) {
+        newSelectedSvgImageIds.push(newElement.id);
+      }
+
+      newElements.push(newElement);
+    });
+
+    // Add new elements to current diagram
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        elements: [...this.state.currentDiagram.elements, ...newElements]
+      },
+      // Select the pasted elements
+      selectedNodeIds: newSelectedNodeIds,
+      selectedSvgImageIds: newSelectedSvgImageIds,
+      selectedBoundingBoxIds: [],
+      selectedEdgeIds: [],
+      selectedTendrilId: undefined
+    };
   }
 
   private prepareDiagramForSave(diagram: Diagram): Diagram {

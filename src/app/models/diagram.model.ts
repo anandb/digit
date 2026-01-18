@@ -66,6 +66,12 @@ export interface SvgImage extends DiagramElement {
   fileName: string;
 }
 
+export interface TodoItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface Diagram {
   id: string;
   name: string;
@@ -73,6 +79,7 @@ export interface Diagram {
   edges: Edge[];
   boundingBoxes: BoundingBox[];
   attributes: { [key: string]: any };
+  todos: TodoItem[];
 }
 
 // Type guards

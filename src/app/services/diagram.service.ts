@@ -66,7 +66,8 @@ export class DiagramService {
       elements: [],
       edges: [],
       boundingBoxes: [],
-      attributes: {}
+      attributes: {},
+      todos: []
     };
 
     if (this.allDiagrams) {
@@ -100,7 +101,8 @@ export class DiagramService {
       elements: [],
       edges: [],
       boundingBoxes: [],
-      attributes: {}
+      attributes: {},
+      todos: []
     };
 
     this.allDiagrams.set(newDiagram.id, newDiagram);
@@ -649,6 +651,45 @@ export class DiagramService {
     this.state.currentDiagram.edges = this.state.currentDiagram.edges.map(edge =>
       edge.id === edgeId ? { ...edge, ...updates } : edge
     );
+  }
+
+  // Todo operations
+  addTodo(text: string): void {
+    const newTodo: import('../models/diagram.model').TodoItem = {
+      id: this.generateId(),
+      text,
+      completed: false
+    };
+
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        todos: [...(this.state.currentDiagram.todos || []), newTodo]
+      }
+    };
+  }
+
+  deleteTodo(todoId: string): void {
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        todos: (this.state.currentDiagram.todos || []).filter(t => t.id !== todoId)
+      }
+    };
+  }
+
+  toggleTodo(todoId: string): void {
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        todos: (this.state.currentDiagram.todos || []).map(t =>
+          t.id === todoId ? { ...t, completed: !t.completed } : t
+        )
+      }
+    };
   }
 
   updateCurrentDiagramName(name: string): void {

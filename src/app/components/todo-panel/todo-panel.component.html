@@ -1,0 +1,33 @@
+<div class="todo-panel" [class.open]="isOpen">
+  <div class="toggle-btn" (click)="togglePanel()" title="Toggle Todo List">
+    <span class="icon">{{ isOpen ? '>' : '<' }}</span>
+  </div>
+
+  <div class="panel-content">
+    <div class="header">
+      <h3>Todo List</h3>
+    </div>
+
+    <div class="footer top-input">
+      <div class="input-group">
+        <input type="text" [(ngModel)]="newTodoText" (keydown)="onKeydown($event)" placeholder="Add a new task...">
+        <button class="add-btn" (click)="addTodo()">+</button>
+      </div>
+    </div>
+
+    <div class="todo-list">
+      <div class="todo-item" *ngFor="let todo of todos$ | async">
+        <label class="checkbox-container">
+          <input type="checkbox" [checked]="todo.completed" (change)="toggleTodo(todo.id)">
+          <span class="checkmark"></span>
+        </label>
+        <span class="todo-text" [class.completed]="todo.completed">{{ todo.text }}</span>
+        <button class="delete-btn" (click)="deleteTodo(todo.id)" title="Delete">&times;</button>
+      </div>
+
+      <div class="empty-state" *ngIf="(todos$ | async)?.length === 0">
+        <p>No tasks yet.</p>
+      </div>
+    </div>
+  </div>
+</div>

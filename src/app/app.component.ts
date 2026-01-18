@@ -1,10 +1,15 @@
+
 import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { DiagramCanvasComponent } from './components/diagram-canvas/diagram-canvas.component';
 import { DiagramToolbarComponent } from './components/diagram-toolbar/diagram-toolbar.component';
+import { TodoPanelComponent } from './components/todo-panel/todo-panel.component';
+import { CommonModule } from '@angular/common';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [DiagramCanvasComponent, DiagramToolbarComponent],
+  standalone: true,
+  imports: [CommonModule, RouterOutlet, DiagramToolbarComponent, DiagramCanvasComponent, TodoPanelComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.sass'
 })
@@ -76,7 +81,7 @@ export class AppComponent implements OnInit {
     if (resizeHandle) {
       // When collapsed, position at 50px, otherwise use the current width
       const handlePosition = this.toolbar?.isCollapsed ? 50 : width;
-      resizeHandle.style.left = `${handlePosition}px`;
+      resizeHandle.style.left = `${handlePosition} px`;
     }
   }
 
@@ -85,7 +90,7 @@ export class AppComponent implements OnInit {
     if (mainContent) {
       // When collapsed, use 50px margin, otherwise use the current width
       const marginLeft = this.toolbar?.isCollapsed ? 50 : width;
-      mainContent.style.marginLeft = `${marginLeft}px`;
+      mainContent.style.marginLeft = `${marginLeft} px`;
     }
   }
 

@@ -1,0 +1,192 @@
+.todo-panel
+  position: fixed
+  top: 0
+  right: 0
+  height: 100vh
+  width: 300px
+  background-color: #f8f9fa
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1)
+  transform: translateX(300px)
+  transition: transform 0.3s ease-in-out
+  z-index: 1000
+  display: flex
+  border-left: 1px solid #dee2e6
+
+  &.open
+    transform: translateX(0)
+    
+    .toggle-btn
+      right: 300px
+      background: linear-gradient(145deg, #5a6268, #868e96)
+      border-right: none
+      border-radius: 4px 0 0 4px
+      box-shadow: -2px 0 2px rgba(0,0,0,0.05)
+
+  .toggle-btn
+    position: absolute
+    right: 300px // When closed, this pushes it off screen if not handled, but we want it visible
+    // To make it visible when closed, we need to adjust logic or positioning.
+    // Let's position it relative to the panel.
+    left: -30px 
+    top: 110px
+    width: 30px
+    height: 30px
+    background: linear-gradient(145deg, #5a6268, #868e96)
+    border: none
+    border-radius: 4px 0 0 4px
+    display: flex
+    align-items: center
+    justify-content: center
+    cursor: pointer
+    box-shadow: -2px 0 5px rgba(0,0,0,0.1)
+    color: white
+    font-weight: bold
+    
+    &:hover
+      background: linear-gradient(145deg, #495057, #6c757d)
+
+  .panel-content
+    flex: 1
+    display: flex
+    flex-direction: column
+    height: 100%
+    overflow: hidden
+    
+  .header
+    padding: 15px
+    // border-bottom: 1px solid #dee2e6 // Removed as input box creates separation
+    background-color: #fff
+    
+    h3
+      margin: 0
+      font-size: 1.1rem
+      color: #333
+      
+  .todo-list
+    flex: 1
+    overflow-y: auto
+    padding: 10px
+    
+    .todo-item
+      display: flex
+      align-items: center
+      padding: 8px
+      background: #fff
+      margin-bottom: 8px
+      border-radius: 4px
+      border: 1px solid #eee
+      transition: all 0.2s
+      
+      &:hover
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05)
+        
+        .delete-btn
+          opacity: 1
+      
+      .todo-text
+        flex: 1
+        margin: 0 10px
+        font-size: 0.9rem
+        
+        &.completed
+          text-decoration: line-through
+          color: #888
+          
+      .delete-btn
+        background: none
+        border: none
+        color: #ff4d4d
+        cursor: pointer
+        font-size: 1.2rem
+        line-height: 1
+        opacity: 0
+        transition: opacity 0.2s
+        padding: 0 5px
+        
+        &:hover
+          color: #cc0000
+
+  .footer
+    padding: 15px
+    background-color: #fff
+    border-top: 1px solid #dee2e6
+    
+    &.top-input
+      border-top: none
+      border-bottom: 1px solid #dee2e6
+    
+    .input-group
+      display: flex
+      
+      input
+        flex: 1
+        padding: 8px
+        border: 1px solid #ced4da
+        border-radius: 4px 0 0 4px
+        outline: none
+        
+        &:focus
+          border-color: #80bdff
+          
+      .add-btn
+        padding: 0 15px
+        border: 1px solid #ced4da
+        border-left: none
+        background-color: #007bff
+        color: white
+        border-radius: 0 4px 4px 0
+        cursor: pointer
+        font-weight: bold
+        
+        &:hover
+          background-color: #0069d9
+
+  // Checkbox styling
+  .checkbox-container
+    display: flex
+    align-items: center
+    justify-content: center
+    position: relative
+    width: 20px
+    height: 20px
+    margin-right: 5px
+    cursor: pointer
+    font-size: 22px
+    user-select: none
+    
+    input
+      position: absolute
+      opacity: 0
+      cursor: pointer
+      height: 0
+      width: 0
+      
+      &:checked ~ .checkmark
+        background-color: #2196F3
+        border-color: #2196F3
+        
+      &:checked ~ .checkmark:after
+        display: block
+
+    .checkmark
+      position: absolute
+      top: 50%
+      left: 0
+      transform: translateY(-50%)
+      height: 18px
+      width: 18px
+      background-color: #eee
+      border: 1px solid #ccc
+      border-radius: 3px
+      
+      &:after
+        content: ""
+        position: absolute
+        display: none
+        left: 6px
+        top: 2px
+        width: 4px
+        height: 10px
+        border: solid white
+        border-width: 0 2px 2px 0
+        transform: rotate(45deg)

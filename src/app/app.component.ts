@@ -1,5 +1,5 @@
 
-import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, HostListener, ViewChild } from '@angular/core';
 import { DiagramCanvasComponent } from './components/diagram-canvas/diagram-canvas.component';
 import { DiagramToolbarComponent } from './components/diagram-toolbar/diagram-toolbar.component';
 import { TodoPanelComponent } from './components/todo-panel/todo-panel.component';
@@ -20,7 +20,7 @@ export class AppComponent implements OnInit {
 
   private isResizing = false;
   private startX = 0;
-  private startWidth = 380;
+  private startWidth = 500;
   private minWidth = 200;
   private maxWidth = 800;
 
@@ -64,7 +64,7 @@ export class AppComponent implements OnInit {
 
   private getCurrentSidebarWidth(): number {
     // Get the current width from the toolbar component or default
-    return this.toolbar?.sidebarWidth || 380;
+    return this.toolbar?.sidebarWidth || 500;
   }
 
   private updateSidebarWidth(width: number): void {

@@ -26,7 +26,9 @@
         <button (click)="fileInput.click()" class="btn action-btn" title="Load Diagram">📁</button>
         <button (click)="exportToSvg()" class="btn action-btn" title="Export to SVG">📤</button>
         <button (click)="addNewNode()" class="btn btn-light-grey action-btn" title="Add Node">➕</button>
-        <button (click)="addNewBoundingBox()" class="btn btn-light-grey action-btn" title="Add Bounding Box">▭</button>
+        <button (click)="addNewBoundingBox()" class="btn btn-light-grey action-btn" title="Add Bounding Box">
+          <div class="icon-bounding-box"></div>
+        </button>
         <input type="file" accept=".svg" (change)="loadSvgImage($event)" style="display: none" #svgInput>
         <button (click)="svgInput.click()" class="btn btn-light-grey action-btn" title="Load SVG Image">🖼️</button>
       </div>

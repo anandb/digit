@@ -6,15 +6,22 @@ import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, i
   providedIn: 'root'
 })
 export class DiagramService {
+  private readonly STORAGE_KEY = 'digit_diagram_state';
+  private allDiagrams: Map<string, Diagram> = new Map();
+  private undoStacks: Map<string, DiagramState[]> = new Map(); // Undo stacks per diagram
+
   private stateSubject = new BehaviorSubject<DiagramState>(
     this.initializeState()
   );
 
   public state$ = this.stateSubject.asObservable();
-  private allDiagrams: Map<string, Diagram> = new Map();
-  private undoStacks: Map<string, DiagramState[]> = new Map(); // Undo stacks per diagram
 
   private initializeState(): DiagramState {
+    const savedState = this.loadStateFromStorage();
+    if (savedState) {
+      return savedState;
+    }
+
     return {
       currentDiagram: this.createEmptyDiagram(),
       diagramStack: [],
@@ -57,6 +64,7 @@ export class DiagramService {
     }
 
     this.stateSubject.next(newState);
+    this.saveStateToStorage(newState);
   }
 
   private createEmptyDiagram(): Diagram {
@@ -420,23 +428,7 @@ export class DiagramService {
       ? this.state.diagramStack[0]
       : this.state.currentDiagram;
 
-    // Recursively save all nested diagrams
-    const saveDiagramRecursively = (diagram: Diagram): Diagram => {
-      return {
-        ...diagram,
-        elements: diagram.elements.map(element => {
-          if (isNode(element)) {
-            return {
-              ...element,
-              innerDiagram: element.innerDiagram ? saveDiagramRecursively(element.innerDiagram) : undefined
-            };
-          }
-          return element;
-        })
-      };
-    };
-
-    const diagramToSave = saveDiagramRecursively(rootDiagram);
+    const diagramToSave = this.prepareDiagramForSave(rootDiagram);
     return JSON.stringify(diagramToSave, null, 2);
   }
 
@@ -445,17 +437,7 @@ export class DiagramService {
       const diagram: Diagram = JSON.parse(jsonString);
 
       // Recursively store all diagrams in the allDiagrams map
-      const storeDiagramsRecursively = (diag: Diagram): void => {
-        this.allDiagrams.set(diag.id, diag);
-        // Store nested diagrams
-        diag.elements.forEach(element => {
-          if (isNode(element) && element.innerDiagram) {
-            storeDiagramsRecursively(element.innerDiagram);
-          }
-        });
-      };
-
-      storeDiagramsRecursively(diagram);
+      this.storeDiagramsRecursively(diagram);
 
       this.state = {
         ...this.state,
@@ -776,5 +758,100 @@ export class DiagramService {
       selectedSvgImageId: state.selectedSvgImageIds.length > 0 ? state.selectedSvgImageIds[state.selectedSvgImageIds.length - 1] : undefined,
       selectedEdgeId: state.selectedEdgeIds.length > 0 ? state.selectedEdgeIds[state.selectedEdgeIds.length - 1] : undefined
     };
+  }
+
+  // Persistence Helpers
+  private saveStateToStorage(state: DiagramState): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const rootDiagram = state.diagramStack.length > 0
+        ? state.diagramStack[0]
+        : state.currentDiagram;
+
+      const serializedRoot = this.prepareDiagramForSave(rootDiagram);
+
+      const serializedState = {
+        rootDiagram: serializedRoot,
+        currentDiagramId: state.currentDiagram.id,
+        diagramStackIds: state.diagramStack.map(d => d.id),
+        selectedNodeIds: state.selectedNodeIds,
+        selectedTendrilId: state.selectedTendrilId,
+        selectedBoundingBoxIds: state.selectedBoundingBoxIds,
+        selectedSvgImageIds: state.selectedSvgImageIds,
+        selectedEdgeIds: state.selectedEdgeIds
+      };
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(serializedState));
+    } catch (error) {
+      console.error('Failed to save state to localStorage:', error);
+    }
+  }
+
+  private loadStateFromStorage(): DiagramState | null {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (!stored) return null;
+
+      const serialized = JSON.parse(stored);
+      if (!serialized.rootDiagram) return null;
+
+      // Ensure allDiagrams is initialized
+      if (!this.allDiagrams) {
+        this.allDiagrams = new Map();
+      } else {
+        this.allDiagrams.clear();
+      }
+
+      this.storeDiagramsRecursively(serialized.rootDiagram);
+
+      // Reconstruct stack
+      const diagramStack = (serialized.diagramStackIds || [])
+        .map((id: string) => this.allDiagrams.get(id))
+        .filter((d: Diagram | undefined): d is Diagram => !!d);
+
+      // Current diagram
+      // If currentDiagramId is not found (shouldn't happen), fallback to root
+      const currentDiagram = this.allDiagrams.get(serialized.currentDiagramId) || this.allDiagrams.get(serialized.rootDiagram.id);
+
+      if (!currentDiagram) return null;
+
+      return {
+        currentDiagram,
+        diagramStack,
+        selectedNodeIds: serialized.selectedNodeIds || [],
+        selectedTendrilId: serialized.selectedTendrilId,
+        selectedBoundingBoxIds: serialized.selectedBoundingBoxIds || [],
+        selectedSvgImageIds: serialized.selectedSvgImageIds || [],
+        selectedEdgeIds: serialized.selectedEdgeIds || []
+      };
+    } catch (error) {
+      console.error('Failed to load state from localStorage:', error);
+      return null;
+    }
+  }
+
+  private prepareDiagramForSave(diagram: Diagram): Diagram {
+    return {
+      ...diagram,
+      elements: diagram.elements.map(element => {
+        if (isNode(element)) {
+          return {
+            ...element,
+            innerDiagram: element.innerDiagram ? this.prepareDiagramForSave(element.innerDiagram) : undefined
+          };
+        }
+        return element;
+      })
+    };
+  }
+
+  private storeDiagramsRecursively(diag: Diagram): void {
+    this.allDiagrams.set(diag.id, diag);
+    diag.elements.forEach(element => {
+      if (isNode(element) && element.innerDiagram) {
+        this.storeDiagramsRecursively(element.innerDiagram);
+      }
+    });
   }
 }

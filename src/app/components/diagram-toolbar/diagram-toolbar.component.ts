@@ -12,7 +12,7 @@ import { DiagramElement, isNode, isSvgImage } from '../../models/diagram.model';
 })
 export class DiagramToolbarComponent {
   isCollapsed = false;
-  sidebarWidth = 380;
+  sidebarWidth = 500;
 
   // Default shape settings for new nodes
   defaultShape: string = 'rectangle';
@@ -711,7 +711,7 @@ export class DiagramToolbarComponent {
         try {
           const state = JSON.parse(saved);
           this.isCollapsed = state.isCollapsed || false;
-          this.sidebarWidth = state.sidebarWidth || 380;
+          this.sidebarWidth = state.sidebarWidth || 500;
           this.updateMainContentMargin();
         } catch (error) {
           console.warn('Failed to load sidebar state:', error);

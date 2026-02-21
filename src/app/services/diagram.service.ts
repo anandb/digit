@@ -303,12 +303,14 @@ export class DiagramService {
       box.id === boundingBoxId ? { ...box, ...updates } : box
     );
 
+    const nextDiagram = this.performAutoRouting({
+      ...currentState.currentDiagram,
+      boundingBoxes: newBoundingBoxes
+    });
+
     this.state = {
       ...currentState,
-      currentDiagram: {
-        ...currentState.currentDiagram,
-        boundingBoxes: newBoundingBoxes
-      }
+      currentDiagram: nextDiagram
     };
   }
 
@@ -347,13 +349,15 @@ export class DiagramService {
     }
 
     if (updated) {
+      const nextDiagram = this.performAutoRouting({
+        ...currentState.currentDiagram,
+        elements: newElements,
+        boundingBoxes: newBoundingBoxes
+      });
+
       this.state = {
         ...currentState,
-        currentDiagram: {
-          ...currentState.currentDiagram,
-          elements: newElements,
-          boundingBoxes: newBoundingBoxes
-        }
+        currentDiagram: nextDiagram
       };
     }
   }
@@ -550,12 +554,14 @@ export class DiagramService {
       };
 
       const currentState = this.state;
+      const nextDiagram = this.performAutoRouting({
+        ...currentState.currentDiagram,
+        edges: [...currentState.currentDiagram.edges, newEdge]
+      });
+
       this.state = {
         ...currentState,
-        currentDiagram: {
-          ...currentState.currentDiagram,
-          edges: [...currentState.currentDiagram.edges, newEdge]
-        }
+        currentDiagram: nextDiagram
       };
     }
   }
@@ -1175,5 +1181,98 @@ export class DiagramService {
         this.storeDiagramsRecursively(element.innerDiagram);
       }
     });
+  }
+
+  // Centroid and Auto-routing Helpers
+  private getCentroid(element: any): Position {
+    return {
+      x: element.position.x + (element.size.width / 2),
+      y: element.position.y + (element.size.height / 2)
+    };
+  }
+
+  private getIntersectionPoint(element: any, target: Position): Position {
+    const w = element.size.width;
+    const h = element.size.height;
+    const cx = element.position.x + w / 2;
+    const cy = element.position.y + h / 2;
+
+    const dx = target.x - cx;
+    const dy = target.y - cy;
+
+    if (dx === 0 && dy === 0) return { x: w, y: h / 2 };
+
+    // Circle intersection
+    if ('shape' in element && element.shape === 'circle') {
+       const radius = Math.min(w, h) / 2;
+       const dist = Math.sqrt(dx * dx + dy * dy);
+       return {
+         x: (w / 2) + (dx / dist) * radius,
+         y: (h / 2) + (dy / dist) * radius
+       };
+    }
+
+    // Default: Box intersection (works for most shapes)
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    let scale = 1;
+    if (w * absDy > h * absDx) {
+      scale = (h / 2) / (absDy || 1);
+    } else {
+      scale = (w / 2) / (absDx || 1);
+    }
+
+    return {
+      x: (w / 2) + dx * scale,
+      y: (h / 2) + dy * scale
+    };
+  }
+
+  private performAutoRouting(diagram: Diagram): Diagram {
+    let anyChanged = false;
+
+    // Create shallow copies of elements to avoid mutating state directly
+    const elements = diagram.elements.map(e => ({
+      ...e,
+      tendrils: e.tendrils.map(t => ({ ...t }))
+    }));
+
+    const boxes = diagram.boundingBoxes.map(b => ({
+      ...b,
+      tendrils: b.tendrils.map(t => ({ ...t }))
+    }));
+
+    for (const edge of diagram.edges) {
+      const fromEl = elements.find(e => e.id === edge.fromNodeId) || boxes.find(b => b.id === edge.fromNodeId);
+      const toEl = elements.find(e => e.id === edge.toNodeId) || boxes.find(b => b.id === edge.toNodeId);
+
+      if (!fromEl || !toEl) continue;
+
+      const fromCenter = this.getCentroid(fromEl);
+      const toCenter = this.getCentroid(toEl);
+
+      const fromPos = this.getIntersectionPoint(fromEl, toCenter);
+      const toPos = this.getIntersectionPoint(toEl, fromCenter);
+
+      const updateTendril = (el: any, tid: string, pos: Position) => {
+        const tendril = el.tendrils.find((t: any) => t.id === tid);
+        if (tendril && (Math.abs(tendril.position.x - pos.x) > 0.05 || Math.abs(tendril.position.y - pos.y) > 0.05)) {
+          tendril.position = pos;
+          anyChanged = true;
+        }
+      };
+
+      updateTendril(fromEl, edge.fromTendrilId, fromPos);
+      updateTendril(toEl, edge.toTendrilId, toPos);
+    }
+
+    if (!anyChanged) return diagram;
+
+    return {
+      ...diagram,
+      elements,
+      boundingBoxes: boxes
+    };
   }
 }

@@ -15,7 +15,7 @@
 
     <!-- Bounding boxes - bottom layer -->
     <g class="bounding-boxes">
-      <g *ngFor="let box of getBoundingBoxes()" class="bounding-box-group" cdkDrag
+      <g *ngFor="let box of state.currentDiagram.boundingBoxes" class="bounding-box-group" cdkDrag
         (cdkDragStarted)="onBoundingBoxDragStarted(box)" (cdkDragMoved)="onBoundingBoxDragMoved($event, box)"
         (cdkDragEnded)="onBoundingBoxDragEnd($event, box)" (click)="onBoundingBoxClick($event, box)"
         (contextmenu)="onBoundingBoxContextMenu($event, box)">
@@ -50,6 +50,8 @@
     <!-- Elements (Nodes and SVG Images) -->
     <g class="elements">
       <g *ngFor="let element of state.currentDiagram.elements" class="element-group" cdkDrag
+        (cdkDragStarted)="onElementDragStarted(element)"
+        (cdkDragMoved)="onElementDragMoved($event)"
         (cdkDragEnded)="onElementDragEnd($event, element)" (click)="onElementClick($event, element)"
         (dblclick)="onElementDoubleClick(element)" (contextmenu)="onElementContextMenu($event, element)">
 

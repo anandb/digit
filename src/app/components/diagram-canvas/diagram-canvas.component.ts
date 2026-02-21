@@ -46,6 +46,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private isDraggingBoundingBox = false;
   private highlightedObjectIds: Set<string> = new Set();
 
+  // For live path routing during drag
+  private movingElementIds = new Set<string>();
+  private draggingDelta: Position = { x: 0, y: 0 };
+
   constructor(private diagramService: DiagramService, private sanitizer: DomSanitizer) { }
 
   ngOnInit(): void {
@@ -70,6 +74,19 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   // Unified element drag handling
+  onElementDragStarted(element: DiagramElement): void {
+    this.movingElementIds.clear();
+    this.movingElementIds.add(element.id);
+    this.draggingDelta = { x: 0, y: 0 };
+  }
+
+  onElementDragMoved(event: CdkDragMove): void {
+    this.draggingDelta = {
+      x: event.distance.x,
+      y: event.distance.y
+    };
+  }
+
   onElementDragEnd(event: CdkDragEnd, element: DiagramElement): void {
     const elementRef = event.source.element.nativeElement;
     const transform = elementRef.style.transform;
@@ -95,6 +112,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Clear highlights
     this.isDraggingBoundingBox = false;
     this.highlightedObjectIds.clear();
+    this.movingElementIds.clear();
+    this.draggingDelta = { x: 0, y: 0 };
 
     // Reset transform
     elementRef.style.transform = '';
@@ -525,10 +544,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onBoundingBoxDragStarted(box: any): void {
     this.isDraggingBoundingBox = true;
     this.highlightedObjectIds.clear();
+    this.movingElementIds.clear();
+    this.movingElementIds.add(box.id);
+    this.draggingDelta = { x: 0, y: 0 };
 
     // Highlight all elements within the bounding box
     this.state.currentDiagram.elements.forEach(element => {
       if (this.isElementInsideBoundingBox(element, box)) {
+        this.movingElementIds.add(element.id);
         if (isNode(element)) {
           this.highlightedObjectIds.add(`node-${element.id}`);
         } else if (isSvgImage(element)) {
@@ -540,15 +563,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Highlight all bounding boxes within this bounding box
     this.state.currentDiagram.boundingBoxes.forEach(otherBox => {
       if (otherBox.id !== box.id && this.isBoundingBoxInsideBoundingBox(otherBox, box)) {
+        this.movingElementIds.add(otherBox.id);
         this.highlightedObjectIds.add(`box-${otherBox.id}`);
       }
     });
   }
 
   // Bounding box drag moved - update highlights if needed
-  onBoundingBoxDragMoved(event: any, box: any): void {
-    // Could update highlights based on current drag position if needed
-    // For now, we keep the initial highlight
+  onBoundingBoxDragMoved(event: CdkDragMove, box: any): void {
+    this.draggingDelta = {
+      x: event.distance.x,
+      y: event.distance.y
+    };
   }
 
   // Bounding box drag handling
@@ -597,6 +623,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       });
     }
 
+    this.movingElementIds.clear();
+    this.draggingDelta = { x: 0, y: 0 };
+
     // Reset transform
     element.style.transform = '';
   }
@@ -640,52 +669,48 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   getEdgePath(edge: Edge): string {
-    // Get the elements (could be nodes or SVG images)
+    // Get the elements
     const fromElement = this.getElementAny(edge.fromNodeId);
     const toElement = this.getElementAny(edge.toNodeId);
 
     if (!fromElement || !toElement) return '';
 
-    const fromTendril = this.getTendrilFromElement(fromElement, edge.fromTendrilId);
-    const toTendril = this.getTendrilFromElement(toElement, edge.toTendrilId);
+    // Calculate live centroids (considering drag delta)
+    const fromC = this.getLiveCentroid(fromElement);
+    const toC = this.getLiveCentroid(toElement);
 
-    if (!fromTendril || !toTendril) return '';
+    // Calculate live intersection points on the borders
+    const start = this.getLiveGlobalIntersection(fromElement, toC);
+    const end = this.getLiveGlobalIntersection(toElement, fromC);
 
-    const start = this.getAbsoluteTendrilPositionAny(fromElement, fromTendril);
-    const end = this.getAbsoluteTendrilPositionAny(toElement, toTendril);
-
-    // Create a curved path
-    const midX = (start.x + end.x) / 2;
-    const midY = (start.y + end.y) / 2;
-
-    return `M ${start.x} ${start.y} Q ${midX} ${midY} ${end.x} ${end.y}`;
+    // Shortest straight line
+    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
   }
 
   // Get two path segments with a gap in the middle for labeled edges
   getEdgePathSegments(edge: Edge): { first: string, second: string } | null {
-    // Get the elements (could be nodes or SVG images)
+    // Get the elements
     const fromElement = this.getElementAny(edge.fromNodeId);
     const toElement = this.getElementAny(edge.toNodeId);
 
     if (!fromElement || !toElement || !edge.name) return null;
 
-    const fromTendril = this.getTendrilFromElement(fromElement, edge.fromTendrilId);
-    const toTendril = this.getTendrilFromElement(toElement, edge.toTendrilId);
+    // Calculate live centroids
+    const fromC = this.getLiveCentroid(fromElement);
+    const toC = this.getLiveCentroid(toElement);
 
-    if (!fromTendril || !toTendril) return null;
+    // Calculate live intersection points
+    const start = this.getLiveGlobalIntersection(fromElement, toC);
+    const end = this.getLiveGlobalIntersection(toElement, fromC);
 
-    const start = this.getAbsoluteTendrilPositionAny(fromElement, fromTendril);
-    const end = this.getAbsoluteTendrilPositionAny(toElement, toTendril);
-
-    // Calculate points along the quadratic curve
     const midX = (start.x + end.x) / 2;
     const midY = (start.y + end.y) / 2;
 
-    // Calculate gap size based on text width (approximate: font-size * char-count * 0.6 + padding)
-    const fontSize = 12; // Approximate font size for edge labels
+    // Calculate gap size based on text width
+    const fontSize = 12;
     const charWidth = fontSize * 0.6;
     const textWidth = edge.name.length * charWidth;
-    const gapSize = Math.max(textWidth / 2 + 5, 20); // Minimum 20px gap, add 5px padding
+    const gapSize = Math.max(textWidth / 2 + 5, 20);
 
     const dx = end.x - start.x;
     const dy = end.y - start.y;
@@ -693,7 +718,6 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
     if (length === 0) return null;
 
-    // Unit vector along the curve direction
     const ux = dx / length;
     const uy = dy / length;
 
@@ -703,17 +727,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const gapEndX = midX + ux * gapSize;
     const gapEndY = midY + uy * gapSize;
 
-    // First segment: from start to gap start
-    const firstMidX = (start.x + gapStartX) / 2;
-    const firstMidY = (start.y + gapStartY) / 2;
-    const first = `M ${start.x} ${start.y} Q ${firstMidX} ${firstMidY} ${gapStartX} ${gapStartY}`;
-
-    // Second segment: from gap end to end
-    const secondMidX = (gapEndX + end.x) / 2;
-    const secondMidY = (gapEndY + end.y) / 2;
-    const second = `M ${gapEndX} ${gapEndY} Q ${secondMidX} ${secondMidY} ${end.x} ${end.y}`;
-
-    return { first, second };
+    return {
+      first: `M ${start.x} ${start.y} L ${gapStartX} ${gapStartY}`,
+      second: `M ${gapEndX} ${gapEndY} L ${end.x} ${end.y}`
+    };
   }
 
   getTempEdgePath(): string {
@@ -721,20 +738,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       return '';
     }
 
-    // Get the starting element (could be node or SVG image)
     const startElement = this.getElementAny(this.edgeStartNodeId);
     if (!startElement) return '';
 
+    // For temporary edges (being drawn), we stick to the initial tendril position
+    // but the end point is the mouse position
     const startTendril = this.getTendrilFromElement(startElement, this.edgeStartTendrilId);
     if (!startTendril) return '';
 
     const start = this.getAbsoluteTendrilPositionAny(startElement, startTendril);
     const end = this.tempEdgeEnd;
 
-    const midX = (start.x + end.x) / 2;
-    const midY = (start.y + end.y) / 2;
-
-    return `M ${start.x} ${start.y} Q ${midX} ${midY} ${end.x} ${end.y}`;
+    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
   }
 
   // Get circle radius for circular nodes
@@ -949,34 +964,6 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (this.propertiesWindow) {
       this.propertiesWindow.open(event.clientX, event.clientY);
     }
-  }
-
-  // Get center point of an edge for label positioning
-  getEdgeCenter(edge: Edge): Position {
-    // Get the elements (could be nodes or SVG images)
-    const fromElement = this.getElementAny(edge.fromNodeId);
-    const toElement = this.getElementAny(edge.toNodeId);
-
-    if (!fromElement || !toElement) return { x: 0, y: 0 };
-
-    const fromTendril = this.getTendrilFromElement(fromElement, edge.fromTendrilId);
-    const toTendril = this.getTendrilFromElement(toElement, edge.toTendrilId);
-
-    if (!fromTendril || !toTendril) return { x: 0, y: 0 };
-
-    const start = this.getAbsoluteTendrilPositionAny(fromElement, fromTendril);
-    const end = this.getAbsoluteTendrilPositionAny(toElement, toTendril);
-
-    // Return midpoint of the edge
-    return {
-      x: (start.x + end.x) / 2,
-      y: (start.y + end.y) / 2
-    };
-  }
-
-  // Get position for edge label (on the edge center)
-  getEdgeLabelPosition(edge: Edge): Position {
-    return this.getEdgeCenter(edge);
   }
 
   // Check if a tendril has a connected edge with a name
@@ -1239,20 +1226,67 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return undefined;
   }
 
-  // Get absolute tendril position from any element (node or SVG image)
+  // Get absolute tendril position with live tracking and auto-routing support
   private getAbsoluteTendrilPositionAny(element: DiagramElement, tendril: Tendril): Position {
-    // Check if this is a propagated tendril (has a compound ID like "nodeId-tendrilId")
+    let x = element.position.x;
+    let y = element.position.y;
+
+    if (this.movingElementIds.has(element.id)) {
+      x += this.draggingDelta.x;
+      y += this.draggingDelta.y;
+    }
+
+    // Centroid-linked logic (highest priority for straight lines)
+    const edge = this.state.currentDiagram.edges.find(e =>
+      (e.fromNodeId === element.id && e.fromTendrilId === tendril.id) ||
+      (e.toNodeId === element.id && e.toTendrilId === tendril.id)
+    );
+
+    if (edge) {
+      const otherId = edge.fromNodeId === element.id ? edge.toNodeId : edge.fromNodeId;
+      const otherEl = this.getElementAny(otherId);
+      if (otherEl) {
+        const otherC = this.getLiveCentroid(otherEl);
+        return this.getLiveGlobalIntersection(element, otherC);
+      }
+    }
+
+    // Propagated tendril logic (fallback)
     if (tendril.id.includes('-') && this.isPropagatedTendril(element.id, tendril.id)) {
-      // For propagated tendrils, calculate position around the node perimeter
-      const propagatedTendrils = this.getPropagatedTendrils(element as Node);
+      const liveNode = { ...element, position: { x, y } };
+      const propagatedTendrils = this.getPropagatedTendrils(liveNode as Node);
       const index = propagatedTendrils.findIndex(t => t.id === tendril.id);
-      const pos = this.getPropagatedTendrilPosition(element as Node, index);
-      return pos || { x: element.position.x + tendril.position.x, y: element.position.y + tendril.position.y };
+      const pos = this.getPropagatedTendrilPosition(liveNode as Node, index);
+      return pos || { x: x + tendril.position.x, y: y + tendril.position.y };
     }
 
     return {
-      x: element.position.x + tendril.position.x,
-      y: element.position.y + tendril.position.y
+      x: x + tendril.position.x,
+      y: y + tendril.position.y
+    };
+  }
+
+  // Get position for edge label (on the edge center)
+  getEdgeLabelPosition(edge: Edge): Position {
+    return this.getEdgeCenter(edge);
+  }
+
+  // Get center point of an edge for label positioning
+  getEdgeCenter(edge: Edge): Position {
+    const fromElement = this.getElementAny(edge.fromNodeId);
+    const toElement = this.getElementAny(edge.toNodeId);
+
+    if (!fromElement || !toElement) return { x: 0, y: 0 };
+
+    const fromC = this.getLiveCentroid(fromElement);
+    const toC = this.getLiveCentroid(toElement);
+
+    const start = this.getLiveGlobalIntersection(fromElement, toC);
+    const end = this.getLiveGlobalIntersection(toElement, fromC);
+
+    return {
+      x: (start.x + end.x) / 2,
+      y: (start.y + end.y) / 2
     };
   }
 
@@ -1886,7 +1920,58 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     } else if (minDist === distToTop) {
       return { x: Math.max(10, Math.min(width - 10, x)), y: 0 }; // Top border
     } else {
-      return { x: Math.max(10, Math.min(width - 10, x)), y: height }; // Bottom border
+      return { x: width, y: height }; // Should be unreachable given minDist logic
     }
+  }
+
+  // Live Centroid and Intersection Helpers
+  private getLiveCentroid(element: any): Position {
+    let x = element.position.x;
+    let y = element.position.y;
+    if (this.movingElementIds.has(element.id)) {
+      x += this.draggingDelta.x;
+      y += this.draggingDelta.y;
+    }
+    return {
+      x: x + element.size.width / 2,
+      y: y + element.size.height / 2
+    };
+  }
+
+  private getLiveGlobalIntersection(element: any, target: Position): Position {
+    const centroid = this.getLiveCentroid(element);
+    const w = element.size.width;
+    const h = element.size.height;
+
+    const dx = target.x - centroid.x;
+    const dy = target.y - centroid.y;
+
+    if (dx === 0 && dy === 0) return { x: centroid.x + w / 2, y: centroid.y };
+
+    // Circle intersection
+    if (isNode(element) && element.shape === 'circle') {
+      const radius = Math.min(w, h) / 2;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      return {
+        x: centroid.x + (dx / dist) * radius,
+        y: centroid.y + (dy / dist) * radius
+      };
+    }
+
+    // Default: Box intersection
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    let scale = 1;
+    if (w * absDy > h * absDx) {
+      scale = (h / 2) / (absDy || 1);
+    } else {
+      scale = (w / 2) / (absDx || 1);
+    }
+
+    return {
+      x: centroid.x + dx * scale,
+      y: centroid.y + dy * scale
+    };
   }
 }

@@ -10,26 +10,32 @@
 
   <div class="properties-content">
     <ng-container *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg'">
-      <!-- Name/Text Edit -->
-      <div class="property-block" *ngIf="type === 'node' || type === 'boundingBox' || type === 'svg'">
-        <label>{{ (isNoteShape || isTextShape) ? 'Text' : 'Name' }}</label>
-        <textarea *ngIf="isNoteShape || isTextShape"
-                  rows="3"
+      <!-- Main Content Edit (For Note and Text shapes only) -->
+      <div class="property-block" *ngIf="isNoteShape || isTextShape">
+        <label>Content</label>
+        <textarea rows="4"
                   [value]="getLabel()"
                   (input)="updateLabel($event)"
-                  placeholder="Type your note here..."></textarea>
-        <input *ngIf="!isNoteShape && !isTextShape"
-               type="text"
-               class="custom-select"
-               style="background-image: none;"
-               [value]="getLabel()"
-               (input)="updateLabel($event)">
+                  placeholder="Type your content here..."></textarea>
       </div>
+
+      <!-- Name/Text editing for other shapes is handled via the toolbar -->
       <!-- Shared Node/Edge/Box Properties -->
-      <button class="line-style-btn" (click)="toggleDotted()" *ngIf="type !== 'boundingBox'">
-        <span class="line-icon" [class.dotted]="getIsDotted()"></span>
-        <span class="line-text">{{ getIsDotted() ? 'Dotted' : 'Solid' }}</span>
-      </button>
+      <div class="property-row">
+        <button class="line-style-btn" (click)="toggleDotted()" *ngIf="type !== 'boundingBox'">
+          <span class="line-icon" [class.dotted]="getIsDotted()"></span>
+          <span class="line-text">{{ getIsDotted() ? 'Dotted' : 'Solid' }}</span>
+        </button>
+
+        <div class="select-container" *ngIf="type === 'node' || type === 'edge'">
+          <select class="custom-select small" [value]="getStrokeWidth()" (change)="updateStrokeWidth($event)">
+            <option value="1">1px</option>
+            <option value="2">2px</option>
+            <option value="3">3px</option>
+            <option value="4">4px</option>
+          </select>
+        </div>
+      </div>
 
       <!-- Box rounding toggle (Bounding Box only) -->
       <button class="line-style-btn" (click)="toggleBoxRounded()" *ngIf="type === 'boundingBox'">
@@ -72,16 +78,24 @@
       </div>
 
       <div class="property-block">
-        <label>Font Selection</label>
-        <select class="custom-select" [value]="getFontFamily()" (change)="updateFontFamily($event)">
-          <option value="'Roboto', sans-serif">Roboto</option>
-          <option value="Arial">Arial</option>
-          <option value="'Courier New', Courier, monospace">Courier New</option>
-          <option value="Georgia, serif">Georgia</option>
-          <option value="'Times New Roman', Times, serif">Times New Roman</option>
-          <option value="Verdana, sans-serif">Verdana</option>
-          <option value="Purisa, Chalkboard">Handwritten</option>
-        </select>
+        <label>Font Styling</label>
+        <div class="font-controls">
+          <select class="custom-select" [value]="getFontFamily()" (change)="updateFontFamily($event)">
+            <option value="'Roboto', sans-serif">Roboto</option>
+            <option value="Arial">Arial</option>
+            <option value="'Courier New', Courier, monospace">Courier New</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+            <option value="Verdana, sans-serif">Verdana</option>
+            <option value="Purisa, Chalkboard">Handwritten</option>
+          </select>
+
+          <div class="font-sub-controls">
+            <input type="number" class="custom-select size-input" [value]="getFontSize()" (input)="updateFontSize($event)" min="8" max="72">
+            <button class="style-toggle" [class.active]="getFontWeight() === 'bold'" (click)="toggleFontWeight()" title="Bold">B</button>
+            <button class="style-toggle" [class.active]="getFontStyle() === 'italic'" (click)="toggleFontStyle()" title="Italic">I</button>
+          </div>
+        </div>
       </div>
     </ng-container>
 

@@ -244,12 +244,20 @@ export class DiagramToolbarComponent {
   get selectedElementId(): string | undefined {
     return this.diagramService.currentState.selectedNodeId ||
            this.diagramService.currentState.selectedSvgImageId ||
-           this.diagramService.currentState.selectedBoundingBoxId;
+           this.diagramService.currentState.selectedBoundingBoxId ||
+           this.diagramService.currentState.selectedEdgeId;
   }
 
-  get selectedElement(): DiagramElement | undefined {
+  get selectedElement(): DiagramElement | any | undefined {
     const elementId = this.selectedElementId;
-    return elementId ? this.diagramService.getElement(elementId) : undefined;
+    if (!elementId) return undefined;
+
+    // Check elements
+    const element = this.diagramService.getElement(elementId);
+    if (element) return element;
+
+    // Check edges
+    return this.diagramService.getEdge(elementId);
   }
 
   get selectedNodeId(): string | undefined {
@@ -272,17 +280,33 @@ export class DiagramToolbarComponent {
     return this.diagramService.currentState.selectedEdgeId;
   }
 
+  get isNoteSelected(): boolean {
+    const element = this.selectedElement;
+    return !!(element && isNode(element) && element.shape === 'note');
+  }
+
   // Unified element getter methods
   getSelectedElementName(): string {
     const element = this.selectedElement;
-    return element?.label || '';
+    if (!element) return '';
+    return element.label || element.name || '';
   }
 
   updateElementName(event: Event): void {
     const elementId = this.selectedElementId;
     if (elementId) {
       const target = event.target as HTMLInputElement;
-      this.diagramService.updateElement(elementId, { label: target.value });
+      const value = target.value;
+
+      const element = this.diagramService.getElement(elementId);
+      if (element) {
+        this.diagramService.updateElement(elementId, { label: value });
+      } else {
+        const edge = this.diagramService.getEdge(elementId);
+        if (edge) {
+          this.diagramService.updateEdgeProperty(elementId, 'name', value);
+        }
+      }
     }
   }
 

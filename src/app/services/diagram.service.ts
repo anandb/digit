@@ -191,7 +191,11 @@ export class DiagramService {
       borderColor: options?.borderColor || '#000000',
       fillColor: options?.fillColor || (shape === 'note' ? '#fff9c4' : '#ffffff'),
       dotted: options?.dotted || false,
-      fontFamily: options?.fontFamily || 'Purisa, Chalkboard'
+      fontFamily: options?.fontFamily || 'Purisa, Chalkboard',
+      fontSize: 14,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      strokeWidth: 1
     };
 
     console.log(this.state);
@@ -227,7 +231,11 @@ export class DiagramService {
       fillColor: '#ffff0044',
       borderColor: '#666666',
       rounded: false,
-      fontFamily: 'Purisa, Chalkboard'
+      fontFamily: 'Purisa, Chalkboard',
+      fontSize: 14,
+      fontWeight: 'bold',
+      fontStyle: 'normal',
+      strokeWidth: 1
     };
 
     this.state.currentDiagram.boundingBoxes = [...this.state.currentDiagram.boundingBoxes, newBoundingBox];
@@ -399,18 +407,19 @@ export class DiagramService {
   updateEdgeProperty(edgeId: string, property: string, value: any): void {
     const currentState = this.state;
     const newEdges = currentState.currentDiagram.edges.map(edge => {
-      if (edge.id === edgeId) {
-        if (property === 'notes') {
-          return { ...edge, notes: value };
-        }
-        return {
-          ...edge,
-          attributes: {
-            ...edge.attributes,
-            [property]: value
+        if (edge.id === edgeId) {
+          const topLevelProps = ['notes', 'name', 'borderColor', 'dotted', 'strokeWidth', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle'];
+          if (topLevelProps.includes(property)) {
+            return { ...edge, [property]: value };
           }
-        };
-      }
+          return {
+            ...edge,
+            attributes: {
+              ...edge.attributes,
+              [property]: value
+            }
+          };
+        }
       return edge;
     });
 
@@ -528,6 +537,14 @@ export class DiagramService {
         fromTendrilId,
         toNodeId,
         toTendrilId,
+        borderColor: '#666666',
+        strokeWidth: 1,
+        dotted: false,
+        name: '',
+        fontFamily: 'Purisa, Chalkboard',
+        fontSize: 12,
+        fontWeight: 'normal',
+        fontStyle: 'normal',
         attributes: {},
         notes: ''
       };

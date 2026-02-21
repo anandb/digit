@@ -39,9 +39,29 @@ export class PropertiesWindowComponent implements OnInit {
 
   // Called from canvas on right-click
   open(x: number, y: number) {
+    this.isVisible = true;
     this.x = x;
     this.y = y;
-    this.isVisible = true;
+
+    // Use setTimeout to allow DOM to render so we can measure height
+    setTimeout(() => {
+      const element = this.elementRef.nativeElement.querySelector('.properties-window');
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+
+        // Adjust Y if it goes off bottom
+        if (this.y + rect.height > viewportHeight) {
+          this.y = Math.max(10, viewportHeight - rect.height - 20);
+        }
+
+        // Adjust X if it goes off right
+        if (this.x + rect.width > viewportWidth) {
+          this.x = Math.max(10, viewportWidth - rect.width - 20);
+        }
+      }
+    });
   }
 
   close() {
@@ -147,13 +167,17 @@ export class PropertiesWindowComponent implements OnInit {
   // --- Common Properties: Label ---
 
   getLabel(): string {
-    return this.selectedElement?.label || '';
+    if (this.selectedElement) return this.selectedElement.label;
+    if (this.selectedEdge) return this.selectedEdge.name || '';
+    return '';
   }
 
   updateLabel(event: Event) {
     const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
     if (this.selectedElement) {
       this.diagramService.updateElementProperty(this.selectedElement.id, 'label', value);
+    } else if (this.selectedEdge) {
+      this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'name', value);
     }
   }
 
@@ -162,7 +186,7 @@ export class PropertiesWindowComponent implements OnInit {
   getStrokeColor(): string {
     const element = this.selectedElement;
     if (element) return element.borderColor;
-    return this.selectedEdge?.attributes['borderColor'] || '#000000';
+    return this.selectedEdge?.borderColor || '#000000';
   }
 
   updateStrokeColor(event: Event) {
@@ -175,10 +199,26 @@ export class PropertiesWindowComponent implements OnInit {
     }
   }
 
+  getStrokeWidth(): number {
+    const element = this.selectedElement;
+    if (element && 'strokeWidth' in element) return element.strokeWidth || 1;
+    return (this.selectedEdge as any)?.strokeWidth || 1;
+  }
+
+  updateStrokeWidth(event: Event) {
+    const width = parseInt((event.target as HTMLSelectElement).value, 10);
+    const element = this.selectedElement;
+    if (element) {
+      this.diagramService.updateElementProperty(element.id, 'strokeWidth', width);
+    } else if (this.selectedEdge) {
+      this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'strokeWidth', width);
+    }
+  }
+
   getIsDotted(): boolean {
     const element = this.selectedElement;
     if (element && isNode(element)) return element.dotted;
-    return this.selectedEdge?.attributes['dotted'] || false;
+    return this.selectedEdge?.dotted || false;
   }
 
   toggleDotted() {
@@ -215,6 +255,53 @@ export class PropertiesWindowComponent implements OnInit {
       this.diagramService.updateElementProperty(element.id, 'fontFamily', font);
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'fontFamily', font);
+    }
+  }
+
+  getFontSize(): number {
+    return (this.selectedElement as any)?.fontSize ||
+           (this.selectedEdge as any)?.fontSize || 14;
+  }
+
+  updateFontSize(event: Event) {
+    const size = parseInt((event.target as HTMLInputElement).value, 10);
+    const element = this.selectedElement;
+    if (element) {
+      this.diagramService.updateElementProperty(element.id, 'fontSize', size);
+    } else if (this.selectedEdge) {
+      this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'fontSize', size);
+    }
+  }
+
+  getFontWeight(): string {
+    return (this.selectedElement as any)?.fontWeight ||
+           (this.selectedEdge as any)?.fontWeight || 'normal';
+  }
+
+  toggleFontWeight() {
+    const current = this.getFontWeight();
+    const newValue = current === 'bold' ? 'normal' : 'bold';
+    const element = this.selectedElement;
+    if (element) {
+      this.diagramService.updateElementProperty(element.id, 'fontWeight', newValue);
+    } else if (this.selectedEdge) {
+      this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'fontWeight', newValue);
+    }
+  }
+
+  getFontStyle(): string {
+    return (this.selectedElement as any)?.fontStyle ||
+           (this.selectedEdge as any)?.fontStyle || 'normal';
+  }
+
+  toggleFontStyle() {
+    const current = this.getFontStyle();
+    const newValue = current === 'italic' ? 'normal' : 'italic';
+    const element = this.selectedElement;
+    if (element) {
+      this.diagramService.updateElementProperty(element.id, 'fontStyle', newValue);
+    } else if (this.selectedEdge) {
+      this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'fontStyle', newValue);
     }
   }
 

@@ -134,7 +134,7 @@
       class="toolbar-input name-input"
       [value]="getSelectedElementName()"
       (change)="updateElementName($event)"
-      [disabled]="!selectedElement"
+      [disabled]="!selectedElement || isNoteSelected"
       placeholder="Name"
     />
   </div>

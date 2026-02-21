@@ -32,6 +32,7 @@ export interface Tendril extends HasNotes {
   attributes: { [key: string]: any };
   borderColor: string;
   borderThickness: number;
+  strokeWidth?: number;
 }
 
 export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'cube' | 'note' | 'verticalLine' | 'horizontalLine';
@@ -41,8 +42,12 @@ export interface Node extends DiagramElement {
   borderColor: string;
   fillColor: string;
   fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: string;
+  fontStyle?: string;
   innerDiagram?: Diagram;
   dotted: boolean;
+  strokeWidth?: number;
 }
 
 export interface Edge extends HasNotes {
@@ -52,6 +57,13 @@ export interface Edge extends HasNotes {
   toNodeId: string;
   toTendrilId: string;
   name?: string;
+  borderColor?: string;
+  strokeWidth?: number;
+  dotted?: boolean;
+  fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: string;
+  fontStyle?: string;
   attributes: { [key: string]: any };
 }
 
@@ -60,6 +72,10 @@ export interface BoundingBox extends DiagramElement {
   borderColor: string;
   rounded: boolean;
   fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: string;
+  fontStyle?: string;
+  strokeWidth?: number;
 }
 
 export interface SvgImage extends DiagramElement {

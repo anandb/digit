@@ -104,7 +104,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onElementClick(event: MouseEvent, element: DiagramElement): void {
     event.stopPropagation();
 
-    if (this.isCtrlEdgeMode) {
+    // Only handle Ctrl+Click for edge creation if it's strictly a ctrl-click
+    if (event.ctrlKey || event.metaKey) {
       this.handleCtrlClick(element.id);
     } else {
       const multiSelect = event.shiftKey; // User requested Shift+Click for multi-select
@@ -166,7 +167,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.isCreatingEdge = false;
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
-    } else if (event.ctrlKey || event.metaKey || this.isCtrlEdgeMode) {
+    } else if (event.ctrlKey || event.metaKey) { // Updated condition
       // Ctrl+click: Start edge creation from outgoing tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
@@ -473,7 +474,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onNodeClick(event: MouseEvent, node: Node): void {
     event.stopPropagation();
 
-    if (this.isCtrlEdgeMode) {
+    if (event.ctrlKey || event.metaKey) {
       this.handleCtrlClick(node.id);
     } else {
       this.diagramService.selectNode(node.id);

@@ -50,6 +50,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private movingElementIds = new Set<string>();
   private draggingDelta: Position = { x: 0, y: 0 };
 
+  // For canvas panning
+  isPanning = false;
+  private panStart: Position = { x: 0, y: 0 };
+  viewOffset: Position = { x: 0, y: 0 };
+
+  get svgViewBox(): string {
+    const el = this.canvas?.nativeElement;
+    const w = el ? el.clientWidth : 2000;
+    const h = el ? el.clientHeight : 2000;
+    return `${this.viewOffset.x} ${this.viewOffset.y} ${w} ${h}`;
+  }
+
   constructor(private diagramService: DiagramService, private sanitizer: DomSanitizer) { }
 
   ngOnInit(): void {
@@ -64,6 +76,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Canvas click - no longer creates nodes automatically
   onCanvasClick(event: MouseEvent): void {
+    // Don't fire selection-clear if we just finished panning
+    if (this.isPanning) return;
+
     // Clear all selections when clicking on empty canvas
     this.diagramService.clearSelection();
 
@@ -71,6 +86,28 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (this.toolbar) {
       this.toolbar.closeAllDropdowns();
     }
+  }
+
+  // Canvas pan handlers
+  onCanvasMouseDown(event: MouseEvent): void {
+    // Only pan on direct SVG background clicks (not propagated from child elements)
+    if (event.target !== this.canvas.nativeElement &&
+        !(event.target as Element).classList.contains('canvas-bg')) return;
+    this.isPanning = true;
+    this.panStart = { x: event.clientX + this.viewOffset.x, y: event.clientY + this.viewOffset.y };
+    event.preventDefault();
+  }
+
+  onCanvasMouseMove(event: MouseEvent): void {
+    if (!this.isPanning) return;
+    this.viewOffset = {
+      x: this.panStart.x - event.clientX,
+      y: this.panStart.y - event.clientY
+    };
+  }
+
+  onCanvasMouseUp(event: MouseEvent): void {
+    this.isPanning = false;
   }
 
   // Unified element drag handling

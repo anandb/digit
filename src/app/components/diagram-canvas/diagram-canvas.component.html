@@ -7,10 +7,17 @@
     </div>
   </div>
 
-  <svg #canvas class="diagram-canvas" width="100%" height="100%" (click)="onCanvasClick($event)">
+  <svg #canvas class="diagram-canvas" width="100%" height="100%"
+    [attr.viewBox]="svgViewBox"
+    [style.cursor]="isPanning ? 'grabbing' : 'crosshair'"
+    (click)="onCanvasClick($event)"
+    (mousedown)="onCanvasMouseDown($event)"
+    (mousemove)="onCanvasMouseMove($event)"
+    (mouseup)="onCanvasMouseUp($event)"
+    (mouseleave)="onCanvasMouseUp($event)">
 
     <!-- Grid background -->
-    <rect width="100%" height="100%" fill="url(#grid)">
+    <rect class="canvas-bg" width="100%" height="100%" fill="url(#grid)">
     </rect>
 
     <!-- Bounding boxes - bottom layer -->

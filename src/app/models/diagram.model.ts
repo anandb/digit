@@ -59,6 +59,7 @@ export interface BoundingBox extends DiagramElement {
   fillColor: string;
   borderColor: string;
   rounded: boolean;
+  fontFamily?: string;
 }
 
 export interface SvgImage extends DiagramElement {
@@ -85,6 +86,10 @@ export interface Diagram {
 // Type guards
 export function isNode(element: DiagramElement): element is Node {
   return 'shape' in element && 'fillColor' in element;
+}
+
+export function isBoundingBox(element: any): element is BoundingBox {
+  return element && 'rounded' in element && 'fillColor' in element;
 }
 
 export function isSvgImage(element: DiagramElement): element is SvgImage {

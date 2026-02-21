@@ -1,10 +1,12 @@
-import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragEnd, CdkDragMove } from '@angular/cdk/drag-drop';
 import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { DiagramService } from '../../services/diagram.service';
+import { DiagramToolbarComponent } from '../diagram-toolbar/diagram-toolbar.component';
 import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox, SvgImage, DiagramElement, isNode, isSvgImage } from '../../models/diagram.model';
+import { PropertiesWindowComponent } from '../properties-window/properties-window.component';
 
 @Component({
   selector: 'app-diagram-canvas',
@@ -15,6 +17,8 @@ import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox, SvgImag
 })
 export class DiagramCanvasComponent implements OnInit, OnDestroy {
   @ViewChild('canvas', { static: true }) canvas!: ElementRef<SVGElement>;
+  @Input() propertiesWindow?: PropertiesWindowComponent;
+  @Input() toolbar?: DiagramToolbarComponent;
 
   state!: DiagramState;
   private subscription!: Subscription;
@@ -27,7 +31,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private tempEdgeEnd: Position = { x: 0, y: 0 };
 
   // For Ctrl+click edge creation
-  private isCtrlEdgeMode = false;
+  public isCtrlEdgeMode = false;
   private ctrlEdgeStartElementId?: string;
 
   // For resizing
@@ -41,11 +45,6 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // For drag highlighting
   private isDraggingBoundingBox = false;
   private highlightedObjectIds: Set<string> = new Set();
-
-  // For custom tendril dragging
-  private isDraggingTendril = false;
-  private draggedTendrilElementId?: string;
-  private draggedTendrilId?: string;
 
   constructor(private diagramService: DiagramService, private sanitizer: DomSanitizer) { }
 
@@ -63,6 +62,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onCanvasClick(event: MouseEvent): void {
     // Clear all selections when clicking on empty canvas
     this.diagramService.clearSelection();
+
+    // Close any open toolbar dropdowns
+    if (this.toolbar) {
+      this.toolbar.closeAllDropdowns();
+    }
   }
 
   // Unified element drag handling
@@ -103,7 +107,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (this.isCtrlEdgeMode) {
       this.handleCtrlClick(element.id);
     } else {
-      const multiSelect = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
+      const multiSelect = event.shiftKey; // User requested Shift+Click for multi-select
       if (isNode(element)) {
         this.diagramService.selectNode(element.id, multiSelect);
       } else if (isSvgImage(element)) {
@@ -129,13 +133,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   onElementContextMenu(event: MouseEvent, element: DiagramElement): void {
-    event.preventDefault();
+    event.preventDefault(); // Prevent default browser context menu
+    event.stopPropagation();
+
     if (isNode(element)) {
-      this.diagramService.selectNode(element.id);
+      this.diagramService.selectNode(element.id, false); // Single select on right click
     } else if (isSvgImage(element)) {
-      this.diagramService.selectSvgImage(element.id);
+      this.diagramService.selectSvgImage(element.id, false);
     }
-    // TODO: Show context menu
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   onElementTendrilClick(event: MouseEvent, element: DiagramElement, tendril: Tendril): void {
@@ -165,17 +174,21 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         this.edgeStartTendrilId = tendril.id;
       }
     } else {
-      // Regular click: Start custom tendril dragging
-      this.isDraggingTendril = true;
-      this.draggedTendrilElementId = element.id;
-      this.draggedTendrilId = tendril.id;
+      // Regular click: Select the tendril
+      this.diagramService.selectTendril(element.id, tendril.id);
     }
   }
 
   onElementTendrilContextMenu(event: MouseEvent, element: DiagramElement, tendril: Tendril): void {
-    event.preventDefault();
+    event.preventDefault(); // Prevent default browser context menu
     event.stopPropagation();
+
+    // Select the tendril
     this.diagramService.selectTendril(element.id, tendril.id);
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   // Legacy node drag handling for backward compatibility
@@ -218,43 +231,23 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.isCreatingEdge = false;
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
-    } else {
+    } else if (event.ctrlKey || event.metaKey || this.isCtrlEdgeMode) {
       // Start edge creation - only allow from outgoing tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
         this.edgeStartNodeId = node.id;
         this.edgeStartTendrilId = tendril.id;
       }
+    } else {
+      // Select the tendril
+      this.diagramService.selectTendril(node.id, tendril.id);
     }
   }
 
   // Mouse move for temp edge rendering, resizing, and custom tendril dragging
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
-    if (this.isDraggingTendril && this.draggedTendrilElementId && this.draggedTendrilId) {
-      // Handle custom tendril dragging
-      const rect = this.canvas.nativeElement.getBoundingClientRect();
-      const currentX = event.clientX - rect.left;
-      const currentY = event.clientY - rect.top;
-
-      const element = this.getElementAny(this.draggedTendrilElementId);
-      if (element) {
-        // Calculate relative position to the element
-        const relativeX = currentX - element.position.x;
-        const relativeY = currentY - element.position.y;
-
-        // Constrain to border: find the closest point on the element's border
-        const constrainedPosition = this.constrainToBorder(relativeX, relativeY, element.size);
-
-        // Update the tendril position in the data model during drag for live edge updates
-        this.diagramService.updateTendril(this.draggedTendrilElementId, this.draggedTendrilId, {
-          position: constrainedPosition
-        });
-
-        // Force re-render of edge paths during drag
-        this.forceUpdate++;
-      }
-    } else if (this.isCreatingEdge) {
+    if (this.isCreatingEdge) {
       const rect = this.canvas.nativeElement.getBoundingClientRect();
       this.tempEdgeEnd = {
         x: event.clientX - rect.left,
@@ -355,12 +348,6 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.resizeBoundingBoxId = undefined;
       this.resizeSvgImageId = undefined;
     }
-
-    if (this.isDraggingTendril) {
-      this.isDraggingTendril = false;
-      this.draggedTendrilElementId = undefined;
-      this.draggedTendrilId = undefined;
-    }
   }
 
   // Right click to cancel edge creation
@@ -384,6 +371,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Handle Ctrl+A for select all
+    if (event.ctrlKey && event.key === 'a') {
+      event.preventDefault();
+      this.diagramService.selectAll();
+      return;
+    }
+
     // Handle Ctrl+S for save
     if (event.ctrlKey && event.key === 's') {
       event.preventDefault();
@@ -392,6 +386,19 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
 
     if (event.key === 'Delete') {
+      // Handle Tendril deletion separately to prevent deleting the parent node
+      if (this.state.selectedTendrilId) {
+        const tendrilId = this.state.selectedTendrilId;
+        this.state.selectedNodeIds.forEach(nodeId => {
+          this.diagramService.deleteTendril(nodeId, tendrilId);
+        });
+        this.state.selectedSvgImageIds.forEach(svgId => {
+          this.diagramService.deleteTendril(svgId, tendrilId);
+        });
+        this.diagramService.clearSelection();
+        return;
+      }
+
       // Delete all selected items
       this.state.selectedNodeIds.forEach(nodeId => {
         this.diagramService.deleteNode(nodeId);
@@ -476,8 +483,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Context menu for nodes
   onNodeContextMenu(event: MouseEvent, node: Node): void {
     event.preventDefault();
-    this.diagramService.selectNode(node.id);
-    // TODO: Show context menu
+    event.stopPropagation();
+    this.diagramService.selectNode(node.id, false);
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   // Context menu for tendrils - now selects immediately
@@ -485,6 +496,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     this.diagramService.selectTendril(node.id, tendril.id);
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   // Bounding box click to select
@@ -499,7 +514,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     this.diagramService.selectBoundingBox(box.id);
-    // TODO: Show context menu
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   // Bounding box drag started - highlight contained objects
@@ -836,13 +854,15 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   isSelected(elementType: string, elementId: string): boolean {
     switch (elementType) {
       case 'node':
-        return this.state.selectedNodeIds.includes(elementId);
+        return this.state.selectedNodeIds.includes(elementId) && !this.state.selectedTendrilId;
       case 'svg':
-        return this.state.selectedSvgImageIds.includes(elementId);
+        return this.state.selectedSvgImageIds.includes(elementId) && !this.state.selectedTendrilId;
       case 'boundingBox':
         return this.state.selectedBoundingBoxIds.includes(elementId);
       case 'edge':
         return this.state.selectedEdgeIds.includes(elementId);
+      case 'tendril':
+        return this.state.selectedTendrilId === elementId;
       default:
         return false;
     }
@@ -917,6 +937,17 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     const multiSelect = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
     this.diagramService.selectEdge(edge.id, multiSelect);
+  }
+
+  // Edge context menu
+  onEdgeContextMenu(event: MouseEvent, edge: Edge): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.diagramService.selectEdge(edge.id, false); // Single select on right click
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   // Get center point of an edge for label positioning
@@ -1092,7 +1123,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onSvgImageContextMenu(event: MouseEvent, svgImage: SvgImage): void {
     event.preventDefault();
     event.stopPropagation();
-    this.diagramService.selectSvgImage(svgImage.id);
+    this.diagramService.selectSvgImage(svgImage.id, false); // Single select
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   // SVG tendril click
@@ -1102,7 +1137,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (this.isCreatingEdge) {
       // Complete edge creation - only allow connecting to incoming tendrils
       if (tendril.type === 'incoming' &&
-        this.edgeStartNodeId && this.edgeStartTendrilId) {
+        this.edgeStartNodeId && this.edgeStartTendrilId &&
+        this.edgeStartNodeId !== svgImage.id) { // Ensure not connecting to itself
         this.diagramService.addEdge(
           this.edgeStartNodeId,
           this.edgeStartTendrilId,
@@ -1114,13 +1150,16 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.isCreatingEdge = false;
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
-    } else {
+    } else if (event.ctrlKey || event.metaKey || this.isCtrlEdgeMode) {
       // Start edge creation - only allow from outgoing tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
         this.edgeStartNodeId = svgImage.id;
         this.edgeStartTendrilId = tendril.id;
       }
+    } else {
+      // Select the tendril
+      this.diagramService.selectTendril(svgImage.id, tendril.id);
     }
   }
 
@@ -1129,6 +1168,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     this.diagramService.selectTendril(`svg-${svgImage.id}`, tendril.id);
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   // Get spring path for SVG tendrils
@@ -1363,6 +1406,21 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return centerY + Math.sin(i * Math.PI / 3) * radius;
   }
 
+  getCylinderPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const ry = Math.min(w, h) * 0.15;
+    const rx = w / 2;
+
+    return `M ${x},${y + ry} L ${x},${y + h - ry} A ${rx},${ry} 0 0 0 ${x + w},${y + h - ry} L ${x + w},${y + ry} Z`;
+  }
+
+  getCylinderRy(node: any): number {
+    return Math.min(node.size.width, node.size.height) * 0.15;
+  }
+
   getNoteFoldedCornerPoints(node: any): string {
     const x = node.position.x;
     const y = node.position.y;
@@ -1419,6 +1477,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       'diamond': 'Diamond',
       'parallelogram': 'Para',
       'document': 'Document',
+      'pill': 'Pill',
+      'rounded': 'Round',
       'roundedRectangle': 'Round',
       'hexagon': 'Hexagon',
       'triangle': 'Triangle',
@@ -1490,13 +1550,16 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.isCreatingEdge = false;
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
-    } else {
+    } else if (event.ctrlKey || event.metaKey || this.isCtrlEdgeMode) {
       // Start edge creation - allow from outgoing propagated tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
         this.edgeStartNodeId = node.id;
         this.edgeStartTendrilId = tendril.id;
       }
+    } else {
+      // Select the tendril
+      this.diagramService.selectTendril(node.id, tendril.id);
     }
   }
 
@@ -1505,6 +1568,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     this.diagramService.selectTendril(node.id, tendril.id);
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
   }
 
   // Get tooltip for tendrils (shows tendril name)
@@ -1801,11 +1868,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private constrainToBorder(x: number, y: number, size: Size): Position {
     const { width, height } = size;
 
-    // Calculate distances to each border
-    const distToLeft = x;
-    const distToRight = width - x;
-    const distToTop = y;
-    const distToBottom = height - y;
+    // Calculate absolute distances to each border regardless of inside/outside
+    const distToLeft = Math.abs(x);
+    const distToRight = Math.abs(width - x);
+    const distToTop = Math.abs(y);
+    const distToBottom = Math.abs(height - y);
 
     // Find the minimum distance
     const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);

@@ -1,0 +1,109 @@
+<!-- Sliding Properties Tool Window -->
+<div class="properties-window"
+     [class.visible]="isVisible"
+     [style.top.px]="y"
+     [style.left.px]="x">
+
+  <div class="properties-header">
+    <h3>Properties</h3>
+  </div>
+
+  <div class="properties-content">
+    <ng-container *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg'">
+      <!-- Name/Text Edit -->
+      <div class="property-block" *ngIf="type === 'node' || type === 'boundingBox' || type === 'svg'">
+        <label>{{ (isNoteShape || isTextShape) ? 'Text' : 'Name' }}</label>
+        <textarea *ngIf="isNoteShape || isTextShape"
+                  rows="3"
+                  [value]="getLabel()"
+                  (input)="updateLabel($event)"
+                  placeholder="Type your note here..."></textarea>
+        <input *ngIf="!isNoteShape && !isTextShape"
+               type="text"
+               class="custom-select"
+               style="background-image: none;"
+               [value]="getLabel()"
+               (input)="updateLabel($event)">
+      </div>
+      <!-- Shared Node/Edge/Box Properties -->
+      <button class="line-style-btn" (click)="toggleDotted()" *ngIf="type !== 'boundingBox'">
+        <span class="line-icon" [class.dotted]="getIsDotted()"></span>
+        <span class="line-text">{{ getIsDotted() ? 'Dotted' : 'Solid' }}</span>
+      </button>
+
+      <!-- Box rounding toggle (Bounding Box only) -->
+      <button class="line-style-btn" (click)="toggleBoxRounded()" *ngIf="type === 'boundingBox'">
+        <span class="line-icon" [class.dotted]="getIsBoxRounded()"></span>
+        <span class="line-text">{{ getIsBoxRounded() ? 'Rounded' : 'Square' }}</span>
+      </button>
+
+      <div class="color-grid" *ngIf="type === 'node' || type === 'boundingBox'">
+        <!-- Fill Button (Node & Box) -->
+        <label class="color-btn fill-btn">
+          <input type="color" [value]="getFillColor()" (input)="updateFillColor($event)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"></path>
+             <path d="m5 2 5 5"></path>
+             <path d="M2 13h15"></path>
+             <path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"></path>
+          </svg>
+          <span>Fill</span>
+        </label>
+
+        <!-- Stroke Button -->
+        <label class="color-btn stroke-btn">
+          <input type="color" [value]="getStrokeColor()" (input)="updateStrokeColor($event)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+          </svg>
+          <span>Stroke</span>
+        </label>
+      </div>
+
+      <div class="color-grid single" *ngIf="type === 'edge'">
+        <!-- Stroke Button (Edge Only) -->
+        <label class="color-btn stroke-btn">
+          <input type="color" [value]="getStrokeColor()" (input)="updateStrokeColor($event)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+          </svg>
+          <span>Stroke</span>
+        </label>
+      </div>
+
+      <div class="property-block">
+        <label>Font Selection</label>
+        <select class="custom-select" [value]="getFontFamily()" (change)="updateFontFamily($event)">
+          <option value="'Roboto', sans-serif">Roboto</option>
+          <option value="Arial">Arial</option>
+          <option value="'Courier New', Courier, monospace">Courier New</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="'Times New Roman', Times, serif">Times New Roman</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+          <option value="Purisa, Chalkboard">Handwritten</option>
+        </select>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="type === 'tendril'">
+      <!-- Tendril Specific Properties -->
+      <button class="line-style-btn" (click)="toggleExposed()">
+        <span class="line-text">{{ getIsExposed() ? 'Exposed' : 'Internal' }}</span>
+      </button>
+    </ng-container>
+
+    <!-- Shared Notes Section -->
+    <div class="property-block" *ngIf="type">
+      <label>Notes</label>
+      <textarea rows="3"
+                [value]="getNotes()"
+                (input)="updateNotes($event)"
+                placeholder="Refinement needed..."></textarea>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="!type">
+      Select an element to edit properties.
+    </div>
+  </div>
+</div>

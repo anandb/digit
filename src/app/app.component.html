@@ -1,6 +1,11 @@
-<app-diagram-toolbar #toolbar></app-diagram-toolbar>
-<div class="resize-handle" (mousedown)="startResizing($event)"></div>
-<div class="main-content">
-  <app-diagram-canvas></app-diagram-canvas>
+<div class="app-layout">
+  <app-diagram-toolbar #toolbar></app-diagram-toolbar>
+
+  <div class="main-content">
+    <app-diagram-canvas [propertiesWindow]="propertiesWindow" [toolbar]="toolbar"></app-diagram-canvas>
+  </div>
+
+  <app-todo-panel></app-todo-panel>
+
+  <app-properties-window #propertiesWindow></app-properties-window>
 </div>
-<app-todo-panel></app-todo-panel>

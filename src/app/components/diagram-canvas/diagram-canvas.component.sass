@@ -1,7 +1,7 @@
 .diagram-header
   position: absolute
-  top: 10px
-  right: 10px
+  top: 50px
+  right: 50px
   z-index: 100
   display: flex
   align-items: center
@@ -116,6 +116,11 @@
 
     &:hover
       stroke-width: 3
+
+    &.selected, &.highlighted
+      stroke: #007bff !important
+      stroke-width: 3
+      stroke-dasharray: none
 
   .bounding-box-label
     font-family: 'Purisa', 'Chalkboard', cursive, sans-serif

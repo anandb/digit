@@ -11,28 +11,13 @@ import { DiagramElement, isNode, isSvgImage } from '../../models/diagram.model';
   styleUrls: ['./diagram-toolbar.component.sass']
 })
 export class DiagramToolbarComponent {
-  isCollapsed = false;
-  sidebarWidth = 500;
+  // Dropdown state for "Add" button
+  isAddDropdownOpen = false;
 
-  // Default shape settings for new nodes
-  defaultShape: string = 'rectangle';
-  defaultBorderColor: string = '#000000';
-  defaultFillColor: string = '#ffffff';
-  defaultDotted: boolean = false;
-  defaultFont: string = 'Purisa';
-
-  // Accordion states - collapsed by default
-  notesExpanded = false;
-  svgNotesExpanded = false;
-  tendrilNotesExpanded = false;
-  edgeNotesExpanded = false;
-  instructionsExpanded = false;
+  // Dropdown state for Instructions
+  isInstructionsOpen = false;
 
   constructor(private diagramService: DiagramService) {
-    // Load saved sidebar state
-    this.loadSidebarState();
-    // Load saved default shape settings
-    this.loadDefaultShapeSettings();
   }
 
   newDiagram(): void {
@@ -48,28 +33,41 @@ export class DiagramToolbarComponent {
     });
   }
 
-  addNewNode(): void {
-    // Add node at a random position on the canvas
-    const canvasWidth = 800;
-    const canvasHeight = 600;
-    const margin = 50; // Keep elements away from edges
+  toggleAddDropdown(): void {
+    this.isAddDropdownOpen = !this.isAddDropdownOpen;
+  }
 
+  closeAddDropdown(): void {
+    this.toggleAddDropdown();
+  }
+
+  toggleInstructions(): void {
+    this.isInstructionsOpen = !this.isInstructionsOpen;
+  }
+
+  closeInstructions(): void {
+    this.isInstructionsOpen = false;
+  }
+
+  closeAllDropdowns(): void {
+    this.isAddDropdownOpen = false;
+    this.isInstructionsOpen = false;
+  }
+
+  addNewNode(shape: string = 'rectangle'): void {
+    this.closeAddDropdown();
+    // Position around the upper-center of the canvas
     const position = {
-      x: margin + Math.random() * (canvasWidth - 2 * margin),
-      y: margin + Math.random() * (canvasHeight - 2 * margin)
+      x: 350 + (Math.random() * 50),
+      y: 150 + (Math.random() * 50)
     };
 
-    // Create the node with default shape settings
+    // Create the node with default minimal shape settings
     this.diagramService.addNode(position, {
-      shape: this.defaultShape,
-      borderColor: this.defaultBorderColor,
-      fillColor: this.defaultFillColor,
-      dotted: this.defaultDotted,
-      fontFamily: this.defaultFont
+      shape: shape,
     });
 
     // Find the newly created node and select it
-    // Since we just added it, it should be the last element in the array
     const currentElements = this.diagramService.currentState.currentDiagram.elements;
     const newNode = currentElements[currentElements.length - 1];
     if (newNode) {
@@ -78,8 +76,11 @@ export class DiagramToolbarComponent {
   }
 
   addNewBoundingBox(): void {
-    // Add bounding box at a default position
-    const position = { x: 300, y: 200 };
+    // Position around the upper-center of the canvas
+    const position = {
+      x: 350 + (Math.random() * 50),
+      y: 150 + (Math.random() * 50)
+    };
     this.diagramService.addBoundingBox(position);
   }
 
@@ -203,6 +204,10 @@ export class DiagramToolbarComponent {
     input.value = '';
   }
 
+  getCurrentDiagramName(): string {
+    return this.diagramService.currentState.currentDiagram.name || '';
+  }
+
   goBack(): void {
     this.diagramService.goBack();
   }
@@ -211,11 +216,21 @@ export class DiagramToolbarComponent {
     return this.diagramService.currentState.diagramStack.length > 0;
   }
 
-  deleteSelectedNode(): void {
-    const selectedNodeId = this.diagramService.currentState.selectedNodeId;
-    if (selectedNodeId) {
-      this.diagramService.deleteNode(selectedNodeId);
+  deleteSelectedElement(): void {
+    const state = this.diagramService.currentState;
+
+    if (state.selectedNodeId) {
+      this.diagramService.deleteNode(state.selectedNodeId);
+    } else if (state.selectedSvgImageId) {
+      // SVG images are currently in the elements array, handled by deleteNode if we update it
+      // or we can find it and remove it here if deleteNode only handles nodes.
+      // Actually deleteNode filters by ID from elements array, so it works for SVG images too.
+      this.diagramService.deleteNode(state.selectedSvgImageId);
+    } else if (state.selectedBoundingBoxId) {
+      this.diagramService.deleteBoundingBox(state.selectedBoundingBoxId);
     }
+
+    this.diagramService.clearSelection();
   }
 
   deleteSelectedTendril(): void {
@@ -227,19 +242,14 @@ export class DiagramToolbarComponent {
   }
 
   get selectedElementId(): string | undefined {
-    return this.diagramService.currentState.selectedNodeId || this.diagramService.currentState.selectedSvgImageId;
+    return this.diagramService.currentState.selectedNodeId ||
+           this.diagramService.currentState.selectedSvgImageId ||
+           this.diagramService.currentState.selectedBoundingBoxId;
   }
 
   get selectedElement(): DiagramElement | undefined {
     const elementId = this.selectedElementId;
-    const element = elementId ? this.diagramService.getElement(elementId) : undefined;
-
-    // Auto-expand notes accordion if element has notes
-    if (element && element.notes && element.notes.trim().length > 0) {
-      this.notesExpanded = true;
-    }
-
-    return element;
+    return elementId ? this.diagramService.getElement(elementId) : undefined;
   }
 
   get selectedNodeId(): string | undefined {
@@ -265,86 +275,9 @@ export class DiagramToolbarComponent {
   // Unified element getter methods
   getSelectedElementName(): string {
     const element = this.selectedElement;
-    if (element) {
-      if (isNode(element)) {
-        return element.label || '';
-      } else if (isSvgImage(element)) {
-        return element.label || '';
-      }
-    }
-    return '';
+    return element?.label || '';
   }
 
-  getSelectedElementNotes(): string {
-    const element = this.selectedElement;
-    return element?.notes ?? '';
-  }
-
-  getSelectedElementFillColor(): string {
-    const element = this.selectedElement;
-    if (element && isNode(element)) {
-      return element.fillColor || '#ffffff';
-    }
-    return '#ffffff';
-  }
-
-  getSelectedElementBorderColor(): string {
-    const element = this.selectedElement;
-    if (element && isNode(element)) {
-      return element.borderColor || '#000000';
-    }
-    return '#000000';
-  }
-
-  getSelectedElementShape(): string {
-    const element = this.selectedElement;
-    if (element && isNode(element)) {
-      return element.shape || 'rectangle';
-    }
-    return 'rectangle';
-  }
-
-  getSelectedElementFont(): string {
-    const element = this.selectedElement;
-    if (element && isNode(element)) {
-      return element.fontFamily || 'Purisa, Chalkboard';
-    }
-    return 'Purisa, Chalkboard';
-  }
-
-  availableFonts: string[] = [
-    'Purisa',
-    'Chalkboard SE',
-    'Segoe Script',
-    'Lucida Handwriting',
-    'Brush Script MT',
-    'Bradley Hand',
-    'Ink Free',
-    'Kristen ITC',
-    'Vivaldi'
-  ];
-
-  updateElementFont(event: Event): void {
-    const target = event.target as HTMLSelectElement;
-    const font = target.value;
-
-    // Update default font setting
-    this.defaultFont = font;
-    this.saveDefaultShapeSettings();
-
-    // Update ALL nodes in the diagram
-    this.diagramService.updateAllNodesFont(font);
-  }
-
-  getSelectedElementDotted(): boolean {
-    const element = this.selectedElement;
-    if (element && isNode(element)) {
-      return element.dotted || false;
-    }
-    return false;
-  }
-
-  // Unified element update methods
   updateElementName(event: Event): void {
     const elementId = this.selectedElementId;
     if (elementId) {
@@ -353,450 +286,6 @@ export class DiagramToolbarComponent {
     }
   }
 
-  updateElementNotes(event: Event): void {
-    const elementId = this.selectedElementId;
-    if (elementId) {
-      const target = event.target as HTMLTextAreaElement;
-      this.diagramService.updateElement(elementId, { notes: target.value });
-    }
-  }
-
-  updateElementFillColor(event: Event): void {
-    const elementId = this.selectedElementId;
-    if (elementId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateElement(elementId, { fillColor: target.value });
-    }
-  }
-
-  updateElementBorderColor(event: Event): void {
-    const elementId = this.selectedElementId;
-    if (elementId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateElement(elementId, { borderColor: target.value });
-    }
-  }
-
-  setElementShape(shape: string): void {
-    const elementId = this.selectedElementId;
-    if (elementId) {
-      const updates: any = { shape: shape as any };
-
-      const element = this.diagramService.getElement(elementId);
-      if (element && isNode(element)) {
-        if (shape === 'verticalLine') {
-          updates.size = { width: 40, height: element.size.height };
-          updates.tendrils = []; // Remove tendrils
-        } else if (shape === 'horizontalLine') {
-          updates.size = { width: element.size.width, height: 40 };
-          updates.tendrils = []; // Remove tendrils
-        }
-      }
-
-      this.diagramService.updateElement(elementId, updates);
-      // Update default shape for new nodes
-      this.defaultShape = shape;
-      this.saveDefaultShapeSettings();
-    }
-  }
-
-  setElementDotted(dotted: boolean): void {
-    const elementId = this.selectedElementId;
-    if (elementId) {
-      this.diagramService.updateElement(elementId, { dotted });
-      // Update default border style for new nodes
-      this.defaultDotted = dotted;
-      this.saveDefaultShapeSettings();
-    }
-  }
-
-  // Legacy methods for backward compatibility
-  getSelectedNodeFillColor(): string {
-    return this.getSelectedElementFillColor();
-  }
-
-  getSelectedNodeBorderColor(): string {
-    return this.getSelectedElementBorderColor();
-  }
-
-  updateNodeFillColor(event: Event): void {
-    this.updateElementFillColor(event);
-  }
-
-  updateNodeBorderColor(event: Event): void {
-    this.updateElementBorderColor(event);
-  }
-
-  getSelectedNodeNotes(): string {
-    return this.getSelectedElementNotes();
-  }
-
-  updateNodeNotes(event: Event): void {
-    this.updateElementNotes(event);
-  }
-
-  getSelectedNodeName(): string {
-    return this.getSelectedElementName();
-  }
-
-  updateNodeName(event: Event): void {
-    this.updateElementName(event);
-  }
-
-  getSelectedNodeShape(): string {
-    return this.getSelectedElementShape();
-  }
-
-  setNodeShape(shape: string): void {
-    this.setElementShape(shape);
-  }
-
-  getSelectedTendrilName(): string {
-    const selectedNodeId = this.selectedNodeId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
-      return tendril?.name || '';
-    }
-    return '';
-  }
-
-  getSelectedTendrilTypeLabel(): string {
-    const selectedNodeId = this.selectedNodeId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
-      return tendril?.type === 'incoming' ? 'Incoming Tendril Name' : 'Outgoing Tendril Name';
-    }
-    return 'Tendril Name';
-  }
-
-  updateTendrilName(event: Event): void {
-    const selectedNodeId = this.selectedNodeId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, { name: target.value });
-    }
-  }
-
-  getSelectedTendrilExposed(): boolean {
-    const selectedNodeId = this.selectedNodeId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
-      return tendril?.exposed || false;
-    }
-    return false;
-  }
-
-  setTendrilExposed(exposed: boolean): void {
-    const selectedNodeId = this.selectedNodeId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, { exposed });
-    }
-  }
-
-  getSelectedTendrilType(): string {
-    const selectedNodeId = this.selectedNodeId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
-      return tendril?.type || 'incoming';
-    }
-    return 'incoming';
-  }
-
-  setTendrilType(type: 'incoming' | 'outgoing'): void {
-    const selectedElementId = this.selectedNodeId || this.selectedSvgImageId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedElementId && selectedTendrilId) {
-      // Get current tendril to check if name needs updating
-      const currentTendril = this.diagramService.getTendrilAny(selectedElementId, selectedTendrilId);
-      const currentName = currentTendril?.name || '';
-
-      // Check if name is still the default value and update it
-      let newName = currentName;
-      if (currentName === 'Incoming Tendril' && type === 'outgoing') {
-        newName = 'Outgoing Tendril';
-      } else if (currentName === 'Outgoing Tendril' && type === 'incoming') {
-        newName = 'Incoming Tendril';
-      }
-
-      // Update the tendril
-      const updates: any = { type };
-      if (newName !== currentName) {
-        updates.name = newName;
-      }
-
-      this.diagramService.updateTendril(selectedElementId, selectedTendrilId, updates);
-    }
-  }
-
-  getSelectedBoundingBoxLabel(): string {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      const box = this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === selectedBoundingBoxId);
-      return box?.label || '';
-    }
-    return '';
-  }
-
-  updateBoundingBoxLabel(event: Event): void {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateBoundingBox(selectedBoundingBoxId, { label: target.value });
-    }
-  }
-
-  getSelectedBoundingBoxFillColor(): string {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      const box = this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === selectedBoundingBoxId);
-      return box?.fillColor || 'rgba(255, 255, 0, 0.3)';
-    }
-    return 'rgba(255, 255, 0, 0.3)';
-  }
-
-  getSelectedBoundingBoxBorderColor(): string {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      const box = this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === selectedBoundingBoxId);
-      return box?.borderColor || '#666666';
-    }
-    return '#666666';
-  }
-
-  updateBoundingBoxFillColor(event: Event): void {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateBoundingBox(selectedBoundingBoxId, { fillColor: target.value });
-    }
-  }
-
-  updateBoundingBoxBorderColor(event: Event): void {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateBoundingBox(selectedBoundingBoxId, { borderColor: target.value });
-    }
-  }
-
-  deleteSelectedBoundingBox(): void {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      this.diagramService.deleteBoundingBox(selectedBoundingBoxId);
-    }
-  }
-
-  getSelectedBoundingBoxRounded(): boolean {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      const box = this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === selectedBoundingBoxId);
-      return box?.rounded || false;
-    }
-    return false;
-  }
-
-  setBoundingBoxRounded(rounded: boolean): void {
-    const selectedBoundingBoxId = this.selectedBoundingBoxId;
-    if (selectedBoundingBoxId) {
-      this.diagramService.updateBoundingBox(selectedBoundingBoxId, { rounded });
-    }
-  }
-
-  getSelectedSvgImageLabel(): string {
-    const selectedSvgImageId = this.selectedSvgImageId;
-    if (selectedSvgImageId) {
-      const svgImage = this.diagramService.getSvgImage(selectedSvgImageId);
-      return svgImage?.label || '';
-    }
-    return '';
-  }
-
-  updateSvgImageLabel(event: Event): void {
-    const selectedSvgImageId = this.selectedSvgImageId;
-    if (selectedSvgImageId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateSvgImage(selectedSvgImageId, { label: target.value });
-    }
-  }
-
-  getSelectedSvgImageNotes(): string {
-    const selectedSvgImageId = this.selectedSvgImageId;
-    if (selectedSvgImageId) {
-      const svgImage = this.diagramService.getSvgImage(selectedSvgImageId);
-      return svgImage?.notes ?? '';
-    }
-    return '';
-  }
-
-  updateSvgImageNotes(event: Event): void {
-    const selectedSvgImageId = this.selectedSvgImageId;
-    if (selectedSvgImageId) {
-      const target = event.target as HTMLTextAreaElement;
-      this.diagramService.updateSvgImage(selectedSvgImageId, { notes: target.value });
-    }
-  }
-
-  getSelectedTendrilNotes(): string {
-    const selectedNodeId = this.selectedNodeId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      const tendril = this.diagramService.getTendrilAny(selectedNodeId, selectedTendrilId);
-      return tendril?.notes ?? '';
-    }
-    return '';
-  }
-
-  updateTendrilNotes(event: Event): void {
-    const selectedNodeId = this.selectedNodeId;
-    const selectedTendrilId = this.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      const target = event.target as HTMLTextAreaElement;
-      this.diagramService.updateTendril(selectedNodeId, selectedTendrilId, { notes: target.value });
-    }
-  }
-
-  getSelectedEdgeNotes(): string {
-    const selectedEdgeId = this.selectedEdgeId;
-    if (selectedEdgeId) {
-      const edge = this.diagramService.getEdge(selectedEdgeId);
-      return edge?.notes ?? '';
-    }
-    return '';
-  }
-
-  updateEdgeNotes(event: Event): void {
-    const selectedEdgeId = this.selectedEdgeId;
-    if (selectedEdgeId) {
-      const target = event.target as HTMLTextAreaElement;
-      this.diagramService.updateEdge(selectedEdgeId, { notes: target.value });
-    }
-  }
-
-  getSelectedEdgeName(): string {
-    const selectedEdgeId = this.selectedEdgeId;
-    if (selectedEdgeId) {
-      const edge = this.diagramService.getEdge(selectedEdgeId);
-      return edge?.name || '';
-    }
-    return '';
-  }
-
-  updateEdgeName(event: Event): void {
-    const selectedEdgeId = this.selectedEdgeId;
-    if (selectedEdgeId) {
-      const target = event.target as HTMLInputElement;
-      this.diagramService.updateEdge(selectedEdgeId, { name: target.value });
-    }
-  }
-
-  deleteSelectedEdge(): void {
-    const selectedEdgeId = this.selectedEdgeId;
-    if (selectedEdgeId) {
-      this.diagramService.deleteEdge(selectedEdgeId);
-    }
-  }
-
-  getCurrentDiagramName(): string {
-    return this.diagramService.currentState.currentDiagram.name || '';
-  }
-
-  updateCurrentDiagramName(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.diagramService.updateCurrentDiagramName(target.value);
-  }
-
-  toggleSidebar(): void {
-    this.isCollapsed = !this.isCollapsed;
-    this.saveSidebarState();
-    this.updateMainContentMargin();
-  }
-
-  private loadSidebarState(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = localStorage.getItem('diagram-sidebar-state');
-      if (saved) {
-        try {
-          const state = JSON.parse(saved);
-          this.isCollapsed = state.isCollapsed || false;
-          this.sidebarWidth = state.sidebarWidth || 500;
-          this.updateMainContentMargin();
-        } catch (error) {
-          console.warn('Failed to load sidebar state:', error);
-        }
-      }
-    }
-  }
-
-  private saveSidebarState(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        const state = {
-          isCollapsed: this.isCollapsed,
-          sidebarWidth: this.sidebarWidth
-        };
-        localStorage.setItem('diagram-sidebar-state', JSON.stringify(state));
-      } catch (error) {
-        console.warn('Failed to save sidebar state:', error);
-      }
-    }
-  }
-
-  private loadDefaultShapeSettings(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = localStorage.getItem('diagram-default-shape-settings');
-      if (saved) {
-        try {
-          const settings = JSON.parse(saved);
-          this.defaultShape = settings.shape || 'rectangle';
-          this.defaultBorderColor = settings.borderColor || '#000000';
-          this.defaultFillColor = settings.fillColor || '#ffffff';
-          this.defaultDotted = settings.dotted || false;
-          this.defaultFont = settings.fontFamily || 'Purisa, Chalkboard';
-        } catch (error) {
-          console.warn('Failed to load default shape settings:', error);
-        }
-      }
-    }
-  }
-
-  private saveDefaultShapeSettings(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        const settings = {
-          shape: this.defaultShape,
-          borderColor: this.defaultBorderColor,
-          fillColor: this.defaultFillColor,
-          dotted: this.defaultDotted,
-          fontFamily: this.defaultFont
-        };
-        localStorage.setItem('diagram-default-shape-settings', JSON.stringify(settings));
-      } catch (error) {
-        console.warn('Failed to save default shape settings:', error);
-      }
-    }
-  }
-
-  updateMainContentMargin(): void {
-    // Update the main content margin dynamically
-    const mainContent = document.querySelector('.main-content') as HTMLElement;
-    if (mainContent) {
-      const marginLeft = this.isCollapsed ? '50px' : `${this.sidebarWidth}px`;
-      mainContent.style.marginLeft = marginLeft;
-    }
-
-    // Also update the resize handle position
-    const resizeHandle = document.querySelector('.resize-handle') as HTMLElement;
-    if (resizeHandle) {
-      const handlePosition = this.isCollapsed ? 50 : this.sidebarWidth;
-      resizeHandle.style.left = `${handlePosition}px`;
-    }
-  }
 
   // Template helper methods
   isNode(element: DiagramElement): boolean {

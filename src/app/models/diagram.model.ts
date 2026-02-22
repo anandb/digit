@@ -135,6 +135,7 @@ export function isSvgImage(element: DiagramElement): element is SvgImage {
 export interface DiagramState {
   currentDiagram: Diagram;
   diagramStack: Diagram[]; // for navigation history
+  viewportCenter: Position;
   selectedNodeIds: string[]; // Support multiple selections
   selectedTendrilId?: string;
   selectedBoundingBoxIds: string[]; // Support multiple selections

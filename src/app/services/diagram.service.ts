@@ -37,7 +37,8 @@ export class DiagramService {
       selectedBoundingBoxIds: [],
       selectedSvgImageIds: [],
       selectedEdgeIds: [],
-      selectedConnectorIds: []
+      selectedConnectorIds: [],
+      viewportCenter: { x: 500, y: 300 }
     };
   }
 
@@ -225,7 +226,7 @@ export class DiagramService {
     };
   }
 
-  private recursiveDeleteDiagram(diagramId: string): void {
+  recursiveDeleteDiagram(diagramId: string): void {
     const diagram = this.allDiagrams.get(diagramId);
     if (!diagram) return;
 
@@ -238,6 +239,13 @@ export class DiagramService {
 
     // Finally delete this diagram from the map
     this.allDiagrams.delete(diagramId);
+  }
+
+  updateViewportCenter(center: Position): void {
+    this.state = {
+      ...this.state,
+      viewportCenter: center
+    };
   }
 
   // Node operations
@@ -1458,7 +1466,8 @@ export class DiagramService {
         selectedBoundingBoxIds: serialized.selectedBoundingBoxIds || [],
         selectedSvgImageIds: serialized.selectedSvgImageIds || [],
         selectedEdgeIds: serialized.selectedEdgeIds || [],
-        selectedConnectorIds: serialized.selectedConnectorIds || []
+        selectedConnectorIds: serialized.selectedConnectorIds || [],
+        viewportCenter: serialized.viewportCenter || { x: 500, y: 300 }
       };
     } catch (error) {
       console.error('Failed to load state from localStorage:', error);
@@ -1533,7 +1542,8 @@ export class DiagramService {
       selectedBoundingBoxIds: [],
       selectedEdgeIds: [],
       selectedConnectorIds: [],
-      selectedTendrilId: undefined
+      selectedTendrilId: undefined,
+      viewportCenter: this.state.viewportCenter
     };
   }
 

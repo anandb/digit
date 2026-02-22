@@ -90,6 +90,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.currentDiagramId = state.currentDiagram.id;
       this.state = state;
     });
+    // Initial viewport update after view has settled
+    setTimeout(() => this.updateServiceViewport(), 100);
   }
 
   ngOnDestroy(): void {
@@ -132,10 +134,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       x: this.panStart.x - event.clientX,
       y: this.panStart.y - event.clientY
     };
+    this.updateServiceViewport();
   }
 
   onCanvasMouseUp(event: MouseEvent): void {
     this.isPanning = false;
+    this.updateServiceViewport();
   }
 
   // Unified element drag handling
@@ -556,6 +560,28 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.diagramService.pasteClipboard();
       return;
     }
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.updateServiceViewport();
+  }
+
+  private updateServiceViewport(): void {
+    const el = this.canvas?.nativeElement;
+    if (!el) return;
+
+    const w = el.clientWidth;
+    const h = el.clientHeight;
+
+    // The viewport center in SVG coordinates is the viewOffset plus half the client dimensions
+    // Since our SVG viewBox starts at viewOffset and spans clientWidth/Height
+    const center: Position = {
+      x: this.viewOffset.x + (w / 2),
+      y: this.viewOffset.y + (h / 2)
+    };
+
+    this.diagramService.updateViewportCenter(center);
   }
 
   @HostListener('document:keyup', ['$event'])

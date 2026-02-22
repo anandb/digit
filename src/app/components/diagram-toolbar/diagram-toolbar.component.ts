@@ -31,7 +31,8 @@ export class DiagramToolbarComponent {
       selectedBoundingBoxIds: [],
       selectedSvgImageIds: [],
       selectedEdgeIds: [],
-      selectedConnectorIds: []
+      selectedConnectorIds: [],
+      viewportCenter: { x: 500, y: 300 }
     });
   }
 
@@ -58,10 +59,12 @@ export class DiagramToolbarComponent {
 
   addNewNode(shape: string = 'rectangle'): void {
     this.closeAddDropdown();
-    // Position around the upper-center of the canvas
+
+    // Use viewport center if available, otherwise fallback to reasonable default
+    const viewportCenter = this.diagramService.currentState.viewportCenter;
     const position = {
-      x: 350 + (Math.random() * 50),
-      y: 150 + (Math.random() * 50)
+      x: (viewportCenter?.x || 500) - 50 + (Math.random() * 20),
+      y: (viewportCenter?.y || 300) - 30 + (Math.random() * 20)
     };
 
     // Create the node with default minimal shape settings
@@ -78,10 +81,11 @@ export class DiagramToolbarComponent {
   }
 
   addNewBoundingBox(): void {
-    // Position around the upper-center of the canvas
+    // Use viewport center if available
+    const viewportCenter = this.diagramService.currentState.viewportCenter;
     const position = {
-      x: 350 + (Math.random() * 50),
-      y: 150 + (Math.random() * 50)
+      x: (viewportCenter?.x || 500) - 100 + (Math.random() * 20),
+      y: (viewportCenter?.y || 300) - 100 + (Math.random() * 20)
     };
     this.diagramService.addBoundingBox(position);
   }

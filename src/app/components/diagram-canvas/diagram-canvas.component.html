@@ -97,7 +97,8 @@
           <!-- Mirrored Rectangle -->
           <rect *ngIf="$any(element).shape === 'rectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 4"
             [attr.y]="$any(element).position.y + 4" [attr.width]="$any(element).size.width"
-            [attr.height]="$any(element).size.height" [attr.fill]="$any(element).fillColor"
+            [attr.height]="$any(element).size.height" [attr.rx]="$any(element).rounded ? 10 : null" [attr.ry]="$any(element).rounded ? 10 : null"
+            [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
             class="node-mirror">
@@ -106,7 +107,8 @@
           <!-- Main Rectangle -->
           <rect *ngIf="$any(element).shape === 'rectangle'" [attr.x]="$any(element).position.x"
             [attr.y]="$any(element).position.y" [attr.width]="$any(element).size.width"
-            [attr.height]="$any(element).size.height" [attr.fill]="$any(element).fillColor"
+            [attr.height]="$any(element).size.height" [attr.rx]="$any(element).rounded ? 10 : null" [attr.ry]="$any(element).rounded ? 10 : null"
+            [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null"
             [class.highlighted]="isHighlighted('node', element.id)" class="node">

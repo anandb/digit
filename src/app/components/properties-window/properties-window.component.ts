@@ -293,16 +293,21 @@ export class PropertiesWindowComponent implements OnInit {
     }
   }
 
-  getIsBoxRounded(): boolean {
+  getIsRounded(): boolean {
     const element = this.selectedElement;
-    if (element && isBoundingBox(element)) return element.rounded;
+    if (!element) return false;
+    if (isBoundingBox(element)) return element.rounded;
+    if (isNode(element) && element.shape === 'rectangle') return !!element.rounded;
     return false;
   }
 
-  toggleBoxRounded() {
+  toggleRounded() {
     const element = this.selectedElement;
-    if (element && isBoundingBox(element)) {
+    if (!element) return;
+    if (isBoundingBox(element)) {
       this.diagramService.updateBoundingBox(element.id, { rounded: !element.rounded });
+    } else if (isNode(element) && element.shape === 'rectangle') {
+      this.diagramService.updateElementProperty(element.id, 'rounded', !element.rounded);
     }
   }
 

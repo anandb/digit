@@ -51,6 +51,7 @@ export interface Node extends DiagramElement {
   dotted: boolean;
   strokeWidth?: number;
   mirror?: boolean;
+  rounded?: boolean;
 }
 
 export interface Edge extends HasNotes {

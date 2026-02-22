@@ -57,10 +57,10 @@
         </button>
       </div>
 
-      <!-- Box rounding toggle (Bounding Box only) -->
-      <button class="line-style-btn" (click)="toggleBoxRounded()" *ngIf="type === 'boundingBox'">
-        <span class="line-icon" [class.dotted]="getIsBoxRounded()"></span>
-        <span class="line-text">{{ getIsBoxRounded() ? 'Rounded' : 'Square' }}</span>
+      <!-- Rounding toggle (Bounding Box and Rectangle) -->
+      <button class="line-style-btn" (click)="toggleRounded()" *ngIf="type === 'boundingBox' || (type === 'node' && $any(selectedElement)?.shape === 'rectangle')">
+        <span class="line-icon" [class.dotted]="getIsRounded()"></span>
+        <span class="line-text">{{ getIsRounded() ? 'Rounded' : 'Square' }}</span>
       </button>
 
       <!-- Mirror toggle (Supported Nodes only) -->

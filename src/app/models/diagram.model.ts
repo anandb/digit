@@ -50,6 +50,7 @@ export interface Node extends DiagramElement {
   innerDiagram?: Diagram;
   dotted: boolean;
   strokeWidth?: number;
+  mirror?: boolean;
 }
 
 export interface Edge extends HasNotes {

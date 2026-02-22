@@ -63,6 +63,12 @@
         <span class="line-text">{{ getIsBoxRounded() ? 'Rounded' : 'Square' }}</span>
       </button>
 
+      <!-- Mirror toggle (Supported Nodes only) -->
+      <button class="line-style-btn" (click)="toggleMirrored()" *ngIf="getSupportsMirror()">
+        <span class="line-icon" [class.dotted]="getIsMirrored()"></span>
+        <span class="line-text">{{ getIsMirrored() ? 'Mirrored' : 'Normal' }}</span>
+      </button>
+
       <div class="color-grid" *ngIf="type === 'node' || type === 'boundingBox'">
         <!-- Fill Button (Node & Box) -->
         <label class="color-btn fill-btn">

@@ -306,6 +306,27 @@ export class PropertiesWindowComponent implements OnInit {
     }
   }
 
+  // --- Mirror Property ---
+
+  getSupportsMirror(): boolean {
+    const element = this.selectedElement;
+    if (!element || !isNode(element)) return false;
+    return ['rectangle', 'roundedRectangle', 'pill', 'circle'].includes(element.shape);
+  }
+
+  getIsMirrored(): boolean {
+    const element = this.selectedElement;
+    if (element && isNode(element)) return !!element.mirror;
+    return false;
+  }
+
+  toggleMirrored() {
+    const newValue = !this.getIsMirrored();
+    if (this.selectedElement && isNode(this.selectedElement)) {
+      this.diagramService.updateElementProperty(this.selectedElement.id, 'mirror', newValue);
+    }
+  }
+
   getFontFamily(): string {
     return this.selectedElement?.fontFamily ||
            this.selectedEdge?.attributes['fontFamily'] || 'Arial';

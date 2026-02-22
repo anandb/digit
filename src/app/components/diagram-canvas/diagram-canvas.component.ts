@@ -45,6 +45,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private resizeStartPos: Position = { x: 0, y: 0 };
   private resizeStartSize: Size = { width: 0, height: 0 };
 
+  // For Alt+click connector creation
+  private altConnectorStartElementId?: string;
+
   // For drag highlighting
   private isDraggingBoundingBox = false;
   private highlightedObjectIds: Set<string> = new Set();
@@ -193,13 +196,22 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
     // Only handle Ctrl+Click for edge creation if it's strictly a ctrl-click
     if (event.ctrlKey || event.metaKey) {
-      this.handleCtrlClick(element.id);
+      if (event.altKey) {
+        // Ctrl + Alt + Click as a fallback for Linux
+        this.handleAltClick(element.id);
+      } else {
+        this.handleCtrlClick(element.id);
+      }
+    } else if (event.altKey) {
+      this.handleAltClick(element.id);
     } else {
       const multiSelect = event.shiftKey; // User requested Shift+Click for multi-select
       if (isNode(element)) {
         this.diagramService.selectNode(element.id, multiSelect);
       } else if (isSvgImage(element)) {
         this.diagramService.selectSvgImage(element.id, multiSelect);
+      } else if (isBoundingBox(element)) {
+        this.diagramService.selectBoundingBox(element.id, multiSelect);
       }
     }
   }
@@ -515,12 +527,20 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         this.diagramService.deleteEdge(edgeId);
       });
 
+      (this.state.selectedConnectorIds || []).forEach(connectorId => {
+        this.diagramService.deleteConnector(connectorId);
+      });
+
       // Clear selections after deletion
       this.diagramService.clearSelection();
     }
 
     if (event.key === 'Control' || event.key === 'Meta') {
       this.isCtrlEdgeMode = true;
+    }
+
+    if (event.key === 'Alt') {
+      // Logic removed as we use event.altKey in click handlers
     }
 
     // Copy (Ctrl+C)
@@ -547,6 +567,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         this.cancelEdgeCreation();
       }
       this.ctrlEdgeStartElementId = undefined;
+    }
+
+    if (event.key === 'Alt') {
+      this.altConnectorStartElementId = undefined;
     }
   }
 
@@ -952,6 +976,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Check if an object is highlighted during drag
   isHighlighted(objectType: string, objectId: string): boolean {
+    if (this.altConnectorStartElementId === objectId || (objectType === 'svg' && this.altConnectorStartElementId === `svg-${objectId}`)) {
+      return true;
+    }
     return this.highlightedObjectIds.has(`${objectType}-${objectId}`);
   }
 
@@ -966,6 +993,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         return this.state.selectedBoundingBoxIds.includes(elementId);
       case 'edge':
         return this.state.selectedEdgeIds.includes(elementId);
+      case 'connector':
+        return this.state.selectedConnectorIds?.includes(elementId) || false;
       case 'tendril':
         return this.state.selectedTendrilId === elementId;
       default:
@@ -1148,11 +1177,72 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   getCurrentEdges(): Edge[] {
-    if (this.state.currentDiagram && this.state.currentDiagram.edges) {
-      return this.state.currentDiagram.edges;
-    }
+    return this.state.currentDiagram?.edges || [];
+  }
 
-    return [];
+  getCurrentConnectors(): import('../../models/diagram.model').Connector[] {
+    return this.state.currentDiagram?.connectors || [];
+  }
+
+  onConnectorClick(event: MouseEvent, connector: import('../../models/diagram.model').Connector): void {
+    event.stopPropagation();
+    const multiSelect = event.shiftKey;
+    this.diagramService.selectConnector(connector.id, multiSelect);
+  }
+
+  onConnectorContextMenu(event: MouseEvent, connector: import('../../models/diagram.model').Connector): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.diagramService.selectConnector(connector.id, false);
+
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
+  }
+
+  getConnectorPath(connector: import('../../models/diagram.model').Connector): string {
+    const fromEl = this.diagramService.getElement(connector.fromNodeId);
+    const toEl = this.diagramService.getElement(connector.toNodeId);
+
+    if (!fromEl || !toEl) return '';
+
+    const fromC = this.getLiveCentroid(fromEl);
+    const toC = this.getLiveCentroid(toEl);
+
+    const start = this.getLiveGlobalIntersection(fromEl, toC);
+    const end = this.getLiveGlobalIntersection(toEl, fromC);
+
+    return `M ${start.x},${start.y} L ${end.x},${end.y}`;
+  }
+
+  getConnectorLabelPosition(connector: import('../../models/diagram.model').Connector): Position {
+    const fromEl = this.diagramService.getElement(connector.fromNodeId);
+    const toEl = this.diagramService.getElement(connector.toNodeId);
+
+    if (!fromEl || !toEl) return { x: 0, y: 0 };
+
+    const fromC = this.getLiveCentroid(fromEl);
+    const toC = this.getLiveCentroid(toEl);
+
+    const start = this.getLiveGlobalIntersection(fromEl, toC);
+    const end = this.getLiveGlobalIntersection(toEl, fromC);
+
+    return {
+      x: (start.x + end.x) / 2,
+      y: (start.y + end.y) / 2
+    };
+  }
+
+  private handleAltClick(elementId: string): void {
+    if (!this.altConnectorStartElementId) {
+      this.altConnectorStartElementId = elementId;
+    } else if (this.altConnectorStartElementId !== elementId) {
+      this.diagramService.addConnector(this.altConnectorStartElementId, elementId);
+      this.altConnectorStartElementId = undefined;
+      // If we were in persistent mode, maybe we stay in it?
+      // User might want to draw multiple. But usually one at a time.
+      // Let's keep it for now.
+    }
   }
 
 
@@ -1189,10 +1279,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onSvgImageClick(event: MouseEvent, svgImage: SvgImage): void {
     event.stopPropagation();
 
-    if (this.isCtrlEdgeMode) {
+    if (this.isCtrlEdgeMode || event.ctrlKey || event.metaKey) {
       this.handleCtrlClick(`svg-${svgImage.id}`);
+    } else if (event.altKey) {
+      this.handleAltClick(`svg-${svgImage.id}`);
     } else {
-      this.diagramService.selectSvgImage(svgImage.id);
+      this.diagramService.selectSvgImage(svgImage.id, event.shiftKey);
     }
   }
 
@@ -1980,6 +2072,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   goBack(): void {
     this.diagramService.goBack();
+  }
+
+  deleteCurrentDiagram(): void {
+    if (confirm('Are you sure you want to delete this nested diagram? This action cannot be undone.')) {
+      this.diagramService.deleteInnerDiagram();
+    }
   }
 
   // Tendril drag handling

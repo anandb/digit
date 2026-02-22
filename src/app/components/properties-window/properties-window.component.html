@@ -19,7 +19,7 @@
              [placeholder]="isPropagatedTendril() ? '' : 'Element name'" />
     </div>
 
-    <ng-container *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg'">
+    <ng-container *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg' || type === 'connector'">
       <!-- Main Content Edit (For Note and Text shapes only) -->
       <div class="property-block" *ngIf="isNoteShape || isTextShape">
         <label>Content</label>
@@ -37,7 +37,7 @@
           <span class="line-text">{{ getIsDotted() ? 'Dotted' : 'Solid' }}</span>
         </button>
 
-        <div class="select-container" *ngIf="type === 'node' || type === 'edge'">
+        <div class="select-container" *ngIf="type === 'node' || type === 'edge' || type === 'connector'">
           <select class="custom-select small" [value]="getStrokeWidth()" (change)="updateStrokeWidth($event)">
             <option value="1">1px</option>
             <option value="2">2px</option>
@@ -45,6 +45,16 @@
             <option value="4">4px</option>
           </select>
         </div>
+      </div>
+
+      <!-- Connector Arrows (Connector only) -->
+      <div class="property-row" *ngIf="type === 'connector'">
+        <button class="line-style-btn" (click)="toggleStartArrow()">
+          <span class="line-text">{{ getStartArrow() ? 'Start Arrow' : 'No Start Arrow' }}</span>
+        </button>
+        <button class="line-style-btn" (click)="toggleEndArrow()">
+          <span class="line-text">{{ getEndArrow() ? 'End Arrow' : 'No End Arrow' }}</span>
+        </button>
       </div>
 
       <!-- Box rounding toggle (Bounding Box only) -->
@@ -76,7 +86,7 @@
         </label>
       </div>
 
-      <div class="color-grid single" *ngIf="type === 'edge'">
+      <div class="color-grid single" *ngIf="type === 'edge' || type === 'connector'">
         <!-- Stroke Button (Edge Only) -->
         <label class="color-btn stroke-btn">
           <input type="color" [value]="getStrokeColor()" (input)="updateStrokeColor($event)">

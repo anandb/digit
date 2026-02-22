@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DiagramService } from '../../services/diagram.service';
-import { Node, Edge, Tendril, BoundingBox, isNode, isBoundingBox } from '../../models/diagram.model';
+import { Node, Edge, Tendril, BoundingBox, Connector, isNode, isBoundingBox } from '../../models/diagram.model';
 
 @Component({
   selector: 'app-properties-window',
@@ -31,7 +31,8 @@ export class PropertiesWindowComponent implements OnInit {
       if (state.selectedNodeIds.length === 0 &&
           !state.selectedTendrilId &&
           state.selectedEdgeIds.length === 0 &&
-          state.selectedBoundingBoxIds.length === 0) {
+          state.selectedBoundingBoxIds.length === 0 &&
+          (state.selectedConnectorIds || []).length === 0) {
         this.close();
       }
     });
@@ -90,6 +91,17 @@ export class PropertiesWindowComponent implements OnInit {
     return this.diagramService.currentState.selectedEdgeIds[0];
   }
 
+  get selectedConnectorId(): string | undefined {
+    return (this.diagramService.currentState.selectedConnectorIds || [])[0];
+  }
+
+  get selectedConnector(): Connector | null {
+    const state = this.diagramService.currentState;
+    const connectorId = this.selectedConnectorId;
+    if (!connectorId) return null;
+    return state.currentDiagram.connectors.find(c => c.id === connectorId) || null;
+  }
+
   get selectedBoundingBox(): BoundingBox | null {
     const state = this.diagramService.currentState;
     if (!state.selectedBoundingBoxId) return null;
@@ -121,17 +133,14 @@ export class PropertiesWindowComponent implements OnInit {
     return this.diagramService.getEdge(this.selectedEdgeId) || null;
   }
 
-  get type(): 'node' | 'tendril' | 'edge' | 'boundingBox' | 'svg' | null {
-    if (this.selectedTendril || this.diagramService.currentState.selectedTendrilId) return 'tendril';
-    if (this.selectedEdge) return 'edge';
-
-    if (this.diagramService.currentState.selectedBoundingBoxId) return 'boundingBox';
-
-    const element = this.selectedElement;
-    if (element) {
-      if (isNode(element)) return 'node';
-      return 'svg';
-    }
+  get type(): 'node' | 'tendril' | 'edge' | 'boundingBox' | 'svg' | 'connector' | null {
+    const state = this.diagramService.currentState;
+    if (state.selectedTendrilId) return 'tendril';
+    if (state.selectedNodeIds.length > 0) return 'node';
+    if (state.selectedEdgeIds.length > 0) return 'edge';
+    if (state.selectedBoundingBoxIds.length > 0) return 'boundingBox';
+    if (state.selectedSvgImageIds.length > 0) return 'svg';
+    if ((state.selectedConnectorIds || []).length > 0) return 'connector';
     return null;
   }
 
@@ -170,7 +179,7 @@ export class PropertiesWindowComponent implements OnInit {
     const tendrilId = this.diagramService.currentState.selectedTendrilId;
     const nodeId = this.diagramService.currentState.selectedNodeIds[0];
     if (!tendrilId || !nodeId) return null;
-    
+
     const tendril = this.diagramService.getTendrilById(tendrilId);
     if (tendril) return { tendril, nodeId };
     return null;
@@ -187,6 +196,7 @@ export class PropertiesWindowComponent implements OnInit {
     if (tendrilData) return tendrilData.tendril.name || '';
     if (this.selectedElement) return this.selectedElement.label || '';
     if (this.selectedEdge) return this.selectedEdge.name || '';
+    if (this.selectedConnector) return this.selectedConnector.name || '';
     return '';
   }
 
@@ -200,6 +210,8 @@ export class PropertiesWindowComponent implements OnInit {
       this.diagramService.updateElementProperty(this.selectedElement.id, 'label', value);
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'name', value);
+    } else if (this.selectedConnector) {
+      this.diagramService.updateConnector(this.selectedConnector.id, { name: value });
     }
   }
 
@@ -208,6 +220,7 @@ export class PropertiesWindowComponent implements OnInit {
   getLabel(): string {
     if (this.selectedElement) return this.selectedElement.label;
     if (this.selectedEdge) return this.selectedEdge.name || '';
+    if (this.selectedConnector) return this.selectedConnector.name || '';
     return '';
   }
 
@@ -217,6 +230,8 @@ export class PropertiesWindowComponent implements OnInit {
       this.diagramService.updateElementProperty(this.selectedElement.id, 'label', value);
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'name', value);
+    } else if (this.selectedConnector) {
+      this.diagramService.updateConnector(this.selectedConnector.id, { name: value });
     }
   }
 
@@ -225,7 +240,8 @@ export class PropertiesWindowComponent implements OnInit {
   getStrokeColor(): string {
     const element = this.selectedElement;
     if (element) return element.borderColor;
-    return this.selectedEdge?.borderColor || '#000000';
+    if (this.selectedEdge) return this.selectedEdge.borderColor || '#000000';
+    return this.selectedConnector?.borderColor || '#000000';
   }
 
   updateStrokeColor(event: Event) {
@@ -235,13 +251,16 @@ export class PropertiesWindowComponent implements OnInit {
       this.diagramService.updateElementProperty(element.id, 'borderColor', color);
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'borderColor', color);
+    } else if (this.selectedConnector) {
+      this.diagramService.updateConnector(this.selectedConnector.id, { borderColor: color });
     }
   }
 
   getStrokeWidth(): number {
     const element = this.selectedElement;
     if (element && 'strokeWidth' in element) return element.strokeWidth || 1;
-    return (this.selectedEdge as any)?.strokeWidth || 1;
+    if (this.selectedEdge) return (this.selectedEdge as any).strokeWidth || 1;
+    return this.selectedConnector?.strokeWidth || 1;
   }
 
   updateStrokeWidth(event: Event) {
@@ -251,13 +270,16 @@ export class PropertiesWindowComponent implements OnInit {
       this.diagramService.updateElementProperty(element.id, 'strokeWidth', width);
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'strokeWidth', width);
+    } else if (this.selectedConnector) {
+      this.diagramService.updateConnector(this.selectedConnector.id, { strokeWidth: width });
     }
   }
 
   getIsDotted(): boolean {
     const element = this.selectedElement;
     if (element && isNode(element)) return element.dotted;
-    return this.selectedEdge?.dotted || false;
+    if (this.selectedEdge) return this.selectedEdge.dotted || false;
+    return this.selectedConnector?.dotted || false;
   }
 
   toggleDotted() {
@@ -266,6 +288,8 @@ export class PropertiesWindowComponent implements OnInit {
       this.diagramService.updateElementProperty(this.selectedElement.id, 'dotted', newValue);
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'dotted', newValue);
+    } else if (this.selectedConnector) {
+      this.diagramService.updateConnector(this.selectedConnector.id, { dotted: newValue });
     }
   }
 
@@ -341,6 +365,32 @@ export class PropertiesWindowComponent implements OnInit {
       this.diagramService.updateElementProperty(element.id, 'fontStyle', newValue);
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'fontStyle', newValue);
+    } else if (this.selectedConnector) {
+      this.diagramService.updateConnector(this.selectedConnector.id, { fontStyle: newValue });
+    }
+  }
+
+  // --- Connector Arrows ---
+
+  getStartArrow(): boolean {
+    return this.selectedConnector?.startArrow || false;
+  }
+
+  toggleStartArrow() {
+    if (this.selectedConnector) {
+      const newValue = !this.getStartArrow();
+      this.diagramService.updateConnector(this.selectedConnector.id, { startArrow: newValue });
+    }
+  }
+
+  getEndArrow(): boolean {
+    return this.selectedConnector?.endArrow || false;
+  }
+
+  toggleEndArrow() {
+    if (this.selectedConnector) {
+      const newValue = !this.getEndArrow();
+      this.diagramService.updateConnector(this.selectedConnector.id, { endArrow: newValue });
     }
   }
 

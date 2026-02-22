@@ -36,7 +36,8 @@ export class DiagramService {
       selectedTendrilId: undefined,
       selectedBoundingBoxIds: [],
       selectedSvgImageIds: [],
-      selectedEdgeIds: []
+      selectedEdgeIds: [],
+      selectedConnectorIds: []
     };
   }
 
@@ -90,6 +91,7 @@ export class DiagramService {
       name: 'New Diagram',
       elements: [],
       edges: [],
+      connectors: [],
       boundingBoxes: [],
       attributes: {},
       todos: []
@@ -129,6 +131,7 @@ export class DiagramService {
       name: 'Inner Diagram',
       elements: [],
       edges: [],
+      connectors: [],
       boundingBoxes: [],
       attributes: {},
       todos: []
@@ -190,6 +193,34 @@ export class DiagramService {
         diagramStack: this.state.diagramStack.slice(0, -1)
       };
     }
+  }
+
+  deleteInnerDiagram(): void {
+    if (this.state.diagramStack.length === 0) return;
+
+    const current = this.state.currentDiagram;
+    const parentDiagramInStack = this.state.diagramStack[this.state.diagramStack.length - 1];
+
+    // Get the latest version from allDiagrams if possible, or use the one from stack
+    let parentDiagram = this.allDiagrams.get(parentDiagramInStack.id) || parentDiagramInStack;
+
+    // Find parent node in parent diagram and remove the innerDiagram reference
+    const updatedElements = parentDiagram.elements.map(el => {
+      if (isNode(el) && el.innerDiagram?.id === current.id) {
+        return { ...el, innerDiagram: undefined } as Node;
+      }
+      return el;
+    });
+
+    parentDiagram = { ...parentDiagram, elements: updatedElements };
+    this.allDiagrams.set(parentDiagram.id, parentDiagram);
+    this.allDiagrams.delete(current.id);
+
+    this.state = {
+      ...this.state,
+      currentDiagram: parentDiagram,
+      diagramStack: this.state.diagramStack.slice(0, -1)
+    };
   }
 
   // Node operations
@@ -491,7 +522,10 @@ export class DiagramService {
       ...currentState,
       currentDiagram: {
         ...currentState.currentDiagram,
-        boundingBoxes: currentState.currentDiagram.boundingBoxes.filter(box => box.id !== boundingBoxId)
+        boundingBoxes: currentState.currentDiagram.boundingBoxes.filter(box => box.id !== boundingBoxId),
+        connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
+          connector.fromNodeId !== boundingBoxId && connector.toNodeId !== boundingBoxId
+        )
       }
     };
   }
@@ -509,6 +543,9 @@ export class DiagramService {
         elements: currentState.currentDiagram.elements.filter(element => element.id !== nodeId),
         edges: currentState.currentDiagram.edges.filter(edge =>
           edge.fromNodeId !== nodeId && edge.toNodeId !== nodeId
+        ),
+        connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
+          connector.fromNodeId !== nodeId && connector.toNodeId !== nodeId
         )
       }
     };
@@ -707,6 +744,67 @@ export class DiagramService {
     };
   }
 
+  // Connector operations
+  addConnector(fromNodeId: string, toNodeId: string): void {
+    const newConnector: import('../models/diagram.model').Connector = {
+      id: this.generateId(),
+      fromNodeId,
+      toNodeId,
+      borderColor: '#333333',
+      strokeWidth: 1,
+      dotted: true,
+      startArrow: false,
+      endArrow: false,
+      name: '',
+      fontFamily: 'Purisa, Chalkboard',
+      fontSize: 12,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      attributes: {},
+      notes: ''
+    };
+
+    const currentState = this.state;
+    const currentConnectors = currentState.currentDiagram.connectors || [];
+    this.state = {
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        connectors: [...currentConnectors, newConnector]
+      }
+    };
+  }
+
+  updateConnector(connectorId: string, updates: Partial<import('../models/diagram.model').Connector>): void {
+    const currentState = this.state;
+    const newConnectors = (currentState.currentDiagram.connectors || []).map(conn =>
+      conn.id === connectorId ? { ...conn, ...updates } : conn
+    );
+
+    this.state = {
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        connectors: newConnectors
+      }
+    };
+  }
+
+  updateConnectorProperty(connectorId: string, property: string, value: any): void {
+    this.updateConnector(connectorId, { [property]: value });
+  }
+
+  deleteConnector(connectorId: string): void {
+    const currentState = this.state;
+    this.state = {
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        connectors: (currentState.currentDiagram.connectors || []).filter(conn => conn.id !== connectorId)
+      }
+    };
+  }
+
   // Utility methods
   getElement(elementId: string): DiagramElement | undefined {
     // Search in elements (nodes, svg images)
@@ -786,6 +884,10 @@ export class DiagramService {
     return this.state.currentDiagram.edges.find(edge => edge.id === edgeId);
   }
 
+  getConnector(connectorId: string): import('../models/diagram.model').Connector | undefined {
+    return this.state.currentDiagram.connectors?.find(conn => conn.id === connectorId);
+  }
+
   // Save/Load
   saveDiagram(): string {
     // Always save from the root diagram (first in the stack or current if no stack)
@@ -851,7 +953,8 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: [],
         selectedSvgImageIds: [],
-        selectedEdgeIds: []
+        selectedEdgeIds: [],
+        selectedConnectorIds: []
       };
     } else {
       // Single select mode: clear all other selections
@@ -861,7 +964,8 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: [],
         selectedSvgImageIds: [],
-        selectedEdgeIds: []
+        selectedEdgeIds: [],
+        selectedConnectorIds: []
       };
     }
   }
@@ -897,7 +1001,8 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: currentSelections,
         selectedSvgImageIds: [],
-        selectedEdgeIds: []
+        selectedEdgeIds: [],
+        selectedConnectorIds: []
       };
     } else {
       // Single select mode: clear all other selections
@@ -907,7 +1012,8 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: boundingBoxId ? [boundingBoxId] : [],
         selectedSvgImageIds: [],
-        selectedEdgeIds: []
+        selectedEdgeIds: [],
+        selectedConnectorIds: []
       };
     }
   }
@@ -932,7 +1038,8 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: [],
         selectedSvgImageIds: currentSelections,
-        selectedEdgeIds: []
+        selectedEdgeIds: [],
+        selectedConnectorIds: []
       };
     } else {
       // Single select mode: clear all other selections
@@ -942,7 +1049,8 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: [],
         selectedSvgImageIds: svgImageId ? [svgImageId] : [],
-        selectedEdgeIds: []
+        selectedEdgeIds: [],
+        selectedConnectorIds: []
       };
     }
   }
@@ -967,7 +1075,8 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: [],
         selectedSvgImageIds: [],
-        selectedEdgeIds: currentSelections
+        selectedEdgeIds: currentSelections,
+        selectedConnectorIds: []
       };
     } else {
       // Single select mode: clear all other selections
@@ -977,7 +1086,41 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: [],
         selectedSvgImageIds: [],
-        selectedEdgeIds: edgeId ? [edgeId] : []
+        selectedEdgeIds: edgeId ? [edgeId] : [],
+        selectedConnectorIds: []
+      };
+    }
+  }
+
+  selectConnector(connectorId: string | undefined, multiSelect: boolean = false): void {
+    if (multiSelect && connectorId) {
+      const currentSelections = [...(this.state.selectedConnectorIds || [])];
+      const index = currentSelections.indexOf(connectorId);
+
+      if (index > -1) {
+        currentSelections.splice(index, 1);
+      } else {
+        currentSelections.push(connectorId);
+      }
+
+      this.state = {
+        ...this.state,
+        selectedNodeIds: [],
+        selectedTendrilId: undefined,
+        selectedBoundingBoxIds: [],
+        selectedSvgImageIds: [],
+        selectedEdgeIds: [],
+        selectedConnectorIds: currentSelections
+      };
+    } else {
+      this.state = {
+        ...this.state,
+        selectedNodeIds: [],
+        selectedTendrilId: undefined,
+        selectedBoundingBoxIds: [],
+        selectedSvgImageIds: [],
+        selectedEdgeIds: [],
+        selectedConnectorIds: connectorId ? [connectorId] : []
       };
     }
   }
@@ -999,6 +1142,7 @@ export class DiagramService {
     const allSvgImageIds = this.state.currentDiagram.elements.filter(isSvgImage).map(e => e.id);
     const allBoxIds = this.state.currentDiagram.boundingBoxes.map(b => b.id);
     const allEdgeIds = this.state.currentDiagram.edges.map(e => e.id);
+    const allConnectorIds = this.state.currentDiagram.connectors.map(c => c.id);
 
     this.state = {
       ...this.state,
@@ -1006,6 +1150,7 @@ export class DiagramService {
       selectedSvgImageIds: allSvgImageIds,
       selectedBoundingBoxIds: allBoxIds,
       selectedEdgeIds: allEdgeIds,
+      selectedConnectorIds: allConnectorIds,
       selectedTendrilId: undefined
     };
   }
@@ -1249,7 +1394,8 @@ export class DiagramService {
         selectedTendrilId: state.selectedTendrilId,
         selectedBoundingBoxIds: state.selectedBoundingBoxIds,
         selectedSvgImageIds: state.selectedSvgImageIds,
-        selectedEdgeIds: state.selectedEdgeIds
+        selectedEdgeIds: state.selectedEdgeIds,
+        selectedConnectorIds: state.selectedConnectorIds
       };
 
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(serializedState));
@@ -1294,7 +1440,8 @@ export class DiagramService {
         selectedTendrilId: serialized.selectedTendrilId,
         selectedBoundingBoxIds: serialized.selectedBoundingBoxIds || [],
         selectedSvgImageIds: serialized.selectedSvgImageIds || [],
-        selectedEdgeIds: serialized.selectedEdgeIds || []
+        selectedEdgeIds: serialized.selectedEdgeIds || [],
+        selectedConnectorIds: serialized.selectedConnectorIds || []
       };
     } catch (error) {
       console.error('Failed to load state from localStorage:', error);
@@ -1368,6 +1515,7 @@ export class DiagramService {
       selectedSvgImageIds: newSelectedSvgImageIds,
       selectedBoundingBoxIds: [],
       selectedEdgeIds: [],
+      selectedConnectorIds: [],
       selectedTendrilId: undefined
     };
   }
@@ -1391,6 +1539,10 @@ export class DiagramService {
   }
 
   private storeDiagramsRecursively(diag: Diagram): void {
+    // Ensure connectors array exists for older diagram data
+    if (!diag.connectors) {
+      diag.connectors = [];
+    }
     this.allDiagrams.set(diag.id, diag);
     diag.elements.forEach(element => {
       if (isNode(element) && element.innerDiagram) {

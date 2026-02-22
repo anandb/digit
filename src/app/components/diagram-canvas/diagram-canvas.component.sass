@@ -32,6 +32,30 @@
     &:active
       transform: scale(0.95)
 
+  .delete-diagram-btn
+    background: linear-gradient(145deg, #ffca28, #ffb300)
+    border: none
+    border-radius: 6px
+    width: 32px
+    height: 32px
+    color: #495057
+    font-size: 16px
+    font-weight: bold
+    cursor: pointer
+    display: flex
+    align-items: center
+    justify-content: center
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.4)
+    transition: all 0.2s ease
+    pointer-events: all
+
+    &:hover
+      background: linear-gradient(145deg, #ffb300, #ffa000)
+      transform: scale(1.05)
+
+    &:active
+      transform: scale(0.95)
+
   .diagram-title
     background-color: rgba(255, 255, 255, 0.9)
     border: 1px solid #dee2e6
@@ -173,6 +197,29 @@
 
   .temp-edge
     pointer-events: none
+
+  .connector
+    cursor: pointer
+    transition: stroke 0.2s, stroke-width 0.2s
+
+    &:hover
+      stroke-width: 3
+
+    &.selected
+      stroke: #007bff !important
+      stroke-width: 3
+
+  .connector-hit-area
+    cursor: pointer
+    pointer-events: all
+    stroke: transparent
+    fill: none
+
+  .connector-name
+    font-size: 12px
+    fill: #333
+    pointer-events: none
+    user-select: none
 
   .node-group
     &:hover .node

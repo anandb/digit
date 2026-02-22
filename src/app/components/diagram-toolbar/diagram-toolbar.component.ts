@@ -1,3 +1,4 @@
+// Forced rebuild to resolve stale template issues
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DiagramService } from '../../services/diagram.service';
@@ -29,7 +30,8 @@ export class DiagramToolbarComponent {
       selectedTendrilId: undefined,
       selectedBoundingBoxIds: [],
       selectedSvgImageIds: [],
-      selectedEdgeIds: []
+      selectedEdgeIds: [],
+      selectedConnectorIds: []
     });
   }
 
@@ -252,7 +254,8 @@ export class DiagramToolbarComponent {
     return this.diagramService.currentState.selectedNodeId ||
            this.diagramService.currentState.selectedSvgImageId ||
            this.diagramService.currentState.selectedBoundingBoxId ||
-           this.diagramService.currentState.selectedEdgeId;
+           this.diagramService.currentState.selectedEdgeId ||
+           (this.diagramService.currentState.selectedConnectorIds || [])[0];
   }
 
   get selectedElement(): DiagramElement | any | undefined {
@@ -285,6 +288,10 @@ export class DiagramToolbarComponent {
 
   get selectedEdgeId(): string | undefined {
     return this.diagramService.currentState.selectedEdgeId;
+  }
+
+  get selectedConnectorId(): string | undefined {
+    return (this.diagramService.currentState.selectedConnectorIds || [])[0];
   }
 
   get isNoteSelected(): boolean {
@@ -346,4 +353,5 @@ export class DiagramToolbarComponent {
   isNode(element: DiagramElement): boolean {
     return isNode(element);
   }
+
 }

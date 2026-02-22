@@ -69,6 +69,23 @@ export interface Edge extends HasNotes {
   attributes: { [key: string]: any };
 }
 
+export interface Connector extends HasNotes {
+  id: string;
+  fromNodeId: string;
+  toNodeId: string;
+  name?: string;
+  borderColor?: string;
+  strokeWidth?: number;
+  dotted?: boolean;
+  startArrow?: boolean;
+  endArrow?: boolean;
+  fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: string;
+  fontStyle?: string;
+  attributes: { [key: string]: any };
+}
+
 export interface BoundingBox extends DiagramElement {
   fillColor: string;
   borderColor: string;
@@ -96,6 +113,7 @@ export interface Diagram {
   name: string;
   elements: DiagramElement[];
   edges: Edge[];
+  connectors: Connector[];
   boundingBoxes: BoundingBox[];
   attributes: { [key: string]: any };
   todos: TodoItem[];
@@ -122,9 +140,11 @@ export interface DiagramState {
   selectedBoundingBoxIds: string[]; // Support multiple selections
   selectedSvgImageIds: string[]; // Support multiple selections
   selectedEdgeIds: string[]; // Support multiple selections
+  selectedConnectorIds: string[]; // Support multiple selections
   // Computed properties for backward compatibility
   selectedNodeId?: string;
   selectedBoundingBoxId?: string;
   selectedSvgImageId?: string;
   selectedEdgeId?: string;
+  selectedConnectorId?: string;
 }

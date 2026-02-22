@@ -447,6 +447,16 @@
           </ng-container>
         </ng-container>
 
+        <!-- Nested diagram indicator icon -->
+        <g *ngIf="isNode(element) && $any(element).innerDiagram" class="nested-diagram-indicator">
+          <rect [attr.x]="$any(element).position.x + 4" 
+                [attr.y]="$any(element).position.y + $any(element).size.height - 16" 
+                width="12" height="12" 
+                fill="#00008B" rx="2"/>
+          <path [attr.d]="'M' + ($any(element).position.x + 7) + ',' + ($any(element).position.y + $any(element).size.height - 12) + ' ' + ($any(element).position.x + 10) + ',' + ($any(element).position.y + $any(element).size.height - 6) + ' ' + ($any(element).position.x + 13) + ',' + ($any(element).position.y + $any(element).size.height - 12)" 
+                fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+
         <!-- Tendrils for all elements -->
         <g class="tendrils">
           <ng-container *ngFor="let tendril of element.tendrils">

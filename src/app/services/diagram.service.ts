@@ -8,11 +8,11 @@ import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, i
 export class DiagramService {
   private readonly STORAGE_KEY = 'digit_diagram_state';
   private allDiagrams: Map<string, Diagram> = new Map();
-  
+
   get diagrams(): Map<string, Diagram> {
     return this.allDiagrams;
   }
-  
+
   // Per-diagram undo stacks: keyed by diagram ID, store Diagram content snapshots.
   // Navigation moves (entering/leaving inner diagrams) are never recorded here.
   private undoStacks: Map<string, Diagram[]> = new Map();
@@ -201,6 +201,8 @@ export class DiagramService {
       size = { width: 40, height: 100 };
     } else if (shape === 'horizontalLine') {
       size = { width: 100, height: 40 };
+    } else if (shape === 'note') {
+      size = { width: 180, height: 180 };
     }
 
     const newNode: Node = {

@@ -188,7 +188,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (target.classList.contains('tendril') || target.classList.contains('propagated-tendril') || target.classList.contains('tendril-click-area')) {
       return;
     }
-    
+
     event.stopPropagation();
 
     // Only handle Ctrl+Click for edge creation if it's strictly a ctrl-click
@@ -1545,21 +1545,26 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return Math.min(node.size.width, node.size.height) * 0.15;
   }
 
-  getNoteFoldedCornerPoints(node: any): string {
+  // Premium Note shape methods
+  getNoteMainPath(node: any): string {
     const x = node.position.x;
     const y = node.position.y;
     const w = node.size.width;
     const h = node.size.height;
-    const foldSize = Math.min(w, h) * 0.2; // Size of the folded corner
-
-    // Points for the folded corner triangle: from top-right corner inward
-    const topRightX = x + w;
-    const topRightY = y;
-    const foldX = x + w - foldSize;
-    const foldY = y + foldSize;
-
-    return `${topRightX},${topRightY} ${topRightX},${foldY} ${foldX},${topRightY}`;
+    const r = 10;
+    return `M ${x+r},${y} L ${x+w-r},${y} Q ${x+w},${y} ${x+w},${y+r} L ${x+w},${y+h-r} Q ${x+w},${h+y} ${x+w-r},${y+h} L ${x+r},${y+h} Q ${x},${y+h} ${x},${y+h-r} L ${x},${y+r} Q ${x},${y} ${x+r},${y} Z`;
   }
+
+
+  getNoteShadowPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const r = 10;
+    return `M ${x+r},${y} L ${x+w-r},${y} Q ${x+w},${y} ${x+w},${y+r} L ${x+w},${y+h-r} Q ${x+w},${y+h} ${x+w-r},${y+h} L ${x+r},${y+h} Q ${x},${y+h} ${x},${y+h-r} L ${x},${y+r} Q ${x},${y} ${x+r},${y} Z`;
+  }
+
 
   // Word wrap text for note shapes
   getWrappedText(text: string, maxWidth: number, fontSize: number = 12): string[] {
@@ -1647,11 +1652,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (propagatedTendrils.length === 0 || index >= propagatedTendrils.length) return null;
 
     const tendril = propagatedTendrils[index];
-    
+
     // Find the original element in the inner diagram to get its size
     let sourceWidth = 100; // default
     let sourceHeight = 60; // default
-    
+
     if (node.innerDiagram) {
       const innerDiagram = this.diagramService.diagrams.get(node.innerDiagram.id);
       if (innerDiagram) {
@@ -1671,9 +1676,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Map to parent node's border
     const parentWidth = node.size?.width || 100;
     const parentHeight = node.size?.height || 60;
-    
+
     let x: number, y: number;
-    
+
     // Determine which side of the parent node to place the tendril
     // based on the original position relative to the source element
     if (ratioX <= 0.2) {

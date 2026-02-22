@@ -1,9 +1,9 @@
 <div class="canvas-container">
   <!-- Diagram Title Header -->
   <div class="diagram-header">
-    <input 
-      class="diagram-title" 
-      [value]="getCurrentDiagramTitle()" 
+    <input
+      class="diagram-title"
+      [value]="getCurrentDiagramTitle()"
       (blur)="onDiagramTitleChange($event)"
       (keydown.enter)="onDiagramTitleEnterKey($event)"
       placeholder="Diagram Name">
@@ -361,21 +361,18 @@
             </polygon>
           </g>
 
-          <!-- Note shape (page with folded corner) -->
-          <g *ngIf="$any(element).shape === 'note'" [class.highlighted]="isHighlighted('node', element.id)" class="note"
-            filter="url(#dropshadow)">
-            <!-- Main rectangle -->
-            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
-              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
-              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
-              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-            </rect>
-            <!-- Folded corner triangle -->
-            <polygon [attr.points]="getNoteFoldedCornerPoints(element)" [attr.fill]="$any(element).borderColor"
-              [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-            </polygon>
+          <!-- Note shape (page with curled corner and pushpin) -->
+          <g *ngIf="$any(element).shape === 'note'" [class.highlighted]="isHighlighted('node', element.id)" class="note">
+            <!-- Custom shadow for the note -->
+            <path [attr.d]="getNoteShadowPath(element)" fill="rgba(0,0,0,0.2)" filter="blur(4px)" [attr.transform]="'translate(4, 4)'"></path>
+
+            <!-- Main note body -->
+            <path [attr.d]="getNoteMainPath(element)"
+              [attr.fill]="isSelected('node', element.id) ? '#fff176' : ($any(element).fillColor || 'url(#noteGradient)')"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : '#e0e0e0'"
+              [attr.stroke-width]="isSelected('node', element.id) ? 2 : 0.5">
+            </path>
+
           </g>
 
           <!-- Vertical Line shape -->
@@ -443,20 +440,37 @@
                 [style.font-size.px]="$any(element).fontSize"
                 [style.font-weight]="$any(element).fontWeight"
                 [style.font-style]="$any(element).fontStyle"
-                style="display: flex; align-items: flex-start; justify-content: flex-start; text-align: left; padding: 15px; padding-top: 15px; box-sizing: border-box; word-break: break-word; overflow: hidden; line-height: 1.4; color: #333;">
+                style="display: flex; align-items: flex-start; justify-content: flex-start; text-align: left; padding: 15px; box-sizing: border-box; word-break: break-word; overflow: hidden; line-height: 1.4; color: #333;"
+                [style.padding-top.px]="$any(element).shape === 'note' ? 35 : 15">
                 {{ $any(element).label }}
               </div>
             </foreignObject>
           </ng-container>
+
+          <!-- Pushpin for Note Shape (Rendered last to be on top) -->
+          <g *ngIf="$any(element).shape === 'note'" class="pushpin" [attr.transform]="'translate(' + ($any(element).position.x + $any(element).size.width / 2) + ',' + ($any(element).position.y + 10) + ')'" style="pointer-events: none;">
+            <!-- Pin shadow -->
+            <ellipse cx="2" cy="15" rx="5" ry="2" fill="rgba(0,0,0,0.3)" filter="blur(2px)"></ellipse>
+            <!-- Pin needle -->
+            <line x1="0" y1="5" x2="-2" y2="18" stroke="#999" stroke-width="2" stroke-linecap="round"></line>
+            <!-- Pin base -->
+            <ellipse cx="0" cy="5" rx="8" ry="4" fill="#d32f2f"></ellipse>
+            <!-- Pin body -->
+            <rect x="-6" y="-5" width="12" height="10" rx="2" fill="url(#pushpinGradient)"></rect>
+            <!-- Pin head -->
+            <circle cx="0" cy="-6" r="7" fill="url(#pushpinGradient)"></circle>
+            <!-- Pin highlight -->
+            <circle cx="-2" cy="-8" r="1.5" fill="rgba(255,255,255,0.6)"></circle>
+          </g>
         </ng-container>
 
         <!-- Nested diagram indicator icon -->
         <g *ngIf="isNode(element) && $any(element).innerDiagram" class="nested-diagram-indicator">
-          <rect [attr.x]="$any(element).position.x + 4" 
-                [attr.y]="$any(element).position.y + $any(element).size.height - 16" 
-                width="12" height="12" 
+          <rect [attr.x]="$any(element).position.x + 4"
+                [attr.y]="$any(element).position.y + $any(element).size.height - 16"
+                width="12" height="12"
                 fill="#00008B" rx="2"/>
-          <path [attr.d]="'M' + ($any(element).position.x + 7) + ',' + ($any(element).position.y + $any(element).size.height - 12) + ' ' + ($any(element).position.x + 10) + ',' + ($any(element).position.y + $any(element).size.height - 6) + ' ' + ($any(element).position.x + 13) + ',' + ($any(element).position.y + $any(element).size.height - 12)" 
+          <path [attr.d]="'M' + ($any(element).position.x + 7) + ',' + ($any(element).position.y + $any(element).size.height - 12) + ' ' + ($any(element).position.x + 10) + ',' + ($any(element).position.y + $any(element).size.height - 6) + ' ' + ($any(element).position.x + 13) + ',' + ($any(element).position.y + $any(element).size.height - 12)"
                 fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </g>
 
@@ -615,6 +629,23 @@
           <feMergeNode in="SourceGraphic" />
         </feMerge>
       </filter>
+
+      <!-- Premium Note Gradients -->
+      <linearGradient id="noteGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#fff9c4;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#fff176;stop-opacity:1" />
+      </linearGradient>
+
+      <linearGradient id="curlGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#fbc02d;stop-opacity:1" />
+        <stop offset="50%" style="stop-color:#fff176;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#fff9c4;stop-opacity:1" />
+      </linearGradient>
+
+      <linearGradient id="pushpinGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#ff5252;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#b71c1c;stop-opacity:1" />
+      </linearGradient>
     </defs>
   </svg>
 </div>

@@ -37,7 +37,7 @@ export interface Tendril extends HasNotes {
   strokeWidth?: number;
 }
 
-export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'cube' | 'note' | 'verticalLine' | 'horizontalLine';
+export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'cube' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud';
 
 export interface Node extends DiagramElement {
   shape: NodeShape;

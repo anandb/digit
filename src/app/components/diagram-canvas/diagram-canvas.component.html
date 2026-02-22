@@ -404,6 +404,14 @@
             </polygon>
           </g>
 
+          <!-- Cloud shape -->
+          <path *ngIf="$any(element).shape === 'cloud'" [attr.d]="getCloudPath(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </path>
+
           <!-- Note shape (page with curled corner and pushpin) -->
           <g *ngIf="$any(element).shape === 'note'" [class.highlighted]="isHighlighted('node', element.id)" class="note">
             <!-- Custom shadow for the note -->

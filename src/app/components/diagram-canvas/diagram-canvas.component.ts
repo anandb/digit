@@ -926,7 +926,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get Y position for node text based on shape
   getNodeTextY(node: any): number {
     // Shapes that display text INSIDE the shape
-    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note'];
+    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note', 'cloud'];
 
     if (insideShapes.includes(node.shape)) {
       // Center text within the shape
@@ -1624,6 +1624,27 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const sideTopRight = frontTopRight + depth;
 
     return `${frontBottomRight},${y + h * 0.9} ${frontTopRight},${y + h * 0.1} ${sideTopRight},${y} ${sideBottomRight},${y + h * 0.8}`;
+  }
+
+  // Calculate SVG path for Cloud shape
+  getCloudPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+
+    // Based on a relative coordinate system scaled to width and height
+    const startX = x + w * 0.15;
+    const startY = y + h * 0.7;
+
+    // A classic 6-bubble cloud path using cubic beziers
+    return `M ${startX} ${startY}
+            c ${-w*0.2},0 ${-w*0.2},${-h*0.4} ${0},${-h*0.4}
+            c ${0},${-h*0.3} ${w*0.3},${-h*0.3} ${w*0.35},${-h*0.1}
+            c ${w*0.15},${-h*0.3} ${w*0.4},${-h*0.1} ${w*0.4},${h*0.1}
+            c ${w*0.2},0 ${w*0.2},${h*0.4} ${0},${h*0.4}
+            c 0,${h*0.3} ${-w*0.25},${h*0.3} ${-w*0.3},${h*0.1}
+            c ${-w*0.1},${h*0.2} ${-w*0.4},${h*0.2} ${-w*0.45},${-h*0.1} Z`;
   }
 
   getTapeRadius(node: any): number {

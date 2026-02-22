@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DiagramService } from '../../services/diagram.service';
-import { DiagramElement, isNode, isSvgImage } from '../../models/diagram.model';
+import { DiagramElement, Tendril, isNode, isSvgImage } from '../../models/diagram.model';
 
 @Component({
   selector: 'app-diagram-toolbar',
@@ -219,12 +219,19 @@ export class DiagramToolbarComponent {
   deleteSelectedElement(): void {
     const state = this.diagramService.currentState;
 
+    // If a tendril is selected, delete the tendril — NOT the parent node
+    if (state.selectedTendrilId) {
+      const parentNodeId = state.selectedNodeIds[0];
+      if (parentNodeId && state.selectedTendrilId) {
+        this.diagramService.deleteTendril(parentNodeId, state.selectedTendrilId);
+      }
+      this.diagramService.clearSelection();
+      return;
+    }
+
     if (state.selectedNodeId) {
       this.diagramService.deleteNode(state.selectedNodeId);
     } else if (state.selectedSvgImageId) {
-      // SVG images are currently in the elements array, handled by deleteNode if we update it
-      // or we can find it and remove it here if deleteNode only handles nodes.
-      // Actually deleteNode filters by ID from elements array, so it works for SVG images too.
       this.diagramService.deleteNode(state.selectedSvgImageId);
     } else if (state.selectedBoundingBoxId) {
       this.diagramService.deleteBoundingBox(state.selectedBoundingBoxId);
@@ -286,18 +293,38 @@ export class DiagramToolbarComponent {
   }
 
   // Unified element getter methods
+  get selectedTendril(): Tendril | undefined {
+    const tendrilId = this.diagramService.currentState.selectedTendrilId;
+    if (!tendrilId) return undefined;
+    return this.diagramService.getTendrilById(tendrilId) || undefined;
+  }
+
   getSelectedElementName(): string {
+    // Tendril takes priority — show its name, not the parent node's label
+    const tendril = this.selectedTendril;
+    if (tendril) return tendril.name || '';
+
     const element = this.selectedElement;
     if (!element) return '';
     return element.label || element.name || '';
   }
 
   updateElementName(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const value = target.value;
+
+    // If a tendril is selected, rename the tendril
+    const tendrilId = this.diagramService.currentState.selectedTendrilId;
+    if (tendrilId) {
+      const parentNodeId = this.diagramService.currentState.selectedNodeIds[0];
+      if (parentNodeId) {
+        this.diagramService.updateTendril(parentNodeId, tendrilId, { name: value });
+      }
+      return;
+    }
+
     const elementId = this.selectedElementId;
     if (elementId) {
-      const target = event.target as HTMLInputElement;
-      const value = target.value;
-
       const element = this.diagramService.getElement(elementId);
       if (element) {
         this.diagramService.updateElement(elementId, { label: value });

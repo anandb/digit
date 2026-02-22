@@ -29,6 +29,9 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private edgeStartNodeId?: string;
   private edgeStartTendrilId?: string;
   private tempEdgeEnd: Position = { x: 0, y: 0 };
+  // Absolute canvas position used as the start of the temp edge line during
+  // Ctrl+click edge creation (before the outgoing tendril is committed).
+  private tempEdgeStartPosition?: Position;
 
   // For Ctrl+click edge creation
   public isCtrlEdgeMode = false;
@@ -407,14 +410,22 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Cancel an in-progress edge creation.
+  // For Ctrl+click mode, no tendril was committed yet, so there's nothing to delete.
+  private cancelEdgeCreation(): void {
+    this.isCreatingEdge = false;
+    this.edgeStartNodeId = undefined;
+    this.edgeStartTendrilId = undefined;
+    this.tempEdgeStartPosition = undefined;
+    this.ctrlEdgeStartElementId = undefined;
+  }
+
   // Right click to cancel edge creation
   @HostListener('document:contextmenu', ['$event'])
   onRightClick(event: MouseEvent): void {
     if (this.isCreatingEdge) {
       event.preventDefault();
-      this.isCreatingEdge = false;
-      this.edgeStartNodeId = undefined;
-      this.edgeStartTendrilId = undefined;
+      this.cancelEdgeCreation();
     }
   }
 
@@ -424,6 +435,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Handle Ctrl+Z for undo
     if (event.ctrlKey && event.key === 'z') {
       event.preventDefault();
+      const warning = this.diagramService.getUndoWarning();
+      if (warning && !confirm(warning)) {
+        return; // User chose to keep the nested diagram
+      }
       this.diagramService.undo();
       return;
     }
@@ -466,11 +481,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       });
 
       this.state.selectedSvgImageIds.forEach(svgId => {
-        // Find and delete the SVG image from elements array
-        const svgIndex = this.state.currentDiagram.elements.findIndex(e => e.id === svgId);
-        if (svgIndex > -1) {
-          this.state.currentDiagram.elements.splice(svgIndex, 1);
-        }
+        this.diagramService.deleteNode(svgId);
       });
 
       this.state.selectedEdgeIds.forEach(edgeId => {
@@ -504,10 +515,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onKeyUp(event: KeyboardEvent): void {
     if (event.key === 'Control' || event.key === 'Meta') {
       this.isCtrlEdgeMode = false;
-      // Cancel any pending Ctrl edge creation
-      if (this.ctrlEdgeStartElementId) {
-        this.ctrlEdgeStartElementId = undefined;
+      // Cancel any pending Ctrl edge creation, cleaning up the auto-created tendril
+      if (this.isCreatingEdge) {
+        this.cancelEdgeCreation();
       }
+      this.ctrlEdgeStartElementId = undefined;
     }
   }
 
@@ -771,22 +783,22 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   getTempEdgePath(): string {
-    if (!this.isCreatingEdge || !this.edgeStartNodeId || !this.edgeStartTendrilId) {
-      return '';
+    if (!this.isCreatingEdge) return '';
+
+    // Ctrl+click path: use the pre-computed canvas start position
+    if (this.tempEdgeStartPosition) {
+      const s = this.tempEdgeStartPosition;
+      return `M ${s.x} ${s.y} L ${this.tempEdgeEnd.x} ${this.tempEdgeEnd.y}`;
     }
 
+    // Manual tendril-click path: look up the tendril in state
+    if (!this.edgeStartNodeId || !this.edgeStartTendrilId) return '';
     const startElement = this.getElementAny(this.edgeStartNodeId);
     if (!startElement) return '';
-
-    // For temporary edges (being drawn), we stick to the initial tendril position
-    // but the end point is the mouse position
     const startTendril = this.getTendrilFromElement(startElement, this.edgeStartTendrilId);
     if (!startTendril) return '';
-
     const start = this.getAbsoluteTendrilPositionAny(startElement, startTendril);
-    const end = this.tempEdgeEnd;
-
-    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+    return `M ${start.x} ${start.y} L ${this.tempEdgeEnd.x} ${this.tempEdgeEnd.y}`;
   }
 
   // Get circle radius for circular nodes
@@ -1676,60 +1688,49 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
 
     if (!this.ctrlEdgeStartElementId) {
-      // Start edge creation - auto-create outgoing tendril
-      const outgoingTendrilId = this.autoCreateOutgoingTendril(elementId);
-      if (outgoingTendrilId) {
-        this.ctrlEdgeStartElementId = elementId;
-        this.edgeStartNodeId = elementId;
-        this.edgeStartTendrilId = outgoingTendrilId;
-        this.isCreatingEdge = true;
-      }
+      // First click — just mark the start element and record visual anchor position.
+      // We deliberately do NOT create the outgoing tendril here so that the whole
+      // edge creation (outgoing + incoming tendril + edge) becomes one atomic undo step.
+      const startPos = this.findAvailableTendrilPosition(element, 'outgoing');
+      this.tempEdgeStartPosition = {
+        x: element.position.x + startPos.x,
+        y: element.position.y + startPos.y
+      };
+      this.ctrlEdgeStartElementId = elementId;
+      this.edgeStartNodeId = elementId; // kept for consistency with manual path
+      this.isCreatingEdge = true;
     } else if (this.ctrlEdgeStartElementId !== elementId) {
-      // Complete edge creation - auto-create incoming tendril
-      // First, get the start element to calculate direction
+      // Second click — commit everything atomically: outgoing + incoming + edge.
       const startElement = this.getElementAny(this.ctrlEdgeStartElementId);
-      const endElement = this.getElementAny(elementId);
+      const endElement   = this.getElementAny(elementId);
 
-      let startCenter: Position | undefined;
-      let endCenter: Position | undefined;
-
-      if (startElement) {
-        startCenter = {
-          x: startElement.position.x + startElement.size.width / 2,
-          y: startElement.position.y + startElement.size.height / 2
-        };
-      }
-
-      if (endElement) {
-        endCenter = {
+      if (startElement && endElement) {
+        const endCenter: Position = {
           x: endElement.position.x + endElement.size.width / 2,
           y: endElement.position.y + endElement.size.height / 2
         };
-      }
+        const startCenter: Position = {
+          x: startElement.position.x + startElement.size.width / 2,
+          y: startElement.position.y + startElement.size.height / 2
+        };
 
-      // Create incoming tendril on the end element, targeting the start element
-      const incomingTendrilId = this.autoCreateIncomingTendril(elementId, startCenter);
+        const outgoingPos = this.findAvailableTendrilPosition(startElement, 'outgoing', endCenter);
+        const incomingPos = this.findAvailableTendrilPosition(endElement,   'incoming', startCenter);
 
-      if (incomingTendrilId) {
-        this.diagramService.addEdge(
-          this.edgeStartNodeId!,
-          this.edgeStartTendrilId!,
+        // Single state change → single undo entry
+        this.diagramService.addEdgeWithAutoTendrils(
+          this.ctrlEdgeStartElementId,
           elementId,
-          incomingTendrilId
+          outgoingPos,
+          incomingPos
         );
-
-        // Optimize the outgoing tendril position on the start element
-        if (startElement && endCenter && this.edgeStartTendrilId) {
-          const newPosition = this.findAvailableTendrilPosition(startElement, 'outgoing', endCenter);
-          this.diagramService.updateTendril(this.ctrlEdgeStartElementId, this.edgeStartTendrilId, {
-            position: newPosition
-          });
-        }
       }
-      // Reset edge creation state
+
+      // Reset all edge-creation state
       this.ctrlEdgeStartElementId = undefined;
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
+      this.tempEdgeStartPosition = undefined;
       this.isCreatingEdge = false;
     }
   }

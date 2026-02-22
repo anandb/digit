@@ -134,8 +134,8 @@
       class="toolbar-input name-input"
       [value]="getSelectedElementName()"
       (change)="updateElementName($event)"
-      [disabled]="!selectedElement || isNoteSelected"
-      placeholder="Name"
+      [disabled]="!selectedElement && !selectedTendril || isNoteSelected"
+      [placeholder]="selectedTendril ? 'Tendril name' : 'Name'"
     />
   </div>
 
@@ -174,7 +174,7 @@
       </div>
     </div>
 
-    <button (click)="deleteSelectedElement()" class="toolbar-item error" title="Delete Selected" [disabled]="!selectedElement">
+    <button (click)="deleteSelectedElement()" class="toolbar-item error" title="Delete Selected" [disabled]="!selectedElement && !selectedTendril">
       <div class="icon-placeholder">🗑️</div>
       <span class="item-label">Delete</span>
     </button>

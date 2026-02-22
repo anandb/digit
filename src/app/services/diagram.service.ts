@@ -8,7 +8,9 @@ import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, i
 export class DiagramService {
   private readonly STORAGE_KEY = 'digit_diagram_state';
   private allDiagrams: Map<string, Diagram> = new Map();
-  private undoStacks: Map<string, DiagramState[]> = new Map(); // Undo stacks per diagram
+  // Per-diagram undo stacks: keyed by diagram ID, store Diagram content snapshots.
+  // Navigation moves (entering/leaving inner diagrams) are never recorded here.
+  private undoStacks: Map<string, Diagram[]> = new Map();
 
   private stateSubject = new BehaviorSubject<DiagramState>(
     this.initializeState()
@@ -43,29 +45,34 @@ export class DiagramService {
   constructor() { }
 
   private set state(newState: DiagramState) {
-    // Save current state to undo stack before updating
-    const currentDiagramId = this.state?.currentDiagram?.id;
-    if (currentDiagramId && !this.undoStacks.has(currentDiagramId)) {
-      this.undoStacks.set(currentDiagramId, []);
-    }
-    const undoStack = this.undoStacks.get(currentDiagramId)!;
+    const prev = this.state;
+    const prevDiagramId = prev?.currentDiagram?.id;
+    const newDiagramId  = newState?.currentDiagram?.id;
 
-    // Only save to undo stack if this is a meaningful change (not just selection changes)
-    const isSelectionOnlyChange =
-      JSON.stringify(this.state.selectedNodeIds) === JSON.stringify(newState.selectedNodeIds) &&
-      this.state.selectedTendrilId === newState.selectedTendrilId &&
-      JSON.stringify(this.state.selectedBoundingBoxIds) === JSON.stringify(newState.selectedBoundingBoxIds) &&
-      JSON.stringify(this.state.selectedSvgImageIds) === JSON.stringify(newState.selectedSvgImageIds) &&
-      JSON.stringify(this.state.selectedEdgeIds) === JSON.stringify(newState.selectedEdgeIds) &&
-      this.state.diagramStack.length === newState.diagramStack.length;
+    // Navigation (diagram switch) must never be recorded in the undo stack.
+    const isNavigation = prevDiagramId !== newDiagramId;
 
-    if (!isSelectionOnlyChange) {
-      // Deep clone the current state for undo
-      undoStack.push(JSON.parse(JSON.stringify(this.state)));
-      // Limit undo stack size to prevent memory issues
-      if (undoStack.length > 50) {
-        undoStack.shift();
+    // Use reference equality: every content-changing operation creates a new
+    // currentDiagram object via spread. Selection-only changes reuse the same
+    // reference (e.g. selectNode only spreads the top-level state, not currentDiagram).
+    // This is O(1) and correctly captures ALL content changes — including those
+    // where selection happens to stay the same (e.g. addEdgeWithAutoTendrils).
+    const diagramContentChanged = prev?.currentDiagram !== newState?.currentDiagram;
+
+    if (!isNavigation && diagramContentChanged && prevDiagramId) {
+      // Push a deep-clone of the current diagram onto that diagram's own undo stack.
+      if (!this.undoStacks.has(prevDiagramId)) {
+        this.undoStacks.set(prevDiagramId, []);
       }
+      const stack = this.undoStacks.get(prevDiagramId)!;
+      stack.push(JSON.parse(JSON.stringify(prev.currentDiagram)));
+      if (stack.length > 50) stack.shift();
+    }
+
+    // Always keep allDiagrams in sync with the live current diagram so that
+    // prepareDiagramForSave and getExposedTendrils always see the latest state.
+    if (newState?.currentDiagram) {
+      this.allDiagrams.set(newState.currentDiagram.id, newState.currentDiagram);
     }
 
     this.stateSubject.next(newState);
@@ -98,10 +105,14 @@ export class DiagramService {
   enterNodeDiagram(nodeId: string): void {
     const element = this.state.currentDiagram.elements.find(e => e.id === nodeId);
     if (element && isNode(element) && element.innerDiagram) {
+      // Sync current diagram into allDiagrams so goBack() can retrieve the latest parent state
+      this.allDiagrams.set(this.state.currentDiagram.id, this.state.currentDiagram);
+
+      const innerDiagram = this.allDiagrams.get(element.innerDiagram.id)!;
       this.state = {
         ...this.state,
         diagramStack: [...this.state.diagramStack, this.state.currentDiagram],
-        currentDiagram: this.allDiagrams.get(element.innerDiagram.id)!
+        currentDiagram: innerDiagram
       };
     }
   }
@@ -126,8 +137,11 @@ export class DiagramService {
 
   goBack(): void {
     if (this.state.diagramStack.length > 0) {
-      // Check if current diagram is empty
+      // Always sync the current (inner) diagram into allDiagrams before going back
       const current = this.state.currentDiagram;
+      this.allDiagrams.set(current.id, current);
+
+      // Check if current diagram is empty
       const isEmpty = current.elements.length === 0 &&
         current.edges.length === 0 &&
         current.boundingBoxes.length === 0;
@@ -136,11 +150,10 @@ export class DiagramService {
       let previousDiagram = this.allDiagrams.get(previousDiagramId)!;
 
       if (isEmpty) {
-        // Find parent node in previous diagram
+        // Find parent node in previous diagram and remove the empty innerDiagram reference
         const parentNode = previousDiagram.elements.find(el => isNode(el) && el.innerDiagram?.id === current.id) as Node | undefined;
 
         if (parentNode) {
-          // Remove innerDiagram from parent node
           const updatedElements = previousDiagram.elements.map(el => {
             if (el.id === parentNode.id) {
               const node = el as Node;
@@ -149,14 +162,21 @@ export class DiagramService {
             return el;
           });
 
-          previousDiagram = {
-            ...previousDiagram,
-            elements: updatedElements
-          };
-
+          previousDiagram = { ...previousDiagram, elements: updatedElements };
           this.allDiagrams.set(previousDiagram.id, previousDiagram);
           this.allDiagrams.delete(current.id);
         }
+      } else {
+        // Update the parent node's embedded innerDiagram snapshot to the live current diagram
+        const updatedElements = previousDiagram.elements.map(el => {
+          if (isNode(el) && el.innerDiagram?.id === current.id) {
+            return { ...el, innerDiagram: current } as Node;
+          }
+          return el;
+        });
+
+        previousDiagram = { ...previousDiagram, elements: updatedElements };
+        this.allDiagrams.set(previousDiagram.id, previousDiagram);
       }
 
       this.state = {
@@ -198,23 +218,29 @@ export class DiagramService {
       strokeWidth: 1
     };
 
-    console.log(this.state);
-    this.state.currentDiagram.elements.push(newNode);
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        elements: [...this.state.currentDiagram.elements, newNode]
+      }
+    };
   }
 
   updateAllNodesFont(fontFamily: string): void {
-    // Update all nodes in the current diagram
-    this.state.currentDiagram.elements = this.state.currentDiagram.elements.map(element => {
+    const currentState = this.state;
+    const newElements = currentState.currentDiagram.elements.map(element => {
       if (isNode(element)) {
         return { ...element, fontFamily };
       }
       return element;
     });
-
-    // Also need to trigger state update deeply for undo stack if we want this undoable
-    // The simple assignment above mutates the array but we need to re-emit state
     this.state = {
-      ...this.state
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        elements: newElements
+      }
     };
   }
 
@@ -238,7 +264,13 @@ export class DiagramService {
       strokeWidth: 1
     };
 
-    this.state.currentDiagram.boundingBoxes = [...this.state.currentDiagram.boundingBoxes, newBoundingBox];
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        boundingBoxes: [...this.state.currentDiagram.boundingBoxes, newBoundingBox]
+      }
+    };
   }
 
   // SVG image operations
@@ -294,7 +326,13 @@ export class DiagramService {
       notes: ''
     };
 
-    this.state.currentDiagram.elements.push(newSvgImage);
+    this.state = {
+      ...this.state,
+      currentDiagram: {
+        ...this.state.currentDiagram,
+        elements: [...this.state.currentDiagram.elements, newSvgImage]
+      }
+    };
   }
 
   updateBoundingBox(boundingBoxId: string, updates: Partial<import('../models/diagram.model').BoundingBox>): void {
@@ -473,7 +511,7 @@ export class DiagramService {
   addTendril(elementId: string, type: 'incoming' | 'outgoing', position: Position): string {
     const newTendril: Tendril = {
       id: this.generateId(),
-      name: type === 'incoming' ? 'Incoming Tendril' : 'Outgoing Tendril',
+      name: type === 'incoming' ? 'In' : 'Out',
       position,
       type,
       exposed: false,
@@ -519,13 +557,22 @@ export class DiagramService {
   deleteTendril(elementId: string, tendrilId: string): void {
     const element = this.getElement(elementId);
     if (element) {
-      this.updateElement(elementId, {
-        tendrils: element.tendrils.filter(t => t.id !== tendrilId)
-      });
-      this.state.currentDiagram.edges = this.state.currentDiagram.edges.filter(edge =>
+      const newTendrils = element.tendrils.filter(t => t.id !== tendrilId);
+      const newEdges = this.state.currentDiagram.edges.filter(edge =>
         !(edge.fromNodeId === elementId && edge.fromTendrilId === tendrilId) &&
         !(edge.toNodeId === elementId && edge.toTendrilId === tendrilId)
       );
+      const newElements = this.state.currentDiagram.elements.map(el =>
+        el.id === elementId ? { ...el, tendrils: newTendrils } : el
+      );
+      this.state = {
+        ...this.state,
+        currentDiagram: {
+          ...this.state.currentDiagram,
+          elements: newElements,
+          edges: newEdges
+        }
+      };
     }
   }
 
@@ -564,6 +611,79 @@ export class DiagramService {
         currentDiagram: nextDiagram
       };
     }
+  }
+
+  // Atomically creates an outgoing tendril on `fromElementId`, an incoming tendril
+  // on `toElementId`, and the edge between them — a single state change so that
+  // Ctrl+Z removes the entire connection in one step.
+  addEdgeWithAutoTendrils(
+    fromElementId: string,
+    toElementId: string,
+    outgoingPosition: Position,
+    incomingPosition: Position
+  ): void {
+    const currentState = this.state;
+    const diagram = currentState.currentDiagram;
+
+    const outgoingTendril: Tendril = {
+      id: this.generateId(),
+      name: 'Out',
+      position: outgoingPosition,
+      type: 'outgoing',
+      exposed: false,
+      attributes: {},
+      borderColor: '#000000',
+      borderThickness: 2,
+      notes: ''
+    };
+
+    const incomingTendril: Tendril = {
+      id: this.generateId(),
+      name: 'In',
+      position: incomingPosition,
+      type: 'incoming',
+      exposed: false,
+      attributes: {},
+      borderColor: '#000000',
+      borderThickness: 2,
+      notes: ''
+    };
+
+    const newEdge: Edge = {
+      id: this.generateId(),
+      fromNodeId: fromElementId,
+      fromTendrilId: outgoingTendril.id,
+      toNodeId: toElementId,
+      toTendrilId: incomingTendril.id,
+      borderColor: '#666666',
+      strokeWidth: 1,
+      dotted: false,
+      name: '',
+      fontFamily: 'Purisa, Chalkboard',
+      fontSize: 12,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      attributes: {},
+      notes: ''
+    };
+
+    const newElements = diagram.elements.map(el => {
+      if (el.id === fromElementId) {
+        return { ...el, tendrils: [...el.tendrils, outgoingTendril] };
+      }
+      if (el.id === toElementId) {
+        return { ...el, tendrils: [...el.tendrils, incomingTendril] };
+      }
+      return el;
+    });
+
+    const nextDiagram = this.performAutoRouting({
+      ...diagram,
+      elements: newElements,
+      edges: [...diagram.edges, newEdge]
+    });
+
+    this.state = { ...currentState, currentDiagram: nextDiagram };
   }
 
   deleteEdge(edgeId: string): void {
@@ -874,9 +994,17 @@ export class DiagramService {
   }
 
   updateEdge(edgeId: string, updates: Partial<Edge>): void {
-    this.state.currentDiagram.edges = this.state.currentDiagram.edges.map(edge =>
+    const currentState = this.state;
+    const newEdges = currentState.currentDiagram.edges.map(edge =>
       edge.id === edgeId ? { ...edge, ...updates } : edge
     );
+    this.state = {
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        edges: newEdges
+      }
+    };
   }
 
   // Todo operations - always operate on the root diagram
@@ -961,18 +1089,86 @@ export class DiagramService {
     };
   }
 
-  // Undo functionality
-  undo(): boolean {
-    const currentDiagramId = this.state.currentDiagram.id;
-    const undoStack = this.undoStacks.get(currentDiagramId);
+  // Undo functionality — scoped to the currently active diagram.
 
-    if (!undoStack || undoStack.length === 0) {
-      return false; // Nothing to undo
+  /**
+   * Peeks at the pending undo snapshot and returns a warning string if applying
+   * the undo would permanently destroy one or more nested diagrams (i.e. nodes
+   * that have an innerDiagram in the current state but are absent in the snapshot).
+   * Returns null when no destructive data loss would occur.
+   */
+  getUndoWarning(): string | null {
+    const currentDiagramId = this.state.currentDiagram.id;
+    const stack = this.undoStacks.get(currentDiagramId);
+    if (!stack || stack.length === 0) return null;
+
+    const snapshot = stack[stack.length - 1]; // peek — do not pop
+
+    // Nodes in the snapshot that still have an inner diagram
+    const snapshotNodeIds = new Set(
+      snapshot.elements
+        .filter(isNode)
+        .filter((n: Node) => !!n.innerDiagram)
+        .map((n: Node) => n.id)
+    );
+
+    // Nodes in the current diagram that have an inner diagram
+    const lostNodes = this.state.currentDiagram.elements
+      .filter(isNode)
+      .filter((n: Node) => !!n.innerDiagram)
+      .filter((n: Node) => !snapshotNodeIds.has(n.id));
+
+    if (lostNodes.length === 0) return null;
+
+    if (lostNodes.length === 1) {
+      const label = (lostNodes[0] as Node).label?.trim() || 'unnamed node';
+      return `This undo will permanently delete the nested diagram inside "${label}". This cannot be undone. Continue?`;
     }
 
-    // Restore the previous state
-    const previousState = undoStack.pop()!;
-    this.stateSubject.next(previousState);
+    return `This undo will permanently delete nested diagrams inside ${lostNodes.length} nodes. This cannot be undone. Continue?`;
+  }
+
+  undo(): boolean {
+    const currentDiagramId = this.state.currentDiagram.id;
+    const stack = this.undoStacks.get(currentDiagramId);
+    if (!stack || stack.length === 0) return false;
+
+    const previousDiagram = stack.pop()!;
+
+    // Sync allDiagrams so prepareDiagramForSave sees the restored content.
+    this.allDiagrams.set(currentDiagramId, previousDiagram);
+
+    // If we are inside a nested diagram, update the parent's embedded snapshot
+    // so that goBack() and saveStateToStorage propagate correctly.
+    let updatedStack = this.state.diagramStack;
+    if (updatedStack.length > 0) {
+      updatedStack = updatedStack.map(parentDiag => {
+        const updatedElements = parentDiag.elements.map(el => {
+          if (isNode(el) && el.innerDiagram?.id === currentDiagramId) {
+            return { ...el, innerDiagram: previousDiagram } as Node;
+          }
+          return el;
+        });
+        const updated = { ...parentDiag, elements: updatedElements };
+        this.allDiagrams.set(updated.id, updated);
+        return updated;
+      });
+    }
+
+    const restoredState: DiagramState = {
+      ...this.state,
+      currentDiagram: previousDiagram,
+      diagramStack: updatedStack,
+      // Clear selection after undo — avoids dangling references to deleted elements.
+      selectedNodeIds: [],
+      selectedTendrilId: undefined,
+      selectedBoundingBoxIds: [],
+      selectedSvgImageIds: [],
+      selectedEdgeIds: []
+    };
+
+    this.stateSubject.next(restoredState);
+    this.saveStateToStorage(restoredState);
     return true;
   }
 
@@ -1163,10 +1359,13 @@ export class DiagramService {
     return {
       ...diagram,
       elements: diagram.elements.map(element => {
-        if (isNode(element)) {
+        if (isNode(element) && element.innerDiagram) {
+          // Always read the live diagram from allDiagrams by ID to avoid
+          // serializing the stale embedded snapshot on the node.
+          const liveDiagram = this.allDiagrams.get(element.innerDiagram.id) || element.innerDiagram;
           return {
             ...element,
-            innerDiagram: element.innerDiagram ? this.prepareDiagramForSave(element.innerDiagram) : undefined
+            innerDiagram: this.prepareDiagramForSave(liveDiagram)
           };
         }
         return element;

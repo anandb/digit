@@ -9,6 +9,14 @@
   </div>
 
   <div class="properties-content">
+    <div class="property-block" *ngIf="type && !isNoteShape">
+      <label>Name</label>
+      <input type="text"
+             [value]="getName()"
+             (input)="updateName($event)"
+             placeholder="Element name" />
+    </div>
+
     <ng-container *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg'">
       <!-- Main Content Edit (For Note and Text shapes only) -->
       <div class="property-block" *ngIf="isNoteShape || isTextShape">

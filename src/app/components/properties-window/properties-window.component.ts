@@ -122,7 +122,7 @@ export class PropertiesWindowComponent implements OnInit {
   }
 
   get type(): 'node' | 'tendril' | 'edge' | 'boundingBox' | 'svg' | null {
-    if (this.selectedTendril) return 'tendril';
+    if (this.selectedTendril || this.diagramService.currentState.selectedTendrilId) return 'tendril';
     if (this.selectedEdge) return 'edge';
 
     if (this.diagramService.currentState.selectedBoundingBoxId) return 'boundingBox';
@@ -161,6 +161,41 @@ export class PropertiesWindowComponent implements OnInit {
       this.diagramService.updateTendrilNotes(this.selectedTendril.id, value);
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'notes', value);
+    }
+  }
+
+  // --- Common Properties: Name ---
+
+  private getTendrilFromState(): { tendril: import('../../models/diagram.model').Tendril, nodeId: string } | null {
+    const tendrilId = this.diagramService.currentState.selectedTendrilId;
+    const nodeId = this.diagramService.currentState.selectedNodeIds[0];
+    if (!tendrilId || !nodeId) return null;
+    
+    const element = this.diagramService.currentState.currentDiagram.elements.find(e => e.id === nodeId);
+    if (!element) return null;
+    
+    const tendril = element.tendrils.find(t => t.id === tendrilId);
+    if (tendril) return { tendril, nodeId };
+    return null;
+  }
+
+  getName(): string {
+    const tendrilData = this.getTendrilFromState();
+    if (tendrilData) return tendrilData.tendril.name || '';
+    if (this.selectedElement) return this.selectedElement.label || '';
+    if (this.selectedEdge) return this.selectedEdge.name || '';
+    return '';
+  }
+
+  updateName(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    const tendrilData = this.getTendrilFromState();
+    if (tendrilData) {
+      this.diagramService.updateTendril(tendrilData.nodeId, tendrilData.tendril.id, { name: value });
+    } else if (this.selectedElement) {
+      this.diagramService.updateElementProperty(this.selectedElement.id, 'label', value);
+    } else if (this.selectedEdge) {
+      this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'name', value);
     }
   }
 
@@ -321,14 +356,15 @@ export class PropertiesWindowComponent implements OnInit {
   // --- Tendril Only Properties: Exposed/Internal ---
 
   getIsExposed(): boolean {
-      // Default to true if somehow undefined
-      return this.selectedTendril?.exposed !== false;
+    const tendrilData = this.getTendrilFromState();
+    return tendrilData ? tendrilData.tendril.exposed !== false : true;
   }
 
   toggleExposed() {
-      if (this.selectedTendril) {
-          const newValue = !this.getIsExposed();
-          this.diagramService.updateTendrilExposed(this.selectedTendril.id, newValue);
-      }
+    const tendrilData = this.getTendrilFromState();
+    if (tendrilData) {
+      const newValue = !this.getIsExposed();
+      this.diagramService.updateTendrilExposed(tendrilData.tendril.id, newValue);
+    }
   }
 }

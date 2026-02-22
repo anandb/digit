@@ -128,19 +128,6 @@
 
   <div class="toolbar-divider"></div>
 
-  <div class="toolbar-section flex-grow">
-    <input
-      type="text"
-      class="toolbar-input name-input"
-      [value]="getSelectedElementName()"
-      (change)="updateElementName($event)"
-      [disabled]="!selectedElement && !selectedTendril || isNoteSelected"
-      [placeholder]="selectedTendril ? 'Tendril name' : 'Name'"
-    />
-  </div>
-
-  <div class="toolbar-divider"></div>
-
   <div class="toolbar-section">
     <div class="dropdown-container">
       <button class="toolbar-item" (click)="toggleInstructions()" title="Instructions">

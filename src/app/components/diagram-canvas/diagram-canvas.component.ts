@@ -57,6 +57,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   isPanning = false;
   private panStart: Position = { x: 0, y: 0 };
   viewOffset: Position = { x: 0, y: 0 };
+  private currentDiagramId?: string;
 
   get svgViewBox(): string {
     const el = this.canvas?.nativeElement;
@@ -69,6 +70,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscription = this.diagramService.state$.subscribe(state => {
+      if (this.currentDiagramId && this.currentDiagramId !== state.currentDiagram.id) {
+        this.viewOffset = { x: 0, y: 0 };
+      }
+      this.currentDiagramId = state.currentDiagram.id;
       this.state = state;
     });
   }

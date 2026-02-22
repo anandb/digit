@@ -515,6 +515,7 @@ export class DiagramService {
       position,
       type,
       exposed: false,
+      exposedOverrides: {},
       attributes: {},
       borderColor: '#000000',
       borderThickness: 2,
@@ -631,6 +632,7 @@ export class DiagramService {
       position: outgoingPosition,
       type: 'outgoing',
       exposed: false,
+      exposedOverrides: {},
       attributes: {},
       borderColor: '#000000',
       borderThickness: 2,
@@ -643,6 +645,7 @@ export class DiagramService {
       position: incomingPosition,
       type: 'incoming',
       exposed: false,
+      exposedOverrides: {},
       attributes: {},
       borderColor: '#000000',
       borderThickness: 2,
@@ -758,6 +761,13 @@ export class DiagramService {
       }
     }
     return undefined;
+  }
+
+  isTendrilExposedInDiagram(tendril: Tendril, parentDiagramId: string): boolean {
+    if (tendril.exposedOverrides && tendril.exposedOverrides[parentDiagramId] !== undefined) {
+      return tendril.exposedOverrides[parentDiagramId];
+    }
+    return tendril.exposed;
   }
 
   getSvgImage(svgImageId: string): import('../models/diagram.model').SvgImage | undefined {
@@ -1186,7 +1196,7 @@ export class DiagramService {
     // Collect tendrils from all elements
     innerDiagram.elements.forEach(element => {
       element.tendrils.forEach(tendril => {
-        if (tendril.exposed) {
+        if (this.isTendrilExposedInDiagram(tendril, innerDiagram.id)) {
           const prefix = isNode(element) ? element.id : `svg-${element.id}`;
           allInnerTendrils.push({
             ...tendril,

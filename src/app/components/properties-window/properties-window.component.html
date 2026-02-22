@@ -14,7 +14,9 @@
       <input type="text"
              [value]="getName()"
              (input)="updateName($event)"
-             placeholder="Element name" />
+             [disabled]="isPropagatedTendril()"
+             [class.read-only]="isPropagatedTendril()"
+             [placeholder]="isPropagatedTendril() ? '' : 'Element name'" />
     </div>
 
     <ng-container *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg'">

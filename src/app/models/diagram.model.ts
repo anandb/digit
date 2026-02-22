@@ -29,6 +29,7 @@ export interface Tendril extends HasNotes {
   position: Position; // relative to node
   type: 'incoming' | 'outgoing';
   exposed: boolean;
+  exposedOverrides: { [parentDiagramId: string]: boolean };
   attributes: { [key: string]: any };
   borderColor: string;
   borderThickness: number;

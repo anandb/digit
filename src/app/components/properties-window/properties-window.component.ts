@@ -171,12 +171,15 @@ export class PropertiesWindowComponent implements OnInit {
     const nodeId = this.diagramService.currentState.selectedNodeIds[0];
     if (!tendrilId || !nodeId) return null;
     
-    const element = this.diagramService.currentState.currentDiagram.elements.find(e => e.id === nodeId);
-    if (!element) return null;
-    
-    const tendril = element.tendrils.find(t => t.id === tendrilId);
+    const tendril = this.diagramService.getTendrilById(tendrilId);
     if (tendril) return { tendril, nodeId };
     return null;
+  }
+
+  isPropagatedTendril(): boolean {
+    const tendrilId = this.diagramService.currentState.selectedTendrilId;
+    if (!tendrilId) return false;
+    return tendrilId.includes('-');
   }
 
   getName(): string {
@@ -188,6 +191,7 @@ export class PropertiesWindowComponent implements OnInit {
   }
 
   updateName(event: Event) {
+    if (this.isPropagatedTendril()) return; // Cannot edit name of propagated tendrils
     const value = (event.target as HTMLInputElement).value;
     const tendrilData = this.getTendrilFromState();
     if (tendrilData) {
@@ -357,14 +361,19 @@ export class PropertiesWindowComponent implements OnInit {
 
   getIsExposed(): boolean {
     const tendrilData = this.getTendrilFromState();
-    return tendrilData ? tendrilData.tendril.exposed !== false : true;
+    return tendrilData ? this.diagramService.isTendrilExposedInDiagram(tendrilData.tendril, this.diagramService.currentState.currentDiagram.id) : false;
   }
 
   toggleExposed() {
     const tendrilData = this.getTendrilFromState();
     if (tendrilData) {
       const newValue = !this.getIsExposed();
-      this.diagramService.updateTendrilExposed(tendrilData.tendril.id, newValue);
+      const tendril = { ...tendrilData.tendril };
+      if (!tendril.exposedOverrides) {
+        tendril.exposedOverrides = {};
+      }
+      tendril.exposedOverrides[this.diagramService.currentState.currentDiagram.id] = newValue;
+      this.diagramService.updateTendril(tendrilData.nodeId, tendrilData.tendril.id, tendril);
     }
   }
 }

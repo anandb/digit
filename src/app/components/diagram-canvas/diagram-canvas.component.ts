@@ -61,8 +61,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   get svgViewBox(): string {
     const el = this.canvas?.nativeElement;
-    const w = el ? el.clientWidth : 2000;
-    const h = el ? el.clientHeight : 2000;
+    const w = el && el.clientWidth ? el.clientWidth : 2000;
+    const h = el && el.clientHeight ? el.clientHeight : 2000;
     return `${this.viewOffset.x} ${this.viewOffset.y} ${w} ${h}`;
   }
 
@@ -86,6 +86,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   onCanvasClick(event: MouseEvent): void {
     // Don't fire selection-clear if we just finished panning
     if (this.isPanning) return;
+
+    // Don't clear if target was a tendril (handled separately)
+    const target = event.target as Element;
+    if (target.classList.contains('tendril') || target.classList.contains('propagated-tendril') || target.classList.contains('tendril-click-area')) {
+      return;
+    }
 
     // Clear all selections when clicking on empty canvas
     this.diagramService.clearSelection();
@@ -166,6 +172,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Unified element interaction methods
   onElementClick(event: MouseEvent, element: DiagramElement): void {
+    // Skip if target is a tendril (handled by tendril click handler)
+    const target = event.target as Element;
+    if (target.classList.contains('tendril') || target.classList.contains('propagated-tendril') || target.classList.contains('tendril-click-area')) {
+      return;
+    }
+    
     event.stopPropagation();
 
     // Only handle Ctrl+Click for edge creation if it's strictly a ctrl-click
@@ -213,6 +225,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   onElementTendrilClick(event: MouseEvent, element: DiagramElement, tendril: Tendril): void {
+    event.preventDefault();
     event.stopPropagation();
 
     if (this.isCreatingEdge) {
@@ -231,7 +244,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.isCreatingEdge = false;
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
-    } else if (event.ctrlKey || event.metaKey) { // Updated condition
+    } else if (event.ctrlKey || event.metaKey) {
       // Ctrl+click: Start edge creation from outgoing tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
@@ -1621,6 +1634,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Handle propagated tendril click
   onPropagatedTendrilClick(event: MouseEvent, node: Node, tendril: Tendril): void {
+    event.preventDefault();
     event.stopPropagation();
 
     if (this.isCreatingEdge) {

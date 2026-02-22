@@ -455,7 +455,7 @@
               [attr.x]="tendril.type === 'incoming' ? $any(element).position.x + tendril.position.x - 30 : $any(element).position.x + tendril.position.x - 10"
               [attr.y]="$any(element).position.y + tendril.position.y - 15"
               [attr.width]="tendril.type === 'incoming' ? 45 : 45" [attr.height]="30" fill="transparent"
-              (click)="onElementTendrilClick($event, element, tendril)"
+              (mousedown)="onElementTendrilClick($event, element, tendril)"
               (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" class="tendril-click-area">
             </rect>
 
@@ -467,8 +467,8 @@
               cdkDrag [cdkDragDisabled]="!isCtrlEdgeMode" (cdkDragStarted)="onTendrilDragStarted($event, element, tendril)"
               (cdkDragMoved)="onTendrilDragMoved($event, element, tendril)"
               (cdkDragEnded)="onTendrilDragEnded($event, element, tendril)"
-              (click)="onElementTendrilClick($event, element, tendril)"
-              (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" style="cursor: pointer;">
+              (mousedown)="onElementTendrilClick($event, element, tendril)"
+              (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" style="cursor: pointer; pointer-events: all;">
               <title>{{ getTendrilTooltip(element.id, tendril.id) }}</title>
             </circle>
 
@@ -491,7 +491,7 @@
                 <!-- Invisible larger click area -->
                 <rect [attr.x]="tendril.type === 'incoming' ? pos.x - 30 : pos.x - 10" [attr.y]="pos.y - 15"
                   [attr.width]="tendril.type === 'incoming' ? 45 : 45" [attr.height]="30" fill="transparent"
-                  (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
+                  (mousedown)="onPropagatedTendrilClick($event, $any(element), tendril)"
                   (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
                   class="tendril-click-area">
                 </rect>
@@ -499,13 +499,9 @@
                 <!-- Tendril circles -->
                 <circle [attr.cx]="pos.x" [attr.cy]="pos.y" [attr.r]="isSelected('tendril', tendril.id) ? 8 : 5" [attr.fill]="getTendrilColor(tendril, true)"
                   [attr.stroke]="isSelected('tendril', tendril.id) ? '#007bff' : '#ffffff'" [attr.stroke-width]="isSelected('tendril', tendril.id) ? '3' : '1'" class="propagated-tendril"
-                  cdkDrag [cdkDragDisabled]="!isCtrlEdgeMode"
-                  (cdkDragStarted)="onTendrilDragStarted($event, $any(element), tendril)"
-                  (cdkDragMoved)="onTendrilDragMoved($event, $any(element), tendril)"
-                  (cdkDragEnded)="onTendrilDragEnded($event, $any(element), tendril)"
-                  (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
+                  (mousedown)="onPropagatedTendrilClick($event, $any(element), tendril)"
                   (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
-                  style="cursor: pointer;">
+                  style="cursor: pointer; pointer-events: all;">
                   <title>{{ getPropagatedTendrilTooltip(element.id, tendril.id) }}</title>
                 </circle>
 

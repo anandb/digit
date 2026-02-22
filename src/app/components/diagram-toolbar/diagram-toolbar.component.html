@@ -26,7 +26,7 @@
   <div class="toolbar-section">
     <div class="dropdown-container">
       <button (click)="toggleAddDropdown()" class="toolbar-item" [class.active]="isAddDropdownOpen" title="Add Shape">
-        <div class="icon-placeholder">➕⌄</div>
+        <div class="icon-placeholder">➕</div>
         <span class="item-label">Add</span>
       </button>
 
@@ -116,12 +116,18 @@
   <div class="toolbar-divider"></div>
 
   <div class="toolbar-section">
-    <button (click)="addIncomingTendril()" class="toolbar-item" title="Add Incoming Tendril" [disabled]="!selectedElement">
-      <div class="icon-placeholder">←</div>
+    <button (click)="addIncomingTendril()" class="toolbar-item" title="Add Incoming Tendril" [disabled]="!selectedElement || isBoundingBoxSelected">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 12 Q8 8 12 12 Q16 16 20 12"/>
+        <path d="M4 12 L7 9 M4 12 L7 15" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
       <span class="item-label">Incoming</span>
     </button>
-    <button (click)="addOutgoingTendril()" class="toolbar-item" title="Add Outgoing Tendril" [disabled]="!selectedElement">
-      <div class="icon-placeholder">→</div>
+    <button (click)="addOutgoingTendril()" class="toolbar-item" title="Add Outgoing Tendril" [disabled]="!selectedElement || isBoundingBoxSelected">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 12 Q16 16 12 12 Q8 8 4 12"/>
+        <path d="M20 12 L17 9 M20 12 L17 15" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
       <span class="item-label">Outgoing</span>
     </button>
   </div>

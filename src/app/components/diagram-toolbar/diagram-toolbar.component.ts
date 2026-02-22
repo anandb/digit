@@ -292,6 +292,10 @@ export class DiagramToolbarComponent {
     return !!(element && isNode(element) && element.shape === 'note');
   }
 
+  get isBoundingBoxSelected(): boolean {
+    return !!this.selectedBoundingBoxId;
+  }
+
   // Unified element getter methods
   get selectedTendril(): Tendril | undefined {
     const tendrilId = this.diagramService.currentState.selectedTendrilId;

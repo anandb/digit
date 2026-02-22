@@ -937,6 +937,19 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return this.state.currentDiagram.name || 'Untitled';
   }
 
+  onDiagramTitleChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const newName = input.value.trim();
+    if (newName) {
+      this.diagramService.updateCurrentDiagramName(newName);
+    }
+  }
+
+  onDiagramTitleEnterKey(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    input.blur();
+  }
+
   // Check if an object is highlighted during drag
   isHighlighted(objectType: string, objectId: string): boolean {
     return this.highlightedObjectIds.has(`${objectType}-${objectId}`);

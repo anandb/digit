@@ -214,13 +214,30 @@ export class DiagramService {
 
     parentDiagram = { ...parentDiagram, elements: updatedElements };
     this.allDiagrams.set(parentDiagram.id, parentDiagram);
-    this.allDiagrams.delete(current.id);
+
+    // Recursive delete the current diagram and all its children
+    this.recursiveDeleteDiagram(current.id);
 
     this.state = {
       ...this.state,
       currentDiagram: parentDiagram,
       diagramStack: this.state.diagramStack.slice(0, -1)
     };
+  }
+
+  private recursiveDeleteDiagram(diagramId: string): void {
+    const diagram = this.allDiagrams.get(diagramId);
+    if (!diagram) return;
+
+    // Find any elements that have inner diagrams and delete them recursively
+    diagram.elements.forEach(el => {
+      if (isNode(el) && el.innerDiagram) {
+        this.recursiveDeleteDiagram(el.innerDiagram.id);
+      }
+    });
+
+    // Finally delete this diagram from the map
+    this.allDiagrams.delete(diagramId);
   }
 
   // Node operations

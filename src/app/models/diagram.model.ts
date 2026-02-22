@@ -21,6 +21,7 @@ export interface DiagramElement extends HasNotes {
   size: Size;
   attributes: { [key: string]: any };
   tendrils: Tendril[];
+  innerDiagram?: Diagram;
 }
 
 export interface Tendril extends HasNotes {

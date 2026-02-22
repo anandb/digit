@@ -5,7 +5,7 @@ import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { DiagramService } from '../../services/diagram.service';
 import { DiagramToolbarComponent } from '../diagram-toolbar/diagram-toolbar.component';
-import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox, SvgImage, DiagramElement, isNode, isSvgImage } from '../../models/diagram.model';
+import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox, SvgImage, DiagramElement, isNode, isSvgImage, isBoundingBox } from '../../models/diagram.model';
 import { PropertiesWindowComponent } from '../properties-window/properties-window.component';
 
 @Component({
@@ -52,6 +52,17 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // For live path routing during drag
   private movingElementIds = new Set<string>();
   private draggingDelta: Position = { x: 0, y: 0 };
+
+  // Node shapes that support inner diagrams
+  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'cube'];
+
+  supportsInnerDiagram(element: DiagramElement): boolean {
+    if (isNode(element)) {
+      return this.INNER_DIAGRAM_ALLOWED_SHAPES.includes(element.shape);
+    }
+    // Bounding boxes and SVG images also support inner diagrams
+    return isBoundingBox(element) || isSvgImage(element);
+  }
 
   // For canvas panning
   isPanning = false;
@@ -194,19 +205,17 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   onElementDoubleClick(element: DiagramElement): void {
-    if (isNode(element)) {
-      // Line shapes don't support inner diagrams
-      if (element.shape === 'verticalLine' || element.shape === 'horizontalLine') {
-        return;
-      }
-
-      // If node doesn't have an inner diagram, create one
-      if (!element.innerDiagram) {
-        element.innerDiagram = this.diagramService.createInnerDiagram(element.id);
-      }
-      // Then navigate to it
-      this.diagramService.enterNodeDiagram(element.id);
+    // Only certain elements support inner diagrams
+    if (!this.supportsInnerDiagram(element)) {
+      return;
     }
+
+    // If element doesn't have an inner diagram, create one
+    if (!element.innerDiagram) {
+      element.innerDiagram = this.diagramService.createInnerDiagram(element.id);
+    }
+    // Then navigate to it
+    this.diagramService.enterNodeDiagram(element.id);
   }
 
   onElementContextMenu(event: MouseEvent, element: DiagramElement): void {
@@ -276,8 +285,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Node double click to enter inner diagram
   onNodeDoubleClick(node: Node): void {
-    // Line shapes don't support inner diagrams
-    if (node.shape === 'verticalLine' || node.shape === 'horizontalLine') {
+    // Only certain shapes support inner diagrams
+    if (!this.supportsInnerDiagram(node)) {
       return;
     }
 
@@ -1619,16 +1628,66 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return propagatedTendrils.some(t => t.id === tendrilId);
   }
 
-  // Get position for propagated tendrils - same as regular tendrils
+  // Get position for propagated tendrils - on the border of the parent node
   getPropagatedTendrilPosition(node: Node, index: number): Position | null {
     const propagatedTendrils = this.getPropagatedTendrils(node);
     if (propagatedTendrils.length === 0 || index >= propagatedTendrils.length) return null;
 
     const tendril = propagatedTendrils[index];
-    // Position tendrils the same way as regular tendrils - on the border of the parent node
+    
+    // Find the original element in the inner diagram to get its size
+    let sourceWidth = 100; // default
+    let sourceHeight = 60; // default
+    
+    if (node.innerDiagram) {
+      const innerDiagram = this.diagramService.diagrams.get(node.innerDiagram.id);
+      if (innerDiagram) {
+        const prefix = tendril.id.includes('-') ? tendril.id.split('-')[0] : '';
+        const sourceElement = innerDiagram.elements.find((e: any) => e.id === prefix);
+        if (sourceElement && sourceElement.size) {
+          sourceWidth = sourceElement.size.width || 100;
+          sourceHeight = sourceElement.size.height || 60;
+        }
+      }
+    }
+
+    // Calculate position as a ratio (0 to 1) along each dimension
+    const ratioX = sourceWidth > 0 ? tendril.position.x / sourceWidth : 0.5;
+    const ratioY = sourceHeight > 0 ? tendril.position.y / sourceHeight : 0.5;
+
+    // Map to parent node's border
+    const parentWidth = node.size?.width || 100;
+    const parentHeight = node.size?.height || 60;
+    
+    let x: number, y: number;
+    
+    // Determine which side of the parent node to place the tendril
+    // based on the original position relative to the source element
+    if (ratioX <= 0.2) {
+      // Left side
+      x = 0;
+      y = ratioY * parentHeight;
+    } else if (ratioX >= 0.8) {
+      // Right side
+      x = parentWidth;
+      y = ratioY * parentHeight;
+    } else if (ratioY <= 0.2) {
+      // Top side
+      y = 0;
+      x = ratioX * parentWidth;
+    } else if (ratioY >= 0.8) {
+      // Bottom side
+      y = parentHeight;
+      x = ratioX * parentWidth;
+    } else {
+      // Default: right side (middle right)
+      x = parentWidth;
+      y = parentHeight / 2;
+    }
+
     return {
-      x: node.position.x + tendril.position.x,
-      y: node.position.y + tendril.position.y
+      x: node.position.x + x,
+      y: node.position.y + y
     };
   }
 

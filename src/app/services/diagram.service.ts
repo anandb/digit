@@ -8,6 +8,11 @@ import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, i
 export class DiagramService {
   private readonly STORAGE_KEY = 'digit_diagram_state';
   private allDiagrams: Map<string, Diagram> = new Map();
+  
+  get diagrams(): Map<string, Diagram> {
+    return this.allDiagrams;
+  }
+  
   // Per-diagram undo stacks: keyed by diagram ID, store Diagram content snapshots.
   // Navigation moves (entering/leaving inner diagrams) are never recorded here.
   private undoStacks: Map<string, Diagram[]> = new Map();

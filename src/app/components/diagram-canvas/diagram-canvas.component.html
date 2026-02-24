@@ -609,14 +609,6 @@
             </path>
           </g>
 
-          <!-- CDN shape -->
-          <g *ngIf="$any(element).shape === 'cdn'" [class.highlighted]="isHighlighted('node', element.id)" class="cdn" filter="url(#dropshadow)">
-            <path [attr.d]="getCDNPath(element)"
-                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-                  stroke-linejoin="round">
-            </path>
-          </g>
 
           <!-- Vault shape -->
           <g *ngIf="$any(element).shape === 'vault'" [class.highlighted]="isHighlighted('node', element.id)" class="vault" filter="url(#dropshadow)">
@@ -641,22 +633,9 @@
             </line>
           </g>
 
-          <!-- Padlock Closed shape -->
-          <g *ngIf="$any(element).shape === 'padlockClosed'" [class.highlighted]="isHighlighted('node', element.id)" class="padlock-closed" filter="url(#dropshadow)">
-            <path [attr.d]="getPadlockShacklePath(element, false)"
-                  fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
-            </path>
-            <path [attr.d]="getPadlockBodyPath(element)"
-                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-                  stroke-linejoin="round">
-            </path>
-          </g>
-
-          <!-- Padlock Open shape -->
-          <g *ngIf="$any(element).shape === 'padlockOpen'" [class.highlighted]="isHighlighted('node', element.id)" class="padlock-open" filter="url(#dropshadow)">
-            <path [attr.d]="getPadlockShacklePath(element, true)"
+          <!-- Padlock shape -->
+          <g *ngIf="$any(element).shape === 'padlock'" [class.highlighted]="isHighlighted('node', element.id)" class="padlock" filter="url(#dropshadow)">
+            <path [attr.d]="getPadlockShacklePath(element)"
                   fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
                   [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
             </path>

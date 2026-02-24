@@ -1855,18 +1855,6 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `M ${x} ${y} L ${x + w - arrowWidth} ${y} L ${x + w} ${y + h / 2} L ${x + w - arrowWidth} ${y + h} L ${x} ${y + h} Z`;
   }
 
-  getCDNPath(node: any): string {
-    const x = node.position.x + node.size.width / 2;
-    const y = node.position.y + node.size.height / 2;
-    const r = Math.min(node.size.width, node.size.height) / 2;
-    // Globe with lat/long lines
-    return `M ${x},${y - r} A ${r},${r} 0 1 0 ${x},${y + r} A ${r},${r} 0 1 0 ${x},${y - r} ` +
-           `M ${x - r},${y} L ${x + r},${y} ` +
-           `M ${x},${y - r} L ${x},${y + r} ` +
-           `M ${x - r * 0.7},${y - r * 0.7} Q ${x},${y} ${x + r * 0.7},${y + r * 0.7} ` +
-           `M ${x + r * 0.7},${y - r * 0.7} Q ${x},${y} ${x - r * 0.7},${y + r * 0.7}`;
-  }
-
   getVaultPath(node: any): string {
     const x = node.position.x;
     const y = node.position.y;
@@ -1883,21 +1871,24 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const w = node.size.width;
     const h = node.size.height * 0.6;
     const r = 4;
+
     return `M ${x+r},${y} L ${x+w-r},${y} Q ${x+w},${y} ${x+w},${y+r} L ${x+w},${y+h-r} Q ${x+w},${y+h} ${x+w-r},${y+h} L ${x+r},${y+h} Q ${x},${y+h} ${x},${y+h-r} L ${x},${y+r} Q ${x},${y} ${x+r},${y} Z`;
   }
 
-  getPadlockShacklePath(node: any, isOpen: boolean): string {
+  getPadlockShacklePath(node: any): string {
     const w = node.size.width;
     const h = node.size.height;
     const cx = node.position.x + w / 2;
-    const top = node.position.y + h * 0.1;
+    const r = w * 0.2; // Optimized radius for 100px width
     const bottom = node.position.y + h * 0.45;
-    const r = w * 0.3;
+    const peak = node.position.y + h * 0.05;
+    const arcTop = peak + r; // Meeting point for vertical lines and arc
 
-    if (isOpen) {
-      return `M ${cx - r},${bottom} L ${cx - r},${top + r} A ${r},${r} 0 0 1 ${cx + r * 0.5},${top + r * 0.2}`;
+    if (node.locked === false) { // Unlocked state
+      return `M ${cx - r},${bottom} L ${cx - r},${arcTop} A ${r},${r} 0 0 1 ${cx + r * 0.7},${arcTop - r * 0.7}`;
     }
-    return `M ${cx - r},${bottom} L ${cx - r},${top + r} A ${r},${r} 0 0 1 ${cx + r},${top + r} L ${cx + r},${bottom}`;
+    // Locked state
+    return `M ${cx - r},${bottom} L ${cx - r},${arcTop} A ${r},${r} 0 0 1 ${cx + r},${arcTop} L ${cx + r},${bottom}`;
   }
 
   getDataLakePath(node: any): string {
@@ -2007,10 +1998,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       case 'smiley': return 'Smiley';
       case 'donut': return 'Donut';
       case 'lightning': return 'Lightning';
-      case 'cdn': return 'CDN';
       case 'vault': return 'Vault';
-      case 'padlockClosed': return 'Lock';
-      case 'padlockOpen': return 'Unlock';
+      case 'padlock': return 'Padlock';
       case 'dataLake': return 'Data Lake';
       case 'browser': return 'Browser';
       case 'mobile': return 'Mobile';

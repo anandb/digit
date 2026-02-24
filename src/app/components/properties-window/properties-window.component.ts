@@ -217,6 +217,11 @@ export class PropertiesWindowComponent implements OnInit {
     return !!(element && isNode(element) && element.shape === 'text');
   }
 
+  get isPadlockShape(): boolean {
+    const element = this.selectedElement;
+    return !!(element && isNode(element) && element.shape === 'padlock');
+  }
+
   // --- Common Properties: Notes ---
 
   getNotes(): string {
@@ -533,6 +538,25 @@ export class PropertiesWindowComponent implements OnInit {
     const newValue = !this.getIsMirrored();
     if (this.selectedElement && isNode(this.selectedElement)) {
       this.diagramService.updateElementProperty(this.selectedElement.id, 'mirror', newValue);
+    }
+  }
+
+  // --- Locked Property (Padlock) ---
+
+  getIsLocked(): boolean {
+    const element = this.selectedElement;
+    if (element && isNode(element)) {
+      // Default to locked (true) if not set
+      return element.locked !== false;
+    }
+    return false;
+  }
+
+  toggleLocked() {
+    const element = this.selectedElement;
+    if (element && isNode(element)) {
+      const newValue = !this.getIsLocked();
+      this.diagramService.updateElementProperty(element.id, 'locked', newValue);
     }
   }
 

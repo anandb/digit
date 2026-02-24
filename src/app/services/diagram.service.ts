@@ -278,7 +278,8 @@ export class DiagramService {
       fontSize: 14,
       fontWeight: 'normal',
       fontStyle: 'normal',
-      strokeWidth: 1
+      strokeWidth: 1,
+      locked: shape === 'padlock' ? true : undefined
     };
 
     this.state = {

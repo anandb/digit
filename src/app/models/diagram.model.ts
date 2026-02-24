@@ -39,7 +39,7 @@ export interface Tendril extends HasNotes {
   strokeWidth?: number;
 }
 
-export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'cube' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'mq' | 'envelope' | 'cache' | 'tick' | 'cross' | 'star' | 'smiley' | 'donut' | 'lightning' | 'cdn' | 'vault' | 'padlockClosed' | 'padlockOpen' | 'dataLake' | 'browser' | 'mobile';
+export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'cube' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'mq' | 'envelope' | 'cache' | 'tick' | 'cross' | 'star' | 'smiley' | 'donut' | 'lightning' | 'vault' | 'padlock' | 'dataLake' | 'browser' | 'mobile';
 
 export interface Node extends DiagramElement {
   shape: NodeShape;
@@ -54,6 +54,7 @@ export interface Node extends DiagramElement {
   strokeWidth?: number;
   mirror?: boolean;
   rounded?: boolean;
+  locked?: boolean;
 }
 
 export interface Edge extends HasNotes {

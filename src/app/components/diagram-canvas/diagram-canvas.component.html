@@ -433,25 +433,24 @@
             </line>
           </g>
 
-          <!-- Cube shape (3D perspective) -->
-          <g *ngIf="$any(element).shape === 'cube'" [class.highlighted]="isHighlighted('node', element.id)" class="cube"
-            filter="url(#dropshadow)">
+          <!-- Wall shape (3D perspective) -->
+          <g *ngIf="$any(element).shape === 'wall'" [class.highlighted]="isHighlighted('node', element.id)" class="node" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null">
             <!-- Front face -->
             <rect [attr.x]="$any(element).position.x + $any(element).size.width * 0.1"
               [attr.y]="$any(element).position.y + $any(element).size.height * 0.1"
               [attr.width]="$any(element).size.width * 0.8" [attr.height]="$any(element).size.height * 0.8"
-              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.fill]="$any(element).brickWall ? 'url(#brickPattern)' : $any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
               [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
               [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
             </rect>
             <!-- Top face -->
-            <polygon [attr.points]="getCubeTopFacePoints(element)" [attr.fill]="$any(element).fillColor"
+            <polygon [attr.points]="getWallTopFacePoints(element)" [attr.fill]="$any(element).brickWall ? 'url(#brickPattern)' : $any(element).fillColor"
               [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
               [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)" opacity="0.8"
               [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
             </polygon>
             <!-- Side face -->
-            <polygon [attr.points]="getCubeSideFacePoints(element)" [attr.fill]="$any(element).fillColor"
+            <polygon [attr.points]="getWallSideFacePoints(element)" [attr.fill]="$any(element).brickWall ? 'url(#brickPattern)' : $any(element).fillColor"
               [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
               [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)" opacity="0.6"
               [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
@@ -784,7 +783,6 @@
               [attr.stroke-dasharray]="$any(element).dotted ? '12,8' : null">
             </line>
           </g>
-          </g>
 
           <!-- Resize handles -->
           <g *ngIf="isSelected('node', element.id)">
@@ -847,7 +845,8 @@
             <!-- Pin highlight -->
             <circle cx="-2" cy="-8" r="1.5" fill="rgba(255,255,255,0.6)"></circle>
           </g>
-        </ng-container>
+        </g>
+      </ng-container>
 
         <!-- Nested diagram indicator icon -->
         <g *ngIf="isNode(element) && $any(element).innerDiagram" class="nested-diagram-indicator">
@@ -1033,6 +1032,11 @@
       <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
         <circle cx="10" cy="10" r="1" fill="#cccccc">
         </circle>
+      </pattern>
+
+      <pattern id="brickPattern" width="40" height="20" patternUnits="userSpaceOnUse">
+        <rect width="40" height="20" fill="#cc0000" opacity="0.1" />
+        <path d="M 0 0 L 40 0 L 40 20 L 0 20 Z M 0 10 L 40 10 M 20 0 L 20 10 M 0 10 L 0 20 M 40 10 L 40 20 M 10 10 L 10 20 M 30 10 L 30 20" fill="none" stroke="#660000" stroke-width="1" opacity="0.4" />
       </pattern>
 
       <filter id="dropshadow" x="-20%" y="-20%" width="140%" height="140%">

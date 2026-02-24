@@ -80,6 +80,15 @@
         <span class="line-text">{{ getIsMirrored() ? 'Mirrored' : 'Normal' }}</span>
       </button>
 
+      <!-- Brick Wall toggle (Wall only) -->
+      <button class="line-style-btn" (click)="toggleBrickWall()" *ngIf="isWallShape">
+        <svg class="line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 16px;">
+          <path d="M2 20h20M4 20V4h16v16M4 12h16M12 4v8M8 12v8M16 12v8" />
+        </svg>
+        <span class="line-text">{{ getIsBrickWall() ? 'Brick Wall' : 'Plain Wall' }}</span>
+      </button>
+
+
       <div class="color-grid" *ngIf="type === 'node' || type === 'boundingBox'">
         <!-- Fill Button (Node & Box) -->
         <label class="color-btn fill-btn" [style.background-color]="getFillColor() || '#ffffff'">

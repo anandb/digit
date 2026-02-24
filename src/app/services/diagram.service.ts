@@ -257,7 +257,7 @@ export class DiagramService {
       size = { width: 40, height: 100 };
     } else if (shape === 'horizontalLine') {
       size = { width: 100, height: 40 };
-    } else if (shape === 'note') {
+    } else if (shape === 'note' || shape === 'wall') {
       size = { width: 180, height: 180 };
     }
 

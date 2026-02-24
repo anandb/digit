@@ -57,7 +57,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private draggingDelta: Position = { x: 0, y: 0 };
 
   // Node shapes that support inner diagrams
-  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'cube', 'mq', 'cache'];
+  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'mq', 'cache'];
 
   supportsInnerDiagram(element: DiagramElement): boolean {
     if (isNode(element)) {
@@ -949,7 +949,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (insideShapes.includes(node.shape)) {
       // Center text within the shape
       return node.position.y + node.size.height / 2;
-    } else if (node.shape === 'circle' || node.shape === 'cylinder') {
+    } else if (node.shape === 'circle' || node.shape === 'cylinder' || node.shape === 'wall') {
       // Position text below the shape
       return node.position.y + node.size.height + 20;
     } else if (node.shape === 'triangle') {
@@ -1612,7 +1612,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `${x + w},${pointerTopY} ${pointerTipX},${pointerBaseY} ${x + w},${pointerBottomY}`;
   }
 
-  getCubeTopFacePoints(node: any): string {
+  getWallTopFacePoints(node: any): string {
     const x = node.position.x;
     const y = node.position.y;
     const w = node.size.width;
@@ -1628,7 +1628,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `${frontTopRight},${y + h * 0.1} ${topTopRight},${y} ${topTopLeft},${y} ${frontTopLeft},${y + h * 0.1}`;
   }
 
-  getCubeSideFacePoints(node: any): string {
+  getWallSideFacePoints(node: any): string {
     const x = node.position.x;
     const y = node.position.y;
     const w = node.size.width;
@@ -1986,7 +1986,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       case 'stickman': return 'Stickman';
       case 'callout': return 'Callout';
       case 'tape': return 'Tape';
-      case 'cube': return 'Cube';
+      case 'wall': return 'Wall';
       case 'text': return 'Text';
       case 'note': return 'Note';
       case 'mq': return 'MQ';

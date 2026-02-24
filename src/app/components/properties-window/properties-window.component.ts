@@ -222,6 +222,11 @@ export class PropertiesWindowComponent implements OnInit {
     return !!(element && isNode(element) && element.shape === 'padlock');
   }
 
+  get isWallShape(): boolean {
+    const element = this.selectedElement;
+    return !!(element && isNode(element) && element.shape === 'wall');
+  }
+
   // --- Common Properties: Notes ---
 
   getNotes(): string {
@@ -538,6 +543,21 @@ export class PropertiesWindowComponent implements OnInit {
     const newValue = !this.getIsMirrored();
     if (this.selectedElement && isNode(this.selectedElement)) {
       this.diagramService.updateElementProperty(this.selectedElement.id, 'mirror', newValue);
+    }
+  }
+
+  // --- Brick Wall Property ---
+
+  getIsBrickWall(): boolean {
+    const element = this.selectedElement;
+    if (element && isNode(element)) return !!element.brickWall;
+    return false;
+  }
+
+  toggleBrickWall() {
+    const newValue = !this.getIsBrickWall();
+    if (this.selectedElement && isNode(this.selectedElement)) {
+      this.diagramService.updateElementProperty(this.selectedElement.id, 'brickWall', newValue);
     }
   }
 

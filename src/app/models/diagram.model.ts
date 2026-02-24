@@ -24,6 +24,7 @@ export interface DiagramElement extends HasNotes {
   innerDiagram?: Diagram;
   flipHorizontal?: boolean;
   flipVertical?: boolean;
+  rotation?: number;
 }
 
 export interface Tendril extends HasNotes {
@@ -39,7 +40,7 @@ export interface Tendril extends HasNotes {
   strokeWidth?: number;
 }
 
-export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'mq' | 'envelope' | 'cache' | 'tick' | 'cross' | 'star' | 'smiley' | 'donut' | 'lightning' | 'vault' | 'padlock' | 'dataLake' | 'browser' | 'mobile';
+export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'mq' | 'envelope' | 'cache' | 'tick' | 'cross' | 'star' | 'smiley' | 'donut' | 'lightning' | 'vault' | 'padlock' | 'dataLake' | 'browser' | 'mobile' | 'bar';
 
 export interface Node extends DiagramElement {
   shape: NodeShape;

@@ -446,6 +446,33 @@ export class DiagramService {
     };
   }
 
+  toggleRotation(degrees: number = 90): void {
+    const currentState = this.state;
+    const selectedNodes = currentState.selectedNodeIds;
+    const selectedSvgs = currentState.selectedSvgImageIds;
+    const allSelectedIds = [...selectedNodes, ...selectedSvgs];
+
+    if (allSelectedIds.length === 0) return;
+
+    const newElements = currentState.currentDiagram.elements.map(element => {
+      if (allSelectedIds.includes(element.id)) {
+        const currentRotation = element.rotation || 0;
+        return { ...element, rotation: (currentRotation + degrees) % 360 };
+      }
+      return element;
+    });
+
+    const nextDiagram = this.performAutoRouting({
+      ...currentState.currentDiagram,
+      elements: newElements
+    });
+
+    this.state = {
+      ...currentState,
+      currentDiagram: nextDiagram
+    };
+  }
+
   updateElement(elementId: string, updates: any): void {
     const currentState = this.state;
     let updated = false;

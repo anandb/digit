@@ -151,15 +151,9 @@ export class DiagramToolbarComponent {
     return !!element && (isNode(element) || isSvgImage(element));
   }
 
-  flipHorizontal(): void {
+  rotate90(): void {
     if (this.isSingleElementSelected()) {
-      this.diagramService.toggleFlip('horizontal');
-    }
-  }
-
-  flipVertical(): void {
-    if (this.isSingleElementSelected()) {
-      this.diagramService.toggleFlip('vertical');
+      this.diagramService.toggleRotation(90);
     }
   }
 

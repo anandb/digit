@@ -1,8 +1,9 @@
-<!-- Sliding Properties Tool Window -->
 <div class="properties-window"
      [class.visible]="isVisible"
      [style.top.px]="y"
-     [style.left.px]="x">
+     [style.left.px]="x"
+     [style.width.px]="windowWidth"
+     [style.height.px]="windowHeight">
 
   <div class="properties-header">
     <h3>Properties</h3>
@@ -74,35 +75,41 @@
 
       <div class="color-grid" *ngIf="type === 'node' || type === 'boundingBox'">
         <!-- Fill Button (Node & Box) -->
-        <label class="color-btn fill-btn">
+        <label class="color-btn fill-btn" [style.background-color]="getFillColor() || '#ffffff'">
           <input type="color" [value]="getFillColor()" (input)="updateFillColor($event)">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-             <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"></path>
-             <path d="m5 2 5 5"></path>
-             <path d="M2 13h15"></path>
-             <path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"></path>
-          </svg>
-          <span>Fill</span>
+          <div class="color-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"></path>
+               <path d="m5 2 5 5"></path>
+               <path d="M2 13h15"></path>
+               <path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"></path>
+            </svg>
+            <span>Fill</span>
+          </div>
         </label>
 
         <!-- Stroke Button -->
-        <label class="color-btn stroke-btn">
+        <label class="color-btn stroke-btn" [style.background-color]="getStrokeColor() || '#000000'">
           <input type="color" [value]="getStrokeColor()" (input)="updateStrokeColor($event)">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-          </svg>
-          <span>Stroke</span>
+          <div class="color-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+            <span>Stroke</span>
+          </div>
         </label>
       </div>
 
       <div class="color-grid single" *ngIf="type === 'edge' || type === 'connector'">
         <!-- Stroke Button (Edge Only) -->
-        <label class="color-btn stroke-btn">
+        <label class="color-btn stroke-btn" [style.background-color]="getStrokeColor() || '#000000'">
           <input type="color" [value]="getStrokeColor()" (input)="updateStrokeColor($event)">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-          </svg>
-          <span>Stroke</span>
+          <div class="color-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+            <span>Stroke</span>
+          </div>
         </label>
       </div>
 
@@ -136,17 +143,61 @@
     </ng-container>
 
     <!-- Shared Notes Section -->
-    <div class="property-block" *ngIf="type">
-      <label>Notes</label>
-      <textarea rows="3"
-                [value]="getNotes()"
-                (input)="updateNotes($event)"
-                placeholder="Refinement needed..."></textarea>
+    <div class="property-block accordion-block" *ngIf="type">
+      <div class="accordion-header" (click)="toggleNotes()">
+        <label>Notes</label>
+        <svg class="chevron" [class.expanded]="notesExpanded" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+      <div class="accordion-content" *ngIf="notesExpanded">
+        <textarea rows="3"
+                  [value]="getNotes()"
+                  (input)="updateNotes($event)"
+                  placeholder="Refinement needed..."></textarea>
+      </div>
+    </div>
+
+    <!-- Tags Section -->
+    <div class="property-block accordion-block" *ngIf="type">
+      <div class="accordion-header" (click)="toggleTags()">
+        <label>Tags</label>
+        <svg class="chevron" [class.expanded]="tagsExpanded" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+      <div class="accordion-content" *ngIf="tagsExpanded">
+        <div class="tags-container">
+          <div class="tag-row" *ngFor="let tag of localTags; let i = index; trackBy: trackByIndex">
+            <input type="text"
+                   class="tag-input"
+                   [value]="tag.key"
+                   (input)="updateTag(i, 'key', $event)"
+                   (blur)="onTagBlur(i, $event)"
+                   placeholder="Key"
+                   maxlength="64" />
+            <input type="text"
+                   class="tag-input"
+                   [value]="tag.value"
+                   (input)="updateTag(i, 'value', $event)"
+                   (blur)="onTagBlur(i, $event)"
+                   placeholder="Value"
+                   maxlength="64" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Empty State -->
     <div class="empty-state" *ngIf="!type">
       Select an element to edit properties.
     </div>
+  </div>
+
+  <div class="resize-handle" (mousedown)="onResizeStart($event)">
+    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="21 3 3 21"></polyline>
+      <polyline points="21 12 12 21"></polyline>
+    </svg>
   </div>
 </div>

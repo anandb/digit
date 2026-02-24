@@ -14,9 +14,18 @@ export class PropertiesWindowComponent implements OnInit {
   isVisible = false;
   x = 0;
   y = 0;
+  windowWidth = 340; // Default width
+  windowHeight = 600; // Default height
 
   // Window state
   notesExpanded = false;
+
+  // Resize state
+  private isResizing = false;
+  private resizeStartX = 0;
+  private resizeStartY = 0;
+  private resizeStartWidth = 0;
+  private resizeStartHeight = 0;
 
   constructor(
     public diagramService: DiagramService,
@@ -34,6 +43,8 @@ export class PropertiesWindowComponent implements OnInit {
           state.selectedBoundingBoxIds.length === 0 &&
           (state.selectedConnectorIds || []).length === 0) {
         this.close();
+      } else {
+        this.syncTagsIfNeeded();
       }
     });
   }
@@ -72,12 +83,64 @@ export class PropertiesWindowComponent implements OnInit {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
+    // Prevent closing if we are in the middle of a resize
+    if (this.isResizing) return;
+
     // Close if clicking outside the properties window AND not a right-click
     if (this.isVisible && event.button !== 2) { // 2 is right click
       const clickedInside = this.elementRef.nativeElement.contains(event.target);
       if (!clickedInside) {
         this.close();
       }
+    }
+  }
+
+  onResizeStart(event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isResizing = true;
+    this.resizeStartX = event.clientX;
+    this.resizeStartY = event.clientY;
+
+    const element = this.elementRef.nativeElement.querySelector('.properties-window');
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      this.resizeStartWidth = rect.width;
+      this.resizeStartHeight = rect.height;
+    }
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onResizeMove(event: MouseEvent) {
+    if (!this.isResizing) return;
+
+    const dx = event.clientX - this.resizeStartX;
+    const dy = event.clientY - this.resizeStartY;
+
+    // A fixed minimum dimension strategy works best here.
+    const minWidth = 340;
+    const minHeight = 600;
+
+    // Dynamic minimum dimensions
+    this.windowWidth = Math.max(minWidth, this.resizeStartWidth + dx);
+    this.windowHeight = Math.max(minHeight, this.resizeStartHeight + dy);
+  }
+
+  @HostListener('document:mouseup', ['$event'])
+  onResizeEnd(event: MouseEvent) {
+    if (this.isResizing) {
+       this.isResizing = false;
+       // We stop propagation so that a document click doesn't immediately close the window
+       // when the user finishes dragging the handle (which could occasionally happen outside the nativeElement)
+       // although technically the resize handle is inside the element. This just plays it safe.
+    }
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: Event) {
+    if (this.isVisible) {
+      this.close();
+      this.diagramService.clearSelection();
     }
   }
 
@@ -162,6 +225,11 @@ export class PropertiesWindowComponent implements OnInit {
            this.selectedEdge?.notes || '';
   }
 
+  toggleNotes() {
+    this.notesExpanded = !this.notesExpanded;
+    if (this.notesExpanded) this.autoExpandHeight();
+  }
+
   updateNotes(event: Event) {
     const value = (event.target as HTMLTextAreaElement).value;
     if (this.selectedElement) {
@@ -171,6 +239,142 @@ export class PropertiesWindowComponent implements OnInit {
     } else if (this.selectedEdge) {
       this.diagramService.updateEdgeProperty(this.selectedEdge.id, 'notes', value);
     }
+  }
+
+  // --- Common Properties: Tags ---
+
+  tagsExpanded = false;
+  localTags: { key: string, value: string }[] = [];
+  private lastElementId: string | null = null;
+  private lastAttributesRef: any = null;
+
+  toggleTags() {
+    this.tagsExpanded = !this.tagsExpanded;
+    if (this.tagsExpanded) this.autoExpandHeight();
+  }
+
+  private autoExpandHeight() {
+    setTimeout(() => {
+      const element = this.elementRef.nativeElement.querySelector('.properties-window');
+      const contentElement = this.elementRef.nativeElement.querySelector('.properties-content');
+      if (element && contentElement) {
+        const headerEl = element.querySelector('.properties-header');
+        const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+        const neededHeight = headerHeight + contentElement.scrollHeight + 20;
+
+        // Only expand the window, never shrink it automatically
+        if (this.windowHeight < neededHeight) {
+          this.windowHeight = neededHeight;
+
+          // Adjust Y if the new height pushes it off the bottom of the screen
+          const viewportHeight = window.innerHeight;
+          if (this.y + this.windowHeight > viewportHeight) {
+             // Move the window up, but don't let it go past the top edge (10px padding)
+             this.y = Math.max(10, viewportHeight - this.windowHeight - 10);
+          }
+        }
+      }
+    });
+  }
+
+  private syncTagsIfNeeded() {
+    const element = this.selectedElement || this.selectedTendril || this.selectedEdge || this.selectedConnector;
+    const elementId = element?.id || null;
+    const attributes = (element as any)?.attributes || {};
+
+    const oldElementId = this.lastElementId;
+    if (elementId !== this.lastElementId || attributes !== this.lastAttributesRef) {
+      this.lastElementId = elementId;
+      this.lastAttributesRef = attributes;
+
+      const localAttributes: {[key:string]: string} = {};
+      this.localTags.forEach(t => {
+        const k = t.key.trim();
+        if (k) localAttributes[k] = t.value;
+      });
+
+      const modelAttributes: {[key:string]: string} = {};
+      Object.keys(attributes).forEach(k => {
+        if (!['fontFamily'].includes(k)) {
+           modelAttributes[k] = attributes[k];
+        }
+      });
+
+      let diff = false;
+      const localKeys = Object.keys(localAttributes);
+      const modelKeys = Object.keys(modelAttributes);
+      if (localKeys.length !== modelKeys.length) diff = true;
+      else {
+        for (const k of localKeys) {
+          if (localAttributes[k] !== modelAttributes[k]) {
+            diff = true; break;
+          }
+        }
+      }
+
+      if (diff || this.localTags.length === 0 || elementId !== oldElementId) {
+        const newTags = modelKeys.map(k => ({ key: k, value: modelAttributes[k] }));
+        newTags.push({ key: '', value: '' });
+        this.localTags = newTags;
+      }
+    }
+  }
+
+  updateTag(index: number, field: 'key' | 'value', event: Event) {
+    const newValue = (event.target as HTMLInputElement).value;
+
+    this.localTags[index][field] = newValue;
+
+    // Auto add a new row if we are typing in the last empty row, but only when typing in the value field
+    if (field === 'value' && index === this.localTags.length - 1 && this.localTags[index].value) {
+      this.localTags.push({ key: '', value: '' });
+    }
+
+    this.saveTagsToModel(this.localTags);
+  }
+
+  onTagBlur(index: number, event: Event) {
+    if (index < this.localTags.length - 1 && !this.localTags[index].key.trim() && !this.localTags[index].value.trim()) {
+      this.localTags.splice(index, 1);
+      this.saveTagsToModel(this.localTags);
+    }
+  }
+
+  trackByIndex(index: number, obj: any): any {
+    return index;
+  }
+
+  private saveTagsToModel(tags: { key: string, value: string }[]) {
+     const newAttributes: { [key: string]: string } = {};
+     tags.forEach(tag => {
+       const key = tag.key.trim();
+       if (key) {
+         newAttributes[key] = tag.value;
+       }
+     });
+
+     // Preserve specific non-tag attributes if they exist
+     const currentAttributes = this.selectedElement?.attributes ||
+                               this.selectedTendril?.attributes ||
+                               this.selectedEdge?.attributes ||
+                               (this.selectedConnector as any)?.attributes || {};
+
+     if (currentAttributes['fontFamily']) {
+        newAttributes['fontFamily'] = currentAttributes['fontFamily'];
+     }
+
+     if (this.selectedElement) {
+       this.diagramService.updateElementProperty(this.selectedElement.id, 'attributes', newAttributes);
+     } else if (this.selectedTendril) {
+       const tendrilData = this.getTendrilFromState();
+       if (tendrilData) {
+         this.diagramService.updateTendril(tendrilData.nodeId, tendrilData.tendril.id, { attributes: newAttributes });
+       }
+     } else if (this.selectedEdge) {
+       this.diagramService.updateEdge(this.selectedEdge.id, { attributes: newAttributes });
+     } else if (this.selectedConnector) {
+       this.diagramService.updateConnector(this.selectedConnector.id, { attributes: newAttributes });
+     }
   }
 
   // --- Common Properties: Name ---
@@ -316,7 +520,7 @@ export class PropertiesWindowComponent implements OnInit {
   getSupportsMirror(): boolean {
     const element = this.selectedElement;
     if (!element || !isNode(element)) return false;
-    return ['rectangle', 'roundedRectangle', 'pill', 'circle'].includes(element.shape);
+    return ['rectangle', 'roundedRectangle', 'pill', 'circle', 'mq', 'envelope'].includes(element.shape);
   }
 
   getIsMirrored(): boolean {

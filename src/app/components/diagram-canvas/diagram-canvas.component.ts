@@ -57,7 +57,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private draggingDelta: Position = { x: 0, y: 0 };
 
   // Node shapes that support inner diagrams
-  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'cube'];
+  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'cube', 'mq', 'cache'];
 
   supportsInnerDiagram(element: DiagramElement): boolean {
     if (isNode(element)) {
@@ -475,8 +475,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Keyboard shortcuts for deletion, undo, save, and Ctrl key tracking
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
-    // Handle Ctrl+Z for undo
-    if (event.ctrlKey && event.key === 'z') {
+    // Handle Ctrl+Z (or Cmd+Z on macOS) for undo
+    if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
       event.preventDefault();
       const warning = this.diagramService.getUndoWarning();
       if (warning && !confirm(warning)) {
@@ -486,15 +486,15 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Handle Ctrl+A for select all
-    if (event.ctrlKey && event.key === 'a') {
+    // Handle Ctrl+A (or Cmd+A on macOS) for select all
+    if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
       event.preventDefault();
       this.diagramService.selectAll();
       return;
     }
 
-    // Handle Ctrl+S for save
-    if (event.ctrlKey && event.key === 's') {
+    // Handle Ctrl+S (or Cmd+S on macOS) for save
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault();
       this.saveDiagram();
       return;
@@ -512,6 +512,24 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         });
         this.diagramService.clearSelection();
         return;
+      }
+
+      // Check if we are deleting EVERYTHING
+      const totalElements = this.state.currentDiagram.elements.length +
+                            this.state.currentDiagram.boundingBoxes.length +
+                            this.state.currentDiagram.edges.length +
+                            (this.state.currentDiagram.connectors || []).length;
+
+      const selectedElements = this.state.selectedNodeIds.length +
+                               this.state.selectedBoundingBoxIds.length +
+                               this.state.selectedSvgImageIds.length +
+                               this.state.selectedEdgeIds.length +
+                               (this.state.selectedConnectorIds || []).length;
+
+      if (totalElements > 0 && selectedElements === totalElements) {
+         if (!confirm('Are you sure you want to clear the canvas? All unsaved progress will be lost.')) {
+            return;
+         }
       }
 
       // Delete all selected items
@@ -1684,6 +1702,129 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return Math.min(node.size.width, node.size.height) * 0.15;
   }
 
+  getCacheBackPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const rx = w / 4;
+    const ry = h * 0.1;
+    const cy1 = y + ry;
+    const barrelH = h * 0.6;
+    return `M ${x},${cy1} v ${barrelH} a ${rx},${ry} 0 0 0 ${2*rx},0 v -${barrelH}`;
+  }
+
+  getCacheFrontPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const rx = w / 4;
+    const ry = h * 0.1;
+    const cy2 = y + h * 0.3;
+    const barrelH = h * 0.6;
+    const x2 = x + 2*rx;
+    return `M ${x2},${cy2} v ${barrelH} a ${rx},${ry} 0 0 0 ${2*rx},0 v -${barrelH}`;
+  }
+
+  getCacheLightningPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const pts = [
+      [17.5, 13], [14, 17], [16, 17], [14.5, 21], [18, 17], [16, 17]
+    ];
+    return pts.map(p => `${x + (p[0] - 4) * (w / 16)},${y + (p[1] - 4) * (h / 20)}`).join(' ');
+  }
+
+  getTickPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    return `${x + w * 0.16},${y + h * 0.5} ${x + w * 0.38},${y + h * 0.71} ${x + w * 0.83},${y + h * 0.25}`;
+  }
+
+  getCrossPoints(node: any): { p1: string, p2: string } {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const padding = Math.min(w, h) * 0.1;
+    return {
+      p1: `${x + padding},${y + padding} ${x + w - padding},${y + h - padding}`,
+      p2: `${x + w - padding},${y + padding} ${x + padding},${y + h - padding}`
+    };
+  }
+
+  getStarPoints(node: any): string {
+    const x = node.position.x + node.size.width / 2;
+    const y = node.position.y + node.size.height / 2;
+    const outerRadius = Math.min(node.size.width, node.size.height) / 2;
+    const innerRadius = outerRadius * 0.4;
+    const points: string[] = [];
+
+    for (let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (i * Math.PI) / 5 - Math.PI / 2;
+        points.push(`${x + radius * Math.cos(angle)},${y + radius * Math.sin(angle)}`);
+    }
+
+    return points.join(' ');
+  }
+
+  getSmileyMouthPath(node: any): string {
+    const x = node.position.x + node.size.width / 2;
+    const y = node.position.y + node.size.height / 2;
+    const w = node.size.width;
+    const h = node.size.height;
+    const rx = w * 0.15;
+    const ry = h * 0.15;
+    const mouthY = y + h * 0.15;
+    // Semi-circle/arc for the mouth
+    return `M ${x - rx},${mouthY} A ${rx},${ry} 0 0 0 ${x + rx},${mouthY}`;
+  }
+
+  getSmileyRadius(node: any): number {
+    return Math.min(node.size.width, node.size.height) / 2;
+  }
+
+  getSmileyEyeRadius(node: any): number {
+    return Math.min(node.size.width, node.size.height) * 0.05;
+  }
+
+  getDonutPath(node: any): string {
+    const x = node.position.x + node.size.width / 2;
+    const y = node.position.y + node.size.height / 2;
+    const r1 = Math.min(node.size.width, node.size.height) / 2;
+    const r2 = r1 * 0.5;
+
+    // Path with two concentric circles to create a hole
+    return `M ${x},${y - r1} A ${r1},${r1} 0 1 0 ${x},${y + r1} A ${r1},${r1} 0 1 0 ${x},${y - r1} ` +
+           `M ${x},${y - r2} A ${r2},${r2} 0 1 1 ${x},${y + r2} A ${r2},${r2} 0 1 1 ${x},${y - r2} Z`;
+  }
+
+  getLightningPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+
+    // Standard lightning bolt points normalized to 24x24 viewBox
+    const pts = [
+      [13, 2], [3, 14], [12, 14], [11, 22], [21, 10], [12, 10]
+    ];
+
+    const path = pts.map((p, i) => {
+      const px = x + (p[0] / 24) * w;
+      const py = y + (p[1] / 24) * h;
+      return `${i === 0 ? 'M' : 'L'} ${px} ${py}`;
+    }).join(' ');
+
+    return path + ' Z';
+  }
+
   // Premium Note shape methods
   getNoteMainPath(node: any): string {
     const x = node.position.x;
@@ -1702,6 +1843,106 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const h = node.size.height;
     const r = 10;
     return `M ${x+r},${y} L ${x+w-r},${y} Q ${x+w},${y} ${x+w},${y+r} L ${x+w},${y+h-r} Q ${x+w},${y+h} ${x+w-r},${y+h} L ${x+r},${y+h} Q ${x},${y+h} ${x},${y+h-r} L ${x},${y+r} Q ${x},${y} ${x+r},${y} Z`;
+  }
+
+  getMQPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const arrowWidth = Math.min(20, w * 0.2); // Pointy bit width
+
+    return `M ${x} ${y} L ${x + w - arrowWidth} ${y} L ${x + w} ${y + h / 2} L ${x + w - arrowWidth} ${y + h} L ${x} ${y + h} Z`;
+  }
+
+  getCDNPath(node: any): string {
+    const x = node.position.x + node.size.width / 2;
+    const y = node.position.y + node.size.height / 2;
+    const r = Math.min(node.size.width, node.size.height) / 2;
+    // Globe with lat/long lines
+    return `M ${x},${y - r} A ${r},${r} 0 1 0 ${x},${y + r} A ${r},${r} 0 1 0 ${x},${y - r} ` +
+           `M ${x - r},${y} L ${x + r},${y} ` +
+           `M ${x},${y - r} L ${x},${y + r} ` +
+           `M ${x - r * 0.7},${y - r * 0.7} Q ${x},${y} ${x + r * 0.7},${y + r * 0.7} ` +
+           `M ${x + r * 0.7},${y - r * 0.7} Q ${x},${y} ${x - r * 0.7},${y + r * 0.7}`;
+  }
+
+  getVaultPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const r = 4;
+    // Square with rounded corners and a dial
+    return `M ${x+r},${y} L ${x+w-r},${y} Q ${x+w},${y} ${x+w},${y+r} L ${x+w},${y+h-r} Q ${x+w},${y+h} ${x+w-r},${y+h} L ${x+r},${y+h} Q ${x},${y+h} ${x},${y+h-r} L ${x},${y+r} Q ${x},${y} ${x+r},${y} Z`;
+  }
+
+  getPadlockBodyPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y + node.size.height * 0.4;
+    const w = node.size.width;
+    const h = node.size.height * 0.6;
+    const r = 4;
+    return `M ${x+r},${y} L ${x+w-r},${y} Q ${x+w},${y} ${x+w},${y+r} L ${x+w},${y+h-r} Q ${x+w},${y+h} ${x+w-r},${y+h} L ${x+r},${y+h} Q ${x},${y+h} ${x},${y+h-r} L ${x},${y+r} Q ${x},${y} ${x+r},${y} Z`;
+  }
+
+  getPadlockShacklePath(node: any, isOpen: boolean): string {
+    const w = node.size.width;
+    const h = node.size.height;
+    const cx = node.position.x + w / 2;
+    const top = node.position.y + h * 0.1;
+    const bottom = node.position.y + h * 0.45;
+    const r = w * 0.3;
+
+    if (isOpen) {
+      return `M ${cx - r},${bottom} L ${cx - r},${top + r} A ${r},${r} 0 0 1 ${cx + r * 0.5},${top + r * 0.2}`;
+    }
+    return `M ${cx - r},${bottom} L ${cx - r},${top + r} A ${r},${r} 0 0 1 ${cx + r},${top + r} L ${cx + r},${bottom}`;
+  }
+
+  getDataLakePath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const ry = h * 0.1;
+    // Pool-like container with wavy top surface
+    return `M ${x},${y + ry} ` +
+           `A ${w/2},${ry} 0 0 0 ${x + w},${y + ry} ` +
+           `L ${x + w},${y + h - ry} ` +
+           `A ${w/2},${ry} 0 0 1 ${x},${y + h - ry} Z ` +
+           // Internal waves
+           `M ${x + w*0.1},${y + h*0.4} Q ${x + w*0.3},${y + h*0.3} ${x + w*0.5},${y + h*0.4} T ${x + w*0.9},${y + h*0.4} ` +
+           `M ${x + w*0.1},${y + h*0.6} Q ${x + w*0.3},${y + h*0.7} ${x + w*0.5},${y + h*0.6} T ${x + w*0.9},${y + h*0.6}`;
+  }
+
+  getBrowserPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const headH = Math.min(20, h * 0.2);
+    return `M ${x},${y+2} Q ${x},${y} ${x+2},${y} L ${x+w-2},${y} Q ${x+w},${y} ${x+w},${y+2} L ${x+w},${y+h-2} Q ${x+w},${y+h} ${x+w-2},${y+h} L ${x+2},${y+h} Q ${x},${y+h} ${x},${y+h-2} Z ` +
+           `M ${x},${y+headH} L ${x+w},${y+headH}`;
+  }
+
+  getMobilePath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const r = 8;
+    return `M ${x + r},${y} L ${x + w - r},${y} Q ${x + w},${y} ${x + w},${y + r} L ${x + w},${y + h - r} Q ${x + w},${y + h} ${x + w - r},${y + h} L ${x + r},${y + h} Q ${x},${y + h} ${x},${y + h - r} L ${x},${y + r} Q ${x},${y} ${x + r},${y} Z`;
+  }
+
+  getMobileScreenPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const m = 4; // margin
+    const r = 4; // inner radius
+    return `M ${x + m + r},${y + m} L ${x + w - m - r},${y + m} Q ${x + w - m},${y + m} ${x + w - m},${y + m + r} L ${x + w - m},${y + h - m - r} Q ${x + w - m},${y + h - m} ${x + w - m - r},${y + h - m} L ${x + m + r},${y + h - m} Q ${x + m},${y + h - m} ${x + m},${y + h - m - r} L ${x + m},${y + m + r} Q ${x + m},${y + m} ${x + m + r},${y + m} Z`;
   }
 
 
@@ -1738,27 +1979,43 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   getShapeTypeLabel(shape: string): string {
-    const shapeLabels: { [key: string]: string } = {
-      'circle': 'Circle',
-      'numberedCircle': 'Numbered Circle',
-      'cylinder': 'Cylinder',
-      'diamond': 'Diamond',
-      'parallelogram': 'Para',
-      'document': 'Document',
-      'pill': 'Pill',
-      'rounded': 'Round',
-      'roundedRectangle': 'Round',
-      'hexagon': 'Hexagon',
-      'triangle': 'Triangle',
-      'trapezoid': 'Trap',
-      'stickman': 'Stickman',
-      'callout': 'Callout',
-      'tape': 'Tape',
-      'cube': 'Cube',
-      'text': 'Text',
-      'note': 'Note'
-    };
-    return shapeLabels[shape] || shape;
+    switch (shape) {
+      case 'circle': return 'Circle';
+      case 'numberedCircle': return 'Numbered Circle';
+      case 'cylinder': return 'Cylinder';
+      case 'diamond': return 'Diamond';
+      case 'parallelogram': return 'Para';
+      case 'document': return 'Document';
+      case 'pill': return 'Pill';
+      case 'rounded': return 'Round';
+      case 'roundedRectangle': return 'Round';
+      case 'hexagon': return 'Hexagon';
+      case 'triangle': return 'Triangle';
+      case 'trapezoid': return 'Trap';
+      case 'stickman': return 'Stickman';
+      case 'callout': return 'Callout';
+      case 'tape': return 'Tape';
+      case 'cube': return 'Cube';
+      case 'text': return 'Text';
+      case 'note': return 'Note';
+      case 'mq': return 'MQ';
+      case 'envelope': return 'Envelope';
+      case 'cache': return 'Cache';
+      case 'tick': return 'Tick';
+      case 'cross': return 'Cross';
+      case 'star': return 'Star';
+      case 'smiley': return 'Smiley';
+      case 'donut': return 'Donut';
+      case 'lightning': return 'Lightning';
+      case 'cdn': return 'CDN';
+      case 'vault': return 'Vault';
+      case 'padlockClosed': return 'Lock';
+      case 'padlockOpen': return 'Unlock';
+      case 'dataLake': return 'Data Lake';
+      case 'browser': return 'Browser';
+      case 'mobile': return 'Mobile';
+      default: return shape.charAt(0).toUpperCase() + shape.slice(1);
+    }
   }
 
   // Get propagated tendrils from inner diagram
@@ -2098,6 +2355,33 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   isNode(element: DiagramElement): boolean {
     return isNode(element);
+  }
+
+  getNodeTransform(element: DiagramElement): string | null {
+    if (!isNode(element)) return null;
+    if (!element.flipHorizontal && !element.flipVertical) return null;
+
+    const x = element.position.x;
+    const y = element.position.y;
+    const w = element.size.width;
+    const h = element.size.height;
+
+    let tx = 0;
+    let ty = 0;
+    let sx = 1;
+    let sy = 1;
+
+    if (element.flipHorizontal) {
+      tx = x * 2 + w;
+      sx = -1;
+    }
+
+    if (element.flipVertical) {
+      ty = y * 2 + h;
+      sy = -1;
+    }
+
+    return `translate(${tx} ${ty}) scale(${sx} ${sy})`;
   }
 
   // Save diagram method for keyboard shortcut

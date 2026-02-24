@@ -1,6 +1,5 @@
 .properties-window
   position: absolute
-  width: 280px
   background: linear-gradient(180deg, #fefefe 0%, #e0e0e0 100%)
   backdrop-filter: blur(12px)
   -webkit-backdrop-filter: blur(12px)
@@ -14,6 +13,9 @@
   pointer-events: none
   transform: translateY(10px)
   transition: opacity 0.2s ease, transform 0.2s ease
+  display: flex
+  flex-direction: column
+  overflow: hidden
 
   &.visible
     opacity: 1
@@ -38,6 +40,23 @@
   display: flex
   flex-direction: column
   gap: 16px
+  flex: 1
+  overflow-y: auto
+
+.resize-handle
+  position: absolute
+  bottom: 2px
+  right: 2px
+  width: 16px
+  height: 16px
+  cursor: nwse-resize
+  display: flex
+  align-items: center
+  justify-content: center
+  color: rgba(0,0,0,0.3)
+
+  &:hover
+    color: rgba(0,0,0,0.6)
 
 .property-row
   display: flex
@@ -117,6 +136,7 @@
   cursor: pointer
   transition: all 0.2s ease
   overflow: hidden
+  border: 1px solid rgba(0, 0, 0, 0.15)
 
   input[type="color"]
     position: absolute
@@ -129,28 +149,21 @@
     padding: 0
     border: none
 
-  svg
-    margin-bottom: 8px
+  .color-content
+    display: flex
+    flex-direction: column
+    align-items: center
+    pointer-events: none
+    mix-blend-mode: difference
+    color: #fff
 
-  span
-    font-size: 13px
-    font-weight: 600
+    svg
+      margin-bottom: 8px
+      stroke: #fff
 
-.fill-btn
-  background: #e3f2fd
-  border: 2px solid #90caf9
-  color: #1976d2
-
-  svg
-    stroke: #1976d2
-
-.stroke-btn
-  background: #1e3a8a
-  border: 2px solid #1e3a8a
-  color: #ffffff
-
-  svg
-    stroke: #ffffff
+    span
+      font-size: 13px
+      font-weight: 600
 
 .property-block
   display: flex
@@ -257,3 +270,59 @@ textarea
   color: #888
   font-style: italic
   padding: 20px 0
+
+.accordion-block
+  margin-top: 8px
+
+.accordion-header
+  display: flex
+  justify-content: space-between
+  align-items: center
+  cursor: pointer
+  padding: 10px 12px
+  background-color: rgba(0, 0, 0, 0.04)
+  border-radius: 6px
+  border: 1px solid rgba(0, 0, 0, 0.08)
+
+  label
+    margin: 0
+    cursor: pointer
+
+  .chevron
+    transition: transform 0.2s ease
+    color: #666
+
+    &.expanded
+      transform: rotate(180deg)
+
+.accordion-content
+  margin-top: 8px
+  animation: slideDown 0.2s ease-out
+
+@keyframes slideDown
+  from
+    opacity: 0
+    transform: translateY(-5px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
+.tags-container
+  display: flex
+  flex-direction: column
+
+.tag-row
+  display: flex
+  gap: 6px
+  padding: 4px
+  border-radius: 4px
+
+  &:nth-child(even)
+    .tag-input
+      background-color: #f0f7ff // Subtle blue background in the textboxes
+
+  .tag-input
+    flex: 1
+    min-width: 0
+    font-size: 13px
+    padding: 6px 8px

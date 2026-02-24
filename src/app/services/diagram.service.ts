@@ -272,7 +272,7 @@ export class DiagramService {
       notes: '',
       shape: shape,
       borderColor: options?.borderColor || '#000000',
-      fillColor: options?.fillColor || (shape === 'note' ? '#fff9c4' : '#ffffff'),
+      fillColor: options?.fillColor || (shape === 'note' ? '#fff9c4' : (shape === 'lightning' ? '#fdd835' : '#ffffff')),
       dotted: options?.dotted || false,
       fontFamily: options?.fontFamily || 'Purisa, Chalkboard',
       fontSize: 14,
@@ -407,6 +407,36 @@ export class DiagramService {
     const nextDiagram = this.performAutoRouting({
       ...currentState.currentDiagram,
       boundingBoxes: newBoundingBoxes
+    });
+
+    this.state = {
+      ...currentState,
+      currentDiagram: nextDiagram
+    };
+  }
+
+  toggleFlip(direction: 'horizontal' | 'vertical'): void {
+    const currentState = this.state;
+    const selectedNodes = currentState.selectedNodeIds;
+    const selectedSvgs = currentState.selectedSvgImageIds;
+    const allSelectedIds = [...selectedNodes, ...selectedSvgs];
+
+    if (allSelectedIds.length === 0) return;
+
+    const newElements = currentState.currentDiagram.elements.map(element => {
+      if (allSelectedIds.includes(element.id)) {
+        if (direction === 'horizontal') {
+          return { ...element, flipHorizontal: !element.flipHorizontal };
+        } else {
+          return { ...element, flipVertical: !element.flipVertical };
+        }
+      }
+      return element;
+    });
+
+    const nextDiagram = this.performAutoRouting({
+      ...currentState.currentDiagram,
+      elements: newElements
     });
 
     this.state = {
@@ -921,7 +951,7 @@ export class DiagramService {
       : this.state.currentDiagram;
 
     const diagramToSave = this.prepareDiagramForSave(rootDiagram);
-    return JSON.stringify(diagramToSave, null, 2);
+    return JSON.stringify(diagramToSave, null, 4);
   }
 
   loadDiagram(jsonString: string): void {

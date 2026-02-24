@@ -1,5 +1,5 @@
 // Forced rebuild to resolve stale template issues
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DiagramService } from '../../services/diagram.service';
 import { DiagramElement, Tendril, isNode, isSvgImage } from '../../models/diagram.model';
@@ -22,6 +22,16 @@ export class DiagramToolbarComponent {
   }
 
   newDiagram(): void {
+    const state = this.diagramService.currentState;
+    const hasElements = state.currentDiagram.elements.length > 0 ||
+                        state.currentDiagram.boundingBoxes.length > 0 ||
+                        state.currentDiagram.edges.length > 0 ||
+                        (state.currentDiagram.connectors || []).length > 0;
+
+    if (hasElements && !confirm('Are you sure you want to clear the canvas? All unsaved progress will be lost.')) {
+      return;
+    }
+
     // Reset the diagram service state
     this.diagramService['stateSubject'].next({
       currentDiagram: this.diagramService['createEmptyDiagram'](),
@@ -55,6 +65,11 @@ export class DiagramToolbarComponent {
   closeAllDropdowns(): void {
     this.isAddDropdownOpen = false;
     this.isInstructionsOpen = false;
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: Event) {
+    this.closeAllDropdowns();
   }
 
   addNewNode(shape: string = 'rectangle'): void {
@@ -122,6 +137,30 @@ export class DiagramToolbarComponent {
     };
 
     this.diagramService.addTendril(elementId, type, position);
+  }
+
+  isSingleElementSelected(): boolean {
+    const state = this.diagramService.currentState;
+    const nodeCount = state.selectedNodeIds.length;
+    const svgCount = state.selectedSvgImageIds.length;
+
+    if (nodeCount + svgCount !== 1) return false;
+
+    const id = nodeCount === 1 ? state.selectedNodeIds[0] : state.selectedSvgImageIds[0];
+    const element = state.currentDiagram.elements.find(el => el.id === id);
+    return !!element && (isNode(element) || isSvgImage(element));
+  }
+
+  flipHorizontal(): void {
+    if (this.isSingleElementSelected()) {
+      this.diagramService.toggleFlip('horizontal');
+    }
+  }
+
+  flipVertical(): void {
+    if (this.isSingleElementSelected()) {
+      this.diagramService.toggleFlip('vertical');
+    }
   }
 
   saveDiagram(): void {

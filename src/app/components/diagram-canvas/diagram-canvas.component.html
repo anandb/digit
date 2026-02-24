@@ -41,10 +41,18 @@
         </rect>
 
         <!-- Resize handle -->
-        <circle *ngIf="isSelected('boundingBox', box.id)" [attr.cx]="box.position.x + box.size.width"
-          [attr.cy]="box.position.y + box.size.height" r="4" class="resize-handle"
-          (mousedown)="startBoundingBoxResize($event, box, 'se')" style="cursor: nw-resize;">
-        </circle>
+        <g *ngIf="isSelected('boundingBox', box.id)">
+          <!-- Invisible larger hit area -->
+          <circle [attr.cx]="box.position.x + box.size.width"
+            [attr.cy]="box.position.y + box.size.height" r="15" fill="transparent"
+            (mousedown)="startBoundingBoxResize($event, box, 'se')" style="cursor: nw-resize;">
+          </circle>
+          <!-- Visible handle -->
+          <circle [attr.cx]="box.position.x + box.size.width"
+            [attr.cy]="box.position.y + box.size.height" r="4" class="resize-handle"
+            pointer-events="none">
+          </circle>
+        </g>
 
         <!-- Bounding box label -->
         <text [attr.x]="box.position.x + box.size.width - 10" [attr.y]="box.position.y + 20" text-anchor="end"
@@ -68,9 +76,11 @@
 
         <!-- SVG Image content -->
         <ng-container *ngIf="isSvgImage(element)">
-          <!-- SVG content -->
-          <g [innerHTML]="sanitizeSvgContent($any(element).svgContent)"
-            [attr.transform]="'translate(' + element.position.x + ',' + element.position.y + ')'">
+          <g [attr.transform]="getNodeTransform(element)">
+            <!-- SVG content -->
+            <g [innerHTML]="sanitizeSvgContent($any(element).svgContent)"
+              [attr.transform]="'translate(' + element.position.x + ',' + element.position.y + ')'">
+            </g>
           </g>
 
           <!-- Bounding box for SVG (invisible but for selection) -->
@@ -79,10 +89,18 @@
           </rect>
 
           <!-- Resize handle -->
-          <circle *ngIf="isSelected('svg', element.id)" [attr.cx]="element.position.x + element.size.width"
-            [attr.cy]="element.position.y + element.size.height" r="4" class="resize-handle"
-            (mousedown)="startSvgImageResize($event, $any(element), 'se')" style="cursor: nw-resize;">
-          </circle>
+          <g *ngIf="isSelected('svg', element.id)">
+            <!-- Invisible larger hit area -->
+            <circle [attr.cx]="element.position.x + element.size.width"
+              [attr.cy]="element.position.y + element.size.height" r="15" fill="transparent"
+              (mousedown)="startSvgImageResize($event, $any(element), 'se')" style="cursor: nw-resize;">
+            </circle>
+            <!-- Visible handle -->
+            <circle [attr.cx]="element.position.x + element.size.width"
+              [attr.cy]="element.position.y + element.size.height" r="4" class="resize-handle"
+              pointer-events="none">
+            </circle>
+          </g>
 
           <!-- SVG Image Label -->
           <text *ngIf="$any(element).label" [attr.x]="element.position.x + element.size.width / 2"
@@ -94,7 +112,17 @@
 
         <!-- Node shapes -->
         <ng-container *ngIf="isNode(element)">
-          <!-- Mirrored Rectangle -->
+          <g [attr.transform]="getNodeTransform(element)">
+
+            <!-- Mirrored Rectangle -->
+            <rect *ngIf="$any(element).shape === 'rectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 8"
+              [attr.y]="$any(element).position.y + 8" [attr.width]="$any(element).size.width"
+            [attr.height]="$any(element).size.height" [attr.rx]="$any(element).rounded ? 10 : null" [attr.ry]="$any(element).rounded ? 10 : null"
+            [attr.fill]="$any(element).fillColor"
+            [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="$any(element).strokeWidth || 1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            class="node-mirror">
+          </rect>
           <rect *ngIf="$any(element).shape === 'rectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 4"
             [attr.y]="$any(element).position.y + 4" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="$any(element).rounded ? 10 : null" [attr.ry]="$any(element).rounded ? 10 : null"
@@ -115,6 +143,14 @@
           </rect>
 
           <!-- Mirrored Circle -->
+          <circle *ngIf="$any(element).shape === 'circle' && $any(element).mirror"
+            [attr.cx]="$any(element).position.x + $any(element).size.width / 2 + 8"
+            [attr.cy]="$any(element).position.y + $any(element).size.height / 2 + 8" [attr.r]="getCircleRadius(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="$any(element).strokeWidth || 1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            class="node-mirror">
+          </circle>
           <circle *ngIf="$any(element).shape === 'circle' && $any(element).mirror"
             [attr.cx]="$any(element).position.x + $any(element).size.width / 2 + 4"
             [attr.cy]="$any(element).position.y + $any(element).size.height / 2 + 4" [attr.r]="getCircleRadius(element)"
@@ -154,6 +190,14 @@
           </g>
 
           <!-- Mirrored Pill -->
+          <rect *ngIf="$any(element).shape === 'pill' && $any(element).mirror" [attr.x]="$any(element).position.x + 8"
+            [attr.y]="$any(element).position.y + 8" [attr.width]="$any(element).size.width"
+            [attr.height]="$any(element).size.height" [attr.rx]="$any(element).size.height / 2"
+            [attr.ry]="$any(element).size.height / 2" [attr.fill]="$any(element).fillColor"
+            [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="$any(element).strokeWidth || 1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            class="node-mirror">
+          </rect>
           <rect *ngIf="$any(element).shape === 'pill' && $any(element).mirror" [attr.x]="$any(element).position.x + 4"
             [attr.y]="$any(element).position.y + 4" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="$any(element).size.height / 2"
@@ -222,6 +266,14 @@
           </g>
 
           <!-- Mirrored Rounded Rectangle -->
+          <rect *ngIf="$any(element).shape === 'roundedRectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 8"
+            [attr.y]="$any(element).position.y + 8" [attr.width]="$any(element).size.width"
+            [attr.height]="$any(element).size.height" [attr.rx]="10" [attr.ry]="10"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+            [attr.stroke-width]="$any(element).strokeWidth || 1"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            class="node-mirror">
+          </rect>
           <rect *ngIf="$any(element).shape === 'roundedRectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 4"
             [attr.y]="$any(element).position.y + 4" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="10" [attr.ry]="10"
@@ -414,6 +466,298 @@
             [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </path>
 
+          <!-- MQ shape -->
+          <g *ngIf="$any(element).shape === 'mq'" [class.highlighted]="isHighlighted('node', element.id)" class="mq" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null">
+
+            <!-- Mirrored backdrop -->
+            <path *ngIf="$any(element).mirror" [attr.d]="getMQPath(element)"
+              [attr.transform]="'translate(8, 8)'"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="$any(element).strokeWidth || 1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+              class="node-mirror">
+            </path>
+            <path *ngIf="$any(element).mirror" [attr.d]="getMQPath(element)"
+              [attr.transform]="'translate(4, 4)'"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="$any(element).strokeWidth || 1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+              class="node-mirror">
+            </path>
+
+            <path [attr.d]="getMQPath(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </path>
+
+            <!-- Four little envelopes centered inside -->
+            <!-- Use a scaled group based on node size with 4 envelopes occupying 70% of the space -->
+            <g [attr.transform]="'translate(' + ($any(element).position.x + $any(element).size.width * 0.05) + ', ' + ($any(element).position.y + $any(element).size.height * 0.5 - 4 * ($any(element).size.width * 0.7 / 54)) + ') scale(' + ($any(element).size.width * 0.7 / 54) + ')'"
+               fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor" stroke-width="2">
+              <rect x="0" y="0" width="12" height="8"/><polyline points="0,0 6,5 12,0"/>
+              <rect x="14" y="0" width="12" height="8"/><polyline points="14,0 20,5 26,0"/>
+              <rect x="28" y="0" width="12" height="8"/><polyline points="28,0 34,5 40,0"/>
+              <rect x="42" y="0" width="12" height="8"/><polyline points="42,0 48,5 54,0"/>
+            </g>
+          </g>
+
+          <!-- Cache shape -->
+          <g *ngIf="$any(element).shape === 'cache'" [class.highlighted]="isHighlighted('node', element.id)" class="cache" filter="url(#dropshadow)">
+            <!-- Back cylinder -->
+            <path [attr.d]="getCacheBackPath(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </path>
+            <ellipse [attr.cx]="$any(element).position.x + $any(element).size.width / 4"
+                     [attr.cy]="$any(element).position.y + $any(element).size.height * 0.1"
+                     [attr.rx]="$any(element).size.width / 4"
+                     [attr.ry]="$any(element).size.height * 0.1"
+                     [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                     [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </ellipse>
+            <!-- Front cylinder -->
+            <path [attr.d]="getCacheFrontPath(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </path>
+            <ellipse [attr.cx]="$any(element).position.x + $any(element).size.width * 0.75"
+                     [attr.cy]="$any(element).position.y + $any(element).size.height * 0.3"
+                     [attr.rx]="$any(element).size.width / 4"
+                     [attr.ry]="$any(element).size.height * 0.1"
+                     [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                     [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </ellipse>
+            <!-- Lightning bolt -->
+            <polygon [attr.points]="getCacheLightningPoints(element)"
+                     [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                     stroke="none">
+            </polygon>
+          </g>
+
+          <!-- Tick shape -->
+          <g *ngIf="$any(element).shape === 'tick'" [class.highlighted]="isHighlighted('node', element.id)" class="tick" filter="url(#dropshadow)">
+            <polyline [attr.points]="getTickPoints(element)"
+              fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (6 + ($any(element).strokeWidth || 1)) : (4 + ($any(element).strokeWidth || 1))"
+              stroke-linecap="round" stroke-linejoin="round">
+            </polyline>
+          </g>
+
+          <!-- Cross shape -->
+          <g *ngIf="$any(element).shape === 'cross'" [class.highlighted]="isHighlighted('node', element.id)" class="cross" filter="url(#dropshadow)">
+            <path [attr.d]="'M ' + getCrossPoints(element).p1 + ' M ' + getCrossPoints(element).p2"
+              fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (6 + ($any(element).strokeWidth || 1)) : (4 + ($any(element).strokeWidth || 1))"
+              stroke-linecap="round" stroke-linejoin="round">
+            </path>
+          </g>
+
+          <!-- Star shape -->
+          <g *ngIf="$any(element).shape === 'star'" [class.highlighted]="isHighlighted('node', element.id)" class="star" filter="url(#dropshadow)">
+            <polygon [attr.points]="getStarPoints(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              stroke-linejoin="round">
+            </polygon>
+          </g>
+
+          <!-- Smiley shape -->
+          <g *ngIf="$any(element).shape === 'smiley'" [class.highlighted]="isHighlighted('node', element.id)" class="smiley" filter="url(#dropshadow)">
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+                    [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+                    [attr.r]="getSmileyRadius(element)"
+                    [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                    [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </circle>
+            <!-- Eyes -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width * 0.35"
+                    [attr.cy]="$any(element).position.y + $any(element).size.height * 0.4"
+                    [attr.r]="getSmileyEyeRadius(element)"
+                    [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
+            </circle>
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width * 0.65"
+                    [attr.cy]="$any(element).position.y + $any(element).size.height * 0.4"
+                    [attr.r]="getSmileyEyeRadius(element)"
+                    [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
+            </circle>
+            <!-- Mouth -->
+            <path [attr.d]="getSmileyMouthPath(element)"
+                  fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linecap="round">
+            </path>
+          </g>
+
+          <!-- Donut shape -->
+          <g *ngIf="$any(element).shape === 'donut'" [class.highlighted]="isHighlighted('node', element.id)" class="donut" filter="url(#dropshadow)">
+            <path [attr.d]="getDonutPath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  fill-rule="evenodd">
+            </path>
+          </g>
+
+          <!-- Lightning shape -->
+          <g *ngIf="$any(element).shape === 'lightning'" [class.highlighted]="isHighlighted('node', element.id)" class="lightning" filter="url(#dropshadow)">
+            <path [attr.d]="getLightningPath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linejoin="round">
+            </path>
+          </g>
+
+          <!-- CDN shape -->
+          <g *ngIf="$any(element).shape === 'cdn'" [class.highlighted]="isHighlighted('node', element.id)" class="cdn" filter="url(#dropshadow)">
+            <path [attr.d]="getCDNPath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linejoin="round">
+            </path>
+          </g>
+
+          <!-- Vault shape -->
+          <g *ngIf="$any(element).shape === 'vault'" [class.highlighted]="isHighlighted('node', element.id)" class="vault" filter="url(#dropshadow)">
+            <path [attr.d]="getVaultPath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linejoin="round">
+            </path>
+            <!-- Vault dial -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+                    [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+                    [attr.r]="$any(element).size.width * 0.2"
+                    fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                    [attr.stroke-width]="isSelected('node', element.id) ? (2 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </circle>
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
+                  [attr.y1]="$any(element).position.y + $any(element).size.height / 2"
+                  [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
+                  [attr.y2]="$any(element).position.y + $any(element).size.height * 0.35"
+                  [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (2 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </line>
+          </g>
+
+          <!-- Padlock Closed shape -->
+          <g *ngIf="$any(element).shape === 'padlockClosed'" [class.highlighted]="isHighlighted('node', element.id)" class="padlock-closed" filter="url(#dropshadow)">
+            <path [attr.d]="getPadlockShacklePath(element, false)"
+                  fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </path>
+            <path [attr.d]="getPadlockBodyPath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linejoin="round">
+            </path>
+          </g>
+
+          <!-- Padlock Open shape -->
+          <g *ngIf="$any(element).shape === 'padlockOpen'" [class.highlighted]="isHighlighted('node', element.id)" class="padlock-open" filter="url(#dropshadow)">
+            <path [attr.d]="getPadlockShacklePath(element, true)"
+                  fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </path>
+            <path [attr.d]="getPadlockBodyPath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linejoin="round">
+            </path>
+          </g>
+
+          <!-- Data Lake shape -->
+          <g *ngIf="$any(element).shape === 'dataLake'" [class.highlighted]="isHighlighted('node', element.id)" class="data-lake" filter="url(#dropshadow)">
+            <path [attr.d]="getDataLakePath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linejoin="round">
+            </path>
+            <!-- Top surface ellipse for depth -->
+            <ellipse [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+                     [attr.cy]="$any(element).position.y + $any(element).size.height * 0.1"
+                     [attr.rx]="$any(element).size.width / 2"
+                     [attr.ry]="$any(element).size.height * 0.1"
+                     fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                     [attr.stroke-width]="1" opacity="0.3">
+            </ellipse>
+          </g>
+
+          <!-- Browser shape -->
+          <g *ngIf="$any(element).shape === 'browser'" [class.highlighted]="isHighlighted('node', element.id)" class="browser" filter="url(#dropshadow)">
+            <path [attr.d]="getBrowserPath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linejoin="round">
+            </path>
+            <!-- Browser dots -->
+            <circle [attr.cx]="$any(element).position.x + 8" [attr.cy]="$any(element).position.y + 10" r="2" [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"></circle>
+            <circle [attr.cx]="$any(element).position.x + 14" [attr.cy]="$any(element).position.y + 10" r="2" [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"></circle>
+          </g>
+
+          <!-- Mobile shape -->
+          <g *ngIf="$any(element).shape === 'mobile'" [class.highlighted]="isHighlighted('node', element.id)" class="mobile" filter="url(#dropshadow)">
+            <!-- Outer body -->
+            <path [attr.d]="getMobilePath(element)"
+                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+                  stroke-linejoin="round">
+            </path>
+            <!-- Inner screen -->
+            <path [attr.d]="getMobileScreenPath(element)"
+                  fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+                  [attr.stroke-width]="1"
+                  stroke-linejoin="round" opacity="0.5">
+            </path>
+            <!-- Dynamic Island / Notch -->
+            <rect [attr.x]="$any(element).position.x + $any(element).size.width / 2 - 10"
+                  [attr.y]="$any(element).position.y + 6"
+                  width="20" height="4" rx="2"
+                  [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
+            </rect>
+          </g>
+
+          <!-- Envelope shape -->
+          <g *ngIf="$any(element).shape === 'envelope'" [class.highlighted]="isHighlighted('node', element.id)" class="envelope" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null">
+
+            <!-- Mirrored backdrop -->
+            <rect *ngIf="$any(element).mirror"
+              [attr.x]="$any(element).position.x + 8" [attr.y]="$any(element).position.y + 8"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" rx="4"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="$any(element).strokeWidth || 1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+              class="node-mirror">
+            </rect>
+            <rect *ngIf="$any(element).mirror"
+              [attr.x]="$any(element).position.x + 4" [attr.y]="$any(element).position.y + 4"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" rx="4"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="$any(element).strokeWidth || 1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+              class="node-mirror">
+            </rect>
+
+            <!-- Main envelope rect -->
+            <rect
+              [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" rx="4"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+
+            <!-- Inner V shape -->
+            <polyline
+              [attr.points]="($any(element).position.x) + ',' + ($any(element).position.y) + ' ' +
+                             ($any(element).position.x + $any(element).size.width / 2) + ',' + ($any(element).position.y + $any(element).size.height * 0.6) + ' ' +
+                             ($any(element).position.x + $any(element).size.width) + ',' + ($any(element).position.y)"
+              fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </polyline>
+          </g>
           <!-- Note shape (page with curled corner and pushpin) -->
           <g *ngIf="$any(element).shape === 'note'" [class.highlighted]="isHighlighted('node', element.id)" class="note">
             <!-- Custom shadow for the note -->
@@ -461,12 +805,21 @@
               [attr.stroke-dasharray]="$any(element).dotted ? '12,8' : null">
             </line>
           </g>
+          </g>
 
           <!-- Resize handles -->
-          <circle *ngIf="isSelected('node', element.id)" [attr.cx]="$any(element).position.x + $any(element).size.width"
-            [attr.cy]="$any(element).position.y + $any(element).size.height" r="4" class="resize-handle"
-            (mousedown)="startResize($event, $any(element), 'se')" style="cursor: nw-resize;">
-          </circle>
+          <g *ngIf="isSelected('node', element.id)">
+            <!-- Invisible larger hit area -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width"
+              [attr.cy]="$any(element).position.y + $any(element).size.height" r="15" fill="transparent"
+              (mousedown)="startResize($event, $any(element), 'se')" style="cursor: nw-resize;">
+            </circle>
+            <!-- Visible handle -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width"
+              [attr.cy]="$any(element).position.y + $any(element).size.height" r="4" class="resize-handle"
+              pointer-events="none">
+            </circle>
+          </g>
 
           <!-- Node name/text - conditional rendering for note, text, and numbered circle shapes -->
           <text *ngIf="$any(element).shape !== 'note' && $any(element).shape !== 'text' && $any(element).shape !== 'numberedCircle'"
@@ -684,8 +1037,6 @@
     <path *ngIf="isCreatingEdge" [attr.d]="getTempEdgePath()" class="temp-edge" stroke="#999" stroke-width="2"
       stroke-dasharray="5,5" fill="none">
     </path>
-
-
 
     <!-- Arrow marker, grid pattern, and drop shadow filter definitions -->
     <defs>

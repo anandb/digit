@@ -17,6 +17,7 @@ export class DiagramToolbarComponent {
 
   // Dropdown state for Instructions
   isInstructionsOpen = false;
+  isChaosMode = false;
 
   constructor(private diagramService: DiagramService) {
   }
@@ -51,6 +52,10 @@ export class DiagramToolbarComponent {
     this.isInstructionsOpen = false;
   }
 
+  toggleChaosMode(): void {
+    this.isChaosMode = !this.isChaosMode;
+  }
+
   closeAllDropdowns(): void {
     this.isAddDropdownOpen = false;
     this.isInstructionsOpen = false;
@@ -71,10 +76,20 @@ export class DiagramToolbarComponent {
       y: (viewportCenter?.y || 300) - 30 + (Math.random() * 20)
     };
 
-    // Create the node with default minimal shape settings
-    this.diagramService.addNode(position, {
-      shape: shape,
-    });
+    // Create the node(s). If chaos mode is on, spawn 4-7 nodes.
+    const count = this.isChaosMode ? Math.floor(Math.random() * 4) + 4 : 1;
+
+    for (let i = 0; i < count; i++) {
+      // Add slight randomization to position if adding multiple
+      const offsetPos = {
+        x: position.x + (this.isChaosMode ? (Math.random() * 160 - 80) : 0),
+        y: position.y + (this.isChaosMode ? (Math.random() * 160 - 80) : 0)
+      };
+
+      this.diagramService.addNode(offsetPos, {
+        shape: shape,
+      });
+    }
 
   }
 

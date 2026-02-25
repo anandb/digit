@@ -25,6 +25,11 @@
 
   <div class="toolbar-section">
     <div class="dropdown-container">
+      <button (click)="toggleChaosMode()" class="toolbar-item chaos-toggle" [class.active]="isChaosMode" title="Chaos Mode (Adds multiple copies)">
+        <div class="icon-placeholder">{{ isChaosMode ? '💥' : '✨' }}</div>
+        <span class="item-label">Chaos</span>
+      </button>
+
       <button (click)="toggleAddDropdown()" class="toolbar-item" [class.active]="isAddDropdownOpen" title="Add Shape">
         <div class="icon-placeholder">➕</div>
         <span class="item-label">Add</span>

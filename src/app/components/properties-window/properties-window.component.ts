@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DiagramService } from '../../services/diagram.service';
-import { Node, Edge, Tendril, BoundingBox, Connector, isNode, isBoundingBox } from '../../models/diagram.model';
+import { Node, Edge, Tendril, BoundingBox, Connector, SvgImage, isNode, isBoundingBox, isSvgImage } from '../../models/diagram.model';
 
 @Component({
   selector: 'app-properties-window',
@@ -41,6 +41,7 @@ export class PropertiesWindowComponent implements OnInit {
           !state.selectedTendrilId &&
           state.selectedEdgeIds.length === 0 &&
           state.selectedBoundingBoxIds.length === 0 &&
+          state.selectedSvgImageIds.length === 0 &&
           (state.selectedConnectorIds || []).length === 0) {
         this.close();
       } else {
@@ -171,7 +172,7 @@ export class PropertiesWindowComponent implements OnInit {
     return this.diagramService.currentState.currentDiagram.boundingBoxes.find(b => b.id === state.selectedBoundingBoxId) || null;
   }
 
-  get selectedElement(): Node | BoundingBox | null {
+  get selectedElement(): Node | BoundingBox | SvgImage | null {
     const state = this.diagramService.currentState;
 
     // Priority should match the 'type' getter
@@ -181,6 +182,11 @@ export class PropertiesWindowComponent implements OnInit {
 
     if (state.selectedNodeId) {
       return this.diagramService.getNode(state.selectedNodeId) || null;
+    }
+
+    if (state.selectedSvgImageIds.length > 0) {
+      const svgId = state.selectedSvgImageIds[0];
+      return state.currentDiagram.elements.find(e => isSvgImage(e) && e.id === svgId) as SvgImage || null;
     }
 
     return null;
@@ -452,8 +458,8 @@ export class PropertiesWindowComponent implements OnInit {
   // --- Node / Edge Shared Properties: Stroke, Dotted, Font ---
 
   getStrokeColor(): string {
-    const element = this.selectedElement;
-    if (element) return element.borderColor;
+    const element = this.selectedElement as any;
+    if (element) return element.borderColor || '#000000';
     if (this.selectedEdge) return this.selectedEdge.borderColor || '#000000';
     return this.selectedConnector?.borderColor || '#000000';
   }
@@ -581,7 +587,7 @@ export class PropertiesWindowComponent implements OnInit {
   }
 
   getFontFamily(): string {
-    return this.selectedElement?.fontFamily ||
+    return (this.selectedElement as any)?.fontFamily ||
            this.selectedEdge?.attributes['fontFamily'] || 'Arial';
   }
 
@@ -671,7 +677,7 @@ export class PropertiesWindowComponent implements OnInit {
   // --- Node Only Properties: Fill Color ---
 
   getFillColor(): string {
-    return this.selectedElement?.fillColor || '#ffffff';
+    return (this.selectedElement as any)?.fillColor || '#ffffff';
   }
 
   updateFillColor(event: Event) {

@@ -339,66 +339,128 @@ export class DiagramService {
 
   // SVG image operations
   addSvgImage(svgContent: string, fileName: string): void {
-    // Parse SVG to get dimensions
-    const parser = new DOMParser();
-    const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
-    const svgElement = svgDoc.documentElement;
+  // Generate a unique ID for this SVG element first, so we can namespace internal IDs
+  const elementId = this.generateId();
 
-    let width = parseFloat(svgElement.getAttribute('width') || '100');
-    let height = parseFloat(svgElement.getAttribute('height') || '100');
+  // Parse SVG to get dimensions
+  const parser = new DOMParser();
+  const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
+  const svgElement = svgDoc.documentElement;
 
-    // Scale down to be comparable to typical node size (100x60)
-    // Target size should be smaller than node size for better proportion
-    const targetWidth = 80;   // Smaller than typical node width
-    const targetHeight = 50;  // Smaller than typical node height
+  let width = parseFloat(svgElement.getAttribute('width') || '100');
+  let height = parseFloat(svgElement.getAttribute('height') || '100');
 
-    // Always scale down to target size
-    const scaleX = targetWidth / width;
-    const scaleY = targetHeight / height;
-    const scale = Math.min(scaleX, scaleY);
-
-    // Apply scaling to dimensions
-    width *= scale;
-    height *= scale;
-
-    // Update the SVG content with scaled dimensions
-    svgElement.setAttribute('width', width.toString());
-    svgElement.setAttribute('height', height.toString());
-
-    // Don't modify viewBox - let the SVG display its full content at the new size
-    // The viewBox should remain as originally defined to show complete content
-
-    // Serialize back to string
-    const serializer = new XMLSerializer();
-    const scaledSvgContent = serializer.serializeToString(svgElement);
-
-    // Position around the upper-center of the canvas
-    const position = {
-      x: 350 + (Math.random() * 50),
-      y: 150 + (Math.random() * 50)
-    };
-
-    const newSvgImage: import('../models/diagram.model').SvgImage = {
-      id: this.generateId(),
-      position,
-      size: { width, height },
-      svgContent: scaledSvgContent,
-      fileName,
-      label: fileName.replace('.svg', ''), // Use filename without extension as default label
-      tendrils: [],
-      attributes: {},
-      notes: ''
-    };
-
-    this.state = {
-      ...this.state,
-      currentDiagram: {
-        ...this.state.currentDiagram,
-        elements: [...this.state.currentDiagram.elements, newSvgImage]
+  // If no valid width/height, try to extract from viewBox
+  if (!width || !height || isNaN(width) || isNaN(height)) {
+    const viewBox = svgElement.getAttribute('viewBox');
+    if (viewBox) {
+      const parts = viewBox.split(/[\s,]+/);
+      if (parts.length === 4) {
+        width = parseFloat(parts[2]) || 100;
+        height = parseFloat(parts[3]) || 100;
       }
-    };
+    }
+    if (!width || isNaN(width)) width = 100;
+    if (!height || isNaN(height)) height = 100;
   }
 
+  // Scale down to be comparable to typical node size (100x60)
+  // Target size should be smaller than node size for better proportion
+  const targetWidth = 80;   // Smaller than typical node width
+  const targetHeight = 50;  // Smaller than typical node height
+
+  // Always scale down to target size
+  const scaleX = targetWidth / width;
+  const scaleY = targetHeight / height;
+  const scale = Math.min(scaleX, scaleY);
+
+  // Apply scaling to dimensions
+  width *= scale;
+  height *= scale;
+
+  // Update the SVG content with scaled dimensions
+  svgElement.setAttribute('width', width.toString());
+  svgElement.setAttribute('height', height.toString());
+
+  // Don't modify viewBox - let the SVG display its full content at the new size
+  // The viewBox should remain as originally defined to show complete content
+
+  // Serialize back to string
+  const serializer = new XMLSerializer();
+  let scaledSvgContent = serializer.serializeToString(svgElement);
+
+  // --- Namespace all internal IDs to avoid collisions when multiple SVGs are loaded ---
+  // When SVGs are embedded via innerHTML, their IDs become global in the DOM.
+  // If two SVGs share the same internal ID (e.g. a gradient named "a"), the first
+  // definition wins for all, causing all copies to look like the first SVG.
+  // Fix: collect all defined IDs and replace every occurrence with a namespaced version.
+  const idPrefix = `svg-${elementId}`;
+  const definedIds: string[] = [];
+  const idRegex = /\bid="([^"]+)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = idRegex.exec(scaledSvgContent)) !== null) {
+    definedIds.push(match[1]);
+  }
+
+  if (definedIds.length > 0) {
+    // Sort by length descending to prevent partial replacements (longer IDs first)
+    definedIds.sort((a, b) => b.length - a.length);
+
+    for (const id of definedIds) {
+      const namespacedId = `${idPrefix}-${id}`;
+      // Escape special regex chars in the original ID
+      const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      // Replace id="..." declarations
+      scaledSvgContent = scaledSvgContent.replace(
+        new RegExp(`id="${escapedId}"`, 'g'),
+        `id="${namespacedId}"`
+      );
+      // Replace href="#..." references
+      scaledSvgContent = scaledSvgContent.replace(
+        new RegExp(`href="#${escapedId}"`, 'g'),
+        `href="#${namespacedId}"`
+      );
+      // Replace xlink:href="#..." references
+      scaledSvgContent = scaledSvgContent.replace(
+        new RegExp(`xlink:href="#${escapedId}"`, 'g'),
+        `xlink:href="#${namespacedId}"`
+      );
+      // Replace url(#...) references in attributes and style values
+      scaledSvgContent = scaledSvgContent.replace(
+        new RegExp(`url\\(#${escapedId}\\)`, 'g'),
+        `url(#${namespacedId})`
+      );
+    }
+  }
+  // --- End ID namespacing ---
+
+  // Position around the upper-center of the canvas
+  const position = {
+    x: 350 + (Math.random() * 50),
+    y: 150 + (Math.random() * 50)
+  };
+
+  const newSvgImage: import('../models/diagram.model').SvgImage = {
+    id: elementId,
+    position,
+    size: { width, height },
+    svgContent: scaledSvgContent,
+    fileName,
+    label: fileName.replace('.svg', ''), // Use filename without extension as default label
+    tendrils: [],
+    attributes: {},
+    notes: ''
+  };
+
+  this.state = {
+    ...this.state,
+    currentDiagram: {
+      ...this.state.currentDiagram,
+      elements: [...this.state.currentDiagram.elements, newSvgImage]
+    }
+  };
+}
   updateBoundingBox(boundingBoxId: string, updates: Partial<import('../models/diagram.model').BoundingBox>): void {
     const currentState = this.state;
     const newBoundingBoxes = currentState.currentDiagram.boundingBoxes.map(box =>
@@ -456,6 +518,8 @@ export class DiagramService {
 
     const newElements = currentState.currentDiagram.elements.map(element => {
       if (allSelectedIds.includes(element.id)) {
+        // Notes do not support rotation
+        if ((element as any).shape === 'note') return element;
         const currentRotation = element.rotation || 0;
         return { ...element, rotation: (currentRotation + degrees) % 360 };
       }
@@ -631,6 +695,54 @@ export class DiagramService {
           connector.fromNodeId !== nodeId && connector.toNodeId !== nodeId
         )
       }
+    };
+  }
+
+  // Semantic alias for SVG images (same logic as deleteNode — elements share one array)
+  deleteSvgImage(svgImageId: string): void {
+    this.deleteNode(svgImageId);
+  }
+
+  // Delete multiple elements at once (one undo entry)
+  deleteElements(ids: string[]): void {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    const currentState = this.state;
+    this.state = {
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        elements: currentState.currentDiagram.elements.filter(e => !idSet.has(e.id)),
+        edges: currentState.currentDiagram.edges.filter(edge =>
+          !idSet.has(edge.fromNodeId) && !idSet.has(edge.toNodeId)
+        ),
+        connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
+          !idSet.has(connector.fromNodeId) && !idSet.has(connector.toNodeId)
+        )
+      },
+      selectedNodeIds: [],
+      selectedSvgImageIds: [],
+      selectedBoundingBoxIds: [],
+      selectedEdgeIds: [],
+      selectedConnectorIds: [],
+      selectedTendrilId: undefined
+    };
+  }
+
+  // Reset the entire canvas to a fresh empty diagram (proper public API replacing private stateSubject access)
+  resetDiagram(): void {
+    this.undoStacks.clear();
+    this.allDiagrams.clear();
+    this.state = {
+      currentDiagram: this.createEmptyDiagram(),
+      diagramStack: [],
+      selectedNodeIds: [],
+      selectedTendrilId: undefined,
+      selectedBoundingBoxIds: [],
+      selectedSvgImageIds: [],
+      selectedEdgeIds: [],
+      selectedConnectorIds: [],
+      viewportCenter: { x: 500, y: 300 }
     };
   }
 

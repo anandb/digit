@@ -71,13 +71,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   isPanning = false;
   private panStart: Position = { x: 0, y: 0 };
   viewOffset: Position = { x: 0, y: 0 };
+  zoomLevel = 1;
   private currentDiagramId?: string;
 
   get svgViewBox(): string {
     const el = this.canvas?.nativeElement;
     const w = el && el.clientWidth ? el.clientWidth : 2000;
     const h = el && el.clientHeight ? el.clientHeight : 2000;
-    return `${this.viewOffset.x} ${this.viewOffset.y} ${w} ${h}`;
+    return `${this.viewOffset.x} ${this.viewOffset.y} ${w / this.zoomLevel} ${h / this.zoomLevel}`;
   }
 
   constructor(private diagramService: DiagramService, private sanitizer: DomSanitizer) { }
@@ -139,6 +140,21 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   onCanvasMouseUp(event: MouseEvent): void {
     this.isPanning = false;
+    this.updateServiceViewport();
+  }
+
+  // Zoom controls
+  zoomIn(): void {
+    this.zoomLevel = Math.min(8, parseFloat((this.zoomLevel + 0.1).toFixed(2)));
+  }
+
+  zoomOut(): void {
+    this.zoomLevel = Math.max(0.1, parseFloat((this.zoomLevel - 0.1).toFixed(2)));
+  }
+
+  resetZoom(): void {
+    this.zoomLevel = 1;
+    this.viewOffset = { x: 0, y: 0 };
     this.updateServiceViewport();
   }
 
@@ -244,6 +260,19 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.diagramService.selectSvgImage(element.id, false);
     }
 
+    if (this.propertiesWindow) {
+      this.propertiesWindow.open(event.clientX, event.clientY);
+    }
+  }
+
+  // Opens properties window from the hover gear icon
+  onGearClick(event: MouseEvent, element: DiagramElement): void {
+    event.stopPropagation();
+    if (isNode(element)) {
+      this.diagramService.selectNode(element.id, false);
+    } else if (isSvgImage(element)) {
+      this.diagramService.selectSvgImage(element.id, false);
+    }
     if (this.propertiesWindow) {
       this.propertiesWindow.open(event.clientX, event.clientY);
     }
@@ -442,7 +471,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Mouse up to stop resizing and custom tendril dragging
+  // Mouse up to stop resizing, panning, and custom tendril dragging
   @HostListener('document:mouseup', ['$event'])
   onMouseUp(event: MouseEvent): void {
     if (this.isResizing) {
@@ -451,6 +480,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.resizeBoundingBoxId = undefined;
       this.resizeSvgImageId = undefined;
     }
+    // Also reset pan even when mouse is released outside the SVG (issue #4)
+    this.isPanning = false;
   }
 
   // Cancel an in-progress edge creation.
@@ -2347,30 +2378,79 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   getNodeTransform(element: DiagramElement): string | null {
-    if (!isNode(element)) return null;
-    if (!element.flipHorizontal && !element.flipVertical) return null;
+  const rotation = (element as any).rotation || 0;
+  const flipHorizontal = (element as any).flipHorizontal || false;
+  const flipVertical = (element as any).flipVertical || false;
 
-    const x = element.position.x;
-    const y = element.position.y;
-    const w = element.size.width;
-    const h = element.size.height;
+  if (!rotation && !flipHorizontal && !flipVertical) return null;
 
+  const x = element.position.x;
+  const y = element.position.y;
+  const w = element.size.width;
+  const h = element.size.height;
+
+  // Center of the element for rotation pivot
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+
+  const parts: string[] = [];
+
+  // Apply rotation around the element's center
+  if (rotation) {
+    parts.push(`rotate(${rotation} ${cx} ${cy})`);
+  }
+
+  // Apply flip transforms
+  if (flipHorizontal || flipVertical) {
     let tx = 0;
     let ty = 0;
     let sx = 1;
     let sy = 1;
 
-    if (element.flipHorizontal) {
+    if (flipHorizontal) {
       tx = x * 2 + w;
       sx = -1;
     }
-
-    if (element.flipVertical) {
+    if (flipVertical) {
       ty = y * 2 + h;
       sy = -1;
     }
+    parts.push(`translate(${tx} ${ty}) scale(${sx} ${sy})`);
+  }
 
-    return `translate(${tx} ${ty}) scale(${sx} ${sy})`;
+  return parts.length > 0 ? parts.join(' ') : null;
+  }
+
+  // Rotate a 2D point around a pivot by angleDeg degrees
+  private rotatePoint(x: number, y: number, cx: number, cy: number, angleDeg: number): { x: number; y: number } {
+    const rad = (angleDeg * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const dx = x - cx;
+    const dy = y - cy;
+    return { x: cx + cos * dx - sin * dy, y: cy + sin * dx + cos * dy };
+  }
+
+  // Returns the rotated X anchor for the node label, so text follows the shape's visual position
+  getNodeTextXRotated(element: DiagramElement): number {
+    const rotation = (element as any).rotation || 0;
+    const tx = this.getNodeTextX(element);
+    const ty = this.getNodeTextY(element);
+    if (!rotation) return tx;
+    const cx = element.position.x + element.size.width / 2;
+    const cy = element.position.y + element.size.height / 2;
+    return this.rotatePoint(tx, ty, cx, cy, rotation).x;
+  }
+
+  // Returns the rotated Y anchor for the node label
+  getNodeTextYRotated(element: DiagramElement): number {
+    const rotation = (element as any).rotation || 0;
+    const tx = this.getNodeTextX(element);
+    const ty = this.getNodeTextY(element);
+    if (!rotation) return ty;
+    const cx = element.position.x + element.size.width / 2;
+    const cy = element.position.y + element.size.height / 2;
+    return this.rotatePoint(tx, ty, cx, cy, rotation).y;
   }
 
   // Save diagram method for keyboard shortcut

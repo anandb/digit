@@ -69,6 +69,7 @@
     <!-- Elements (Nodes and SVG Images) -->
     <g class="elements">
       <g *ngFor="let element of state.currentDiagram.elements" class="element-group" cdkDrag
+        [cdkDragDisabled]="isSelected('node', element.id) || isSelected('svg', element.id)"
         (cdkDragStarted)="onElementDragStarted(element)"
         (cdkDragMoved)="onElementDragMoved($event)"
         (cdkDragEnded)="onElementDragEnd($event, element)" (click)="onElementClick($event, element)"
@@ -108,6 +109,14 @@
             class="svg-image-label">
             {{ $any(element).label }}
           </text>
+
+          <!-- Gear icon (hover to open properties) -->
+          <g class="element-gear-btn"
+            [attr.transform]="'translate(' + (element.position.x + element.size.width - 10) + ',' + (element.position.y - 10) + ')'"
+            (click)="onGearClick($event, element)">
+            <circle r="9" fill="#fff" stroke="#aaa" stroke-width="1" opacity="0.92"/>
+            <text font-size="11" text-anchor="middle" dominant-baseline="central" fill="#555" style="pointer-events:none">⚙</text>
+          </g>
         </ng-container>
 
         <!-- Node shapes -->
@@ -798,37 +807,15 @@
             </circle>
           </g>
 
-          <!-- Node name/text - conditional rendering for note, text, and numbered circle shapes -->
-          <text *ngIf="$any(element).shape !== 'note' && $any(element).shape !== 'text' && $any(element).shape !== 'numberedCircle'"
-            [attr.x]="getNodeTextX(element)" [attr.y]="getNodeTextY(element)"
-            [attr.text-anchor]="getNodeTextAnchor(element)" [attr.dominant-baseline]="getNodeTextBaseline(element)"
-            [style.font-family]="$any(element).fontFamily"
-            [style.font-size.px]="$any(element).fontSize"
-            [style.font-weight]="$any(element).fontWeight"
-            [style.font-style]="$any(element).fontStyle"
-            [style.fill]="$any(element).innerDiagram ? '#00008B' : '#000000'"
-            class="node-name">
-            {{ $any(element).label }}
-          </text>
+          <!-- Gear icon (hover to open properties) -->
+          <g class="element-gear-btn"
+            [attr.transform]="'translate(' + ($any(element).position.x + $any(element).size.width - 10) + ',' + ($any(element).position.y - 10) + ')'"
+            (click)="onGearClick($event, element)">
+            <circle r="9" fill="#fff" stroke="#aaa" stroke-width="1" opacity="0.92"/>
+            <text font-size="11" text-anchor="middle" dominant-baseline="central" fill="#555" style="pointer-events:none">⚙</text>
+          </g>
 
-          <!-- Note & Text shapes: show label inside as a text area -->
-          <ng-container *ngIf="$any(element).shape === 'note' || $any(element).shape === 'text'">
-            <foreignObject [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
-              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
-              pointer-events="none">
-              <div xmlns="http://www.w3.org/1999/xhtml"
-                [style.width.px]="$any(element).size.width"
-                [style.height.px]="$any(element).size.height"
-                [style.font-family]="$any(element).fontFamily"
-                [style.font-size.px]="$any(element).fontSize"
-                [style.font-weight]="$any(element).fontWeight"
-                [style.font-style]="$any(element).fontStyle"
-                style="display: flex; align-items: flex-start; justify-content: flex-start; text-align: left; padding: 15px; box-sizing: border-box; word-break: break-word; overflow: hidden; line-height: 1.4; color: #333;"
-                [style.padding-top.px]="$any(element).shape === 'note' ? 35 : 15">
-                {{ $any(element).label }}
-              </div>
-            </foreignObject>
-          </ng-container>
+
 
           <!-- Pushpin for Note Shape (Rendered last to be on top) -->
           <g *ngIf="$any(element).shape === 'note'" class="pushpin" [attr.transform]="'translate(' + ($any(element).position.x + $any(element).size.width / 2) + ',' + ($any(element).position.y + 10) + ')'" style="pointer-events: none;">
@@ -847,6 +834,40 @@
           </g>
         </g>
       </ng-container>
+
+          <!-- Node name/text - outside the rotated group so it stays upright -->
+          <ng-container *ngIf="isNode(element)">
+            <text *ngIf="$any(element).shape !== 'note' && $any(element).shape !== 'text' && $any(element).shape !== 'numberedCircle'"
+              [attr.x]="getNodeTextXRotated(element)" [attr.y]="getNodeTextYRotated(element)"
+              [attr.text-anchor]="getNodeTextAnchor(element)" [attr.dominant-baseline]="getNodeTextBaseline(element)"
+              [style.font-family]="$any(element).fontFamily"
+              [style.font-size.px]="$any(element).fontSize"
+              [style.font-weight]="$any(element).fontWeight"
+              [style.font-style]="$any(element).fontStyle"
+              [style.fill]="$any(element).innerDiagram ? '#00008B' : '#000000'"
+              class="node-name">
+              {{ $any(element).label }}
+            </text>
+
+            <!-- Note & Text shapes: show label inside as a text area (also outside rotated group) -->
+            <ng-container *ngIf="$any(element).shape === 'note' || $any(element).shape === 'text'">
+              <foreignObject [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+                [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
+                pointer-events="none">
+                <div xmlns="http://www.w3.org/1999/xhtml"
+                  [style.width.px]="$any(element).size.width"
+                  [style.height.px]="$any(element).size.height"
+                  [style.font-family]="$any(element).fontFamily"
+                  [style.font-size.px]="$any(element).fontSize"
+                  [style.font-weight]="$any(element).fontWeight"
+                  [style.font-style]="$any(element).fontStyle"
+                  style="display: flex; align-items: flex-start; justify-content: flex-start; text-align: left; padding: 15px; box-sizing: border-box; word-break: break-word; overflow: hidden; line-height: 1.4; color: #333;"
+                  [style.padding-top.px]="$any(element).shape === 'note' ? 35 : 15">
+                  {{ $any(element).label }}
+                </div>
+              </foreignObject>
+            </ng-container>
+          </ng-container>
 
         <!-- Nested diagram indicator icon -->
         <g *ngIf="isNode(element) && $any(element).innerDiagram" class="nested-diagram-indicator">
@@ -1069,4 +1090,11 @@
       </linearGradient>
     </defs>
   </svg>
+
+  <!-- Zoom controls strip -->
+  <div class="zoom-strip">
+    <button class="zoom-btn" (click)="zoomIn()" title="Zoom In">+</button>
+    <button class="zoom-btn zoom-reset" (click)="resetZoom()" [title]="(zoomLevel * 100 | number:'1.0-0') + '%'">●</button>
+    <button class="zoom-btn" (click)="zoomOut()" title="Zoom Out">−</button>
+  </div>
 </div>

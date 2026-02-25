@@ -32,18 +32,7 @@ export class DiagramToolbarComponent {
       return;
     }
 
-    // Reset the diagram service state
-    this.diagramService['stateSubject'].next({
-      currentDiagram: this.diagramService['createEmptyDiagram'](),
-      diagramStack: [],
-      selectedNodeIds: [],
-      selectedTendrilId: undefined,
-      selectedBoundingBoxIds: [],
-      selectedSvgImageIds: [],
-      selectedEdgeIds: [],
-      selectedConnectorIds: [],
-      viewportCenter: { x: 500, y: 300 }
-    });
+    this.diagramService.resetDiagram();
   }
 
   toggleAddDropdown(): void {
@@ -51,7 +40,7 @@ export class DiagramToolbarComponent {
   }
 
   closeAddDropdown(): void {
-    this.toggleAddDropdown();
+    this.isAddDropdownOpen = false;
   }
 
   toggleInstructions(): void {
@@ -152,7 +141,7 @@ export class DiagramToolbarComponent {
   }
 
   rotate90(): void {
-    if (this.isSingleElementSelected()) {
+    if (this.isSingleElementSelected() && !this.isNoteSelected) {
       this.diagramService.toggleRotation(90);
     }
   }
@@ -268,10 +257,13 @@ export class DiagramToolbarComponent {
       return;
     }
 
-    if (state.selectedNodeId) {
-      this.diagramService.deleteNode(state.selectedNodeId);
-    } else if (state.selectedSvgImageId) {
-      this.diagramService.deleteNode(state.selectedSvgImageId);
+    // Collect all selected element IDs across all types for batch delete
+    const nodeIds = state.selectedNodeIds;
+    const svgIds = state.selectedSvgImageIds;
+    const allElementIds = [...nodeIds, ...svgIds];
+
+    if (allElementIds.length > 0) {
+      this.diagramService.deleteElements(allElementIds);
     } else if (state.selectedBoundingBoxId) {
       this.diagramService.deleteBoundingBox(state.selectedBoundingBoxId);
     }

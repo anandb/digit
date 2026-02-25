@@ -57,7 +57,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private draggingDelta: Position = { x: 0, y: 0 };
 
   // Node shapes that support inner diagrams
-  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'mq', 'cache'];
+  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'cache'];
 
   supportsInnerDiagram(element: DiagramElement): boolean {
     if (isNode(element)) {
@@ -1789,52 +1789,6 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     };
   }
 
-  getStarPoints(node: any): string {
-    const x = node.position.x + node.size.width / 2;
-    const y = node.position.y + node.size.height / 2;
-    const outerRadius = Math.min(node.size.width, node.size.height) / 2;
-    const innerRadius = outerRadius * 0.4;
-    const points: string[] = [];
-
-    for (let i = 0; i < 10; i++) {
-        const radius = i % 2 === 0 ? outerRadius : innerRadius;
-        const angle = (i * Math.PI) / 5 - Math.PI / 2;
-        points.push(`${x + radius * Math.cos(angle)},${y + radius * Math.sin(angle)}`);
-    }
-
-    return points.join(' ');
-  }
-
-  getSmileyMouthPath(node: any): string {
-    const x = node.position.x + node.size.width / 2;
-    const y = node.position.y + node.size.height / 2;
-    const w = node.size.width;
-    const h = node.size.height;
-    const rx = w * 0.15;
-    const ry = h * 0.15;
-    const mouthY = y + h * 0.15;
-    // Semi-circle/arc for the mouth
-    return `M ${x - rx},${mouthY} A ${rx},${ry} 0 0 0 ${x + rx},${mouthY}`;
-  }
-
-  getSmileyRadius(node: any): number {
-    return Math.min(node.size.width, node.size.height) / 2;
-  }
-
-  getSmileyEyeRadius(node: any): number {
-    return Math.min(node.size.width, node.size.height) * 0.05;
-  }
-
-  getDonutPath(node: any): string {
-    const x = node.position.x + node.size.width / 2;
-    const y = node.position.y + node.size.height / 2;
-    const r1 = Math.min(node.size.width, node.size.height) / 2;
-    const r2 = r1 * 0.5;
-
-    // Path with two concentric circles to create a hole
-    return `M ${x},${y - r1} A ${r1},${r1} 0 1 0 ${x},${y + r1} A ${r1},${r1} 0 1 0 ${x},${y - r1} ` +
-           `M ${x},${y - r2} A ${r2},${r2} 0 1 1 ${x},${y + r2} A ${r2},${r2} 0 1 1 ${x},${y - r2} Z`;
-  }
 
   getLightningPath(node: any): string {
     const x = node.position.x;
@@ -1876,25 +1830,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `M ${x+r},${y} L ${x+w-r},${y} Q ${x+w},${y} ${x+w},${y+r} L ${x+w},${y+h-r} Q ${x+w},${y+h} ${x+w-r},${y+h} L ${x+r},${y+h} Q ${x},${y+h} ${x},${y+h-r} L ${x},${y+r} Q ${x},${y} ${x+r},${y} Z`;
   }
 
-  getMQPath(node: any): string {
-    const x = node.position.x;
-    const y = node.position.y;
-    const w = node.size.width;
-    const h = node.size.height;
-    const arrowWidth = Math.min(20, w * 0.2); // Pointy bit width
 
-    return `M ${x} ${y} L ${x + w - arrowWidth} ${y} L ${x + w} ${y + h / 2} L ${x + w - arrowWidth} ${y + h} L ${x} ${y + h} Z`;
-  }
-
-  getVaultPath(node: any): string {
-    const x = node.position.x;
-    const y = node.position.y;
-    const w = node.size.width;
-    const h = node.size.height;
-    const r = 4;
-    // Square with rounded corners and a dial
-    return `M ${x+r},${y} L ${x+w-r},${y} Q ${x+w},${y} ${x+w},${y+r} L ${x+w},${y+h-r} Q ${x+w},${y+h} ${x+w-r},${y+h} L ${x+r},${y+h} Q ${x},${y+h} ${x},${y+h-r} L ${x},${y+r} Q ${x},${y} ${x+r},${y} Z`;
-  }
 
   getPadlockBodyPath(node: any): string {
     const x = node.position.x;
@@ -2020,16 +1956,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       case 'wall': return 'Wall';
       case 'text': return 'Text';
       case 'note': return 'Note';
-      case 'mq': return 'MQ';
       case 'envelope': return 'Envelope';
       case 'cache': return 'Cache';
       case 'tick': return 'Tick';
       case 'cross': return 'Cross';
-      case 'star': return 'Star';
-      case 'smiley': return 'Smiley';
-      case 'donut': return 'Donut';
       case 'lightning': return 'Lightning';
-      case 'vault': return 'Vault';
       case 'padlock': return 'Padlock';
       case 'dataLake': return 'Data Lake';
       case 'browser': return 'Browser';
@@ -2378,47 +2309,11 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   getNodeTransform(element: DiagramElement): string | null {
-  const rotation = (element as any).rotation || 0;
-  const flipHorizontal = (element as any).flipHorizontal || false;
-  const flipVertical = (element as any).flipVertical || false;
-
-  if (!rotation && !flipHorizontal && !flipVertical) return null;
-
-  const x = element.position.x;
-  const y = element.position.y;
-  const w = element.size.width;
-  const h = element.size.height;
-
-  // Center of the element for rotation pivot
-  const cx = x + w / 2;
-  const cy = y + h / 2;
-
-  const parts: string[] = [];
-
-  // Apply rotation around the element's center
-  if (rotation) {
-    parts.push(`rotate(${rotation} ${cx} ${cy})`);
-  }
-
-  // Apply flip transforms
-  if (flipHorizontal || flipVertical) {
-    let tx = 0;
-    let ty = 0;
-    let sx = 1;
-    let sy = 1;
-
-    if (flipHorizontal) {
-      tx = x * 2 + w;
-      sx = -1;
-    }
-    if (flipVertical) {
-      ty = y * 2 + h;
-      sy = -1;
-    }
-    parts.push(`translate(${tx} ${ty}) scale(${sx} ${sy})`);
-  }
-
-  return parts.length > 0 ? parts.join(' ') : null;
+    const rotation = (element as any).rotation || 0;
+    if (!rotation) return null;
+    const cx = element.position.x + element.size.width / 2;
+    const cy = element.position.y + element.size.height / 2;
+    return `rotate(${rotation} ${cx} ${cy})`;
   }
 
   // Rotate a 2D point around a pivot by angleDeg degrees

@@ -32,14 +32,15 @@
 
       <!-- Name/Text editing for other shapes is handled via the toolbar -->
       <!-- Shared Node/Edge/Box Properties -->
-      <div class="property-row" *ngIf="type !== 'svg'">
-        <button class="line-style-btn" (click)="toggleDotted()" *ngIf="type !== 'boundingBox'">
+      <div class="property-row" *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg' || type === 'connector'">
+        <button class="line-style-btn" (click)="toggleDotted()" *ngIf="type !== 'boundingBox' && type !== 'svg'">
           <span class="line-icon" [class.dotted]="getIsDotted()"></span>
           <span class="line-text">{{ getIsDotted() ? 'Dotted' : 'Solid' }}</span>
         </button>
 
-        <div class="select-container" *ngIf="type === 'node' || type === 'edge' || type === 'connector'">
+        <div class="select-container" *ngIf="type === 'node' || type === 'edge' || type === 'connector' || type === 'svg'">
           <select class="custom-select small" [value]="getStrokeWidth()" (change)="updateStrokeWidth($event)">
+            <option value="0.5">0.5px</option>
             <option value="1">1px</option>
             <option value="2">2px</option>
             <option value="3">3px</option>
@@ -73,11 +74,11 @@
         <span class="line-text">{{ getIsLocked() ? 'Locked' : 'Unlocked' }}</span>
       </button>
 
-      <!-- Mirror toggle (Supported Nodes only) -->
-      <button class="line-style-btn" (click)="toggleMirrored()" *ngIf="getSupportsMirror()">
-        <svg *ngIf="!getIsMirrored()" class="line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-        <svg *ngIf="getIsMirrored()" class="line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 16px;"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" fill="none"></path><path d="M14 2v6h6" fill="none"></path><path d="M2 15h10" fill="none"></path><path d="M8 18h4" fill="none"></path></svg>
-        <span class="line-text">{{ getIsMirrored() ? 'Mirrored' : 'Normal' }}</span>
+      <!-- Layered toggle (Supported Nodes only) -->
+      <button class="line-style-btn" (click)="toggleLayered()" *ngIf="getSupportsLayered()">
+        <svg *ngIf="!getIsLayered()" class="line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+        <svg *ngIf="getIsLayered()" class="line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 16px;"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" fill="none"></path><path d="M14 2v6h6" fill="none"></path><path d="M2 15h10" fill="none"></path><path d="M8 18h4" fill="none"></path></svg>
+        <span class="line-text">{{ getIsLayered() ? 'Layered' : 'Normal' }}</span>
       </button>
 
       <!-- Brick Wall toggle (Wall only) -->
@@ -89,9 +90,9 @@
       </button>
 
 
-      <div class="color-grid" *ngIf="type === 'node' || type === 'boundingBox'">
+      <div class="color-grid" *ngIf="type === 'node' || type === 'boundingBox' || type === 'svg'">
         <!-- Fill Button (Node & Box) -->
-        <label class="color-btn fill-btn" [style.background-color]="getFillColor() || '#ffffff'">
+        <label class="color-btn fill-btn" *ngIf="type !== 'svg'" [style.background-color]="getFillColor() || '#ffffff'">
           <input type="color" [value]="getFillColor()" (input)="updateFillColor($event)">
           <div class="color-content">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

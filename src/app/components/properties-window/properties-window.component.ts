@@ -478,13 +478,13 @@ export class PropertiesWindowComponent implements OnInit {
 
   getStrokeWidth(): number {
     const element = this.selectedElement;
-    if (element && 'strokeWidth' in element) return element.strokeWidth || 1;
-    if (this.selectedEdge) return (this.selectedEdge as any).strokeWidth || 1;
-    return this.selectedConnector?.strokeWidth || 1;
+    if (element && 'strokeWidth' in element) return element.strokeWidth !== undefined ? element.strokeWidth : 0.5;
+    if (this.selectedEdge) return (this.selectedEdge as any).strokeWidth !== undefined ? (this.selectedEdge as any).strokeWidth : 0.5;
+    return this.selectedConnector?.strokeWidth !== undefined ? this.selectedConnector.strokeWidth : 0.5;
   }
 
   updateStrokeWidth(event: Event) {
-    const width = parseInt((event.target as HTMLSelectElement).value, 10);
+    const width = parseFloat((event.target as HTMLSelectElement).value);
     const element = this.selectedElement;
     if (element) {
       this.diagramService.updateElementProperty(element.id, 'strokeWidth', width);
@@ -531,24 +531,26 @@ export class PropertiesWindowComponent implements OnInit {
     }
   }
 
-  // --- Mirror Property ---
+  // --- Layered Property ---
 
-  getSupportsMirror(): boolean {
+  getSupportsLayered(): boolean {
     const element = this.selectedElement;
-    if (!element || !isNode(element)) return false;
-    return ['rectangle', 'roundedRectangle', 'pill', 'circle', 'mq', 'envelope'].includes(element.shape);
+    if (!element) return false;
+    if (isSvgImage(element)) return true;
+    if (!isNode(element)) return false;
+    return ['rectangle', 'pill', 'cylinder', 'circle', 'envelope', 'browser', 'mobile'].includes(element.shape);
   }
 
-  getIsMirrored(): boolean {
+  getIsLayered(): boolean {
     const element = this.selectedElement;
-    if (element && isNode(element)) return !!element.mirror;
+    if (element && (isNode(element) || isSvgImage(element))) return !!(element as any).layered;
     return false;
   }
 
-  toggleMirrored() {
-    const newValue = !this.getIsMirrored();
-    if (this.selectedElement && isNode(this.selectedElement)) {
-      this.diagramService.updateElementProperty(this.selectedElement.id, 'mirror', newValue);
+  toggleLayered() {
+    const newValue = !this.getIsLayered();
+    if (this.selectedElement && (isNode(this.selectedElement) || isSvgImage(this.selectedElement))) {
+      this.diagramService.updateElementProperty(this.selectedElement.id, 'layered', newValue);
     }
   }
 

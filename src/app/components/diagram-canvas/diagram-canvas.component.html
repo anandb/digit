@@ -77,10 +77,40 @@
 
         <!-- SVG Image content -->
         <ng-container *ngIf="isSvgImage(element)">
+          <defs>
+            <filter [id]="'svgOutline-' + element.id" x="-20%" y="-20%" width="140%" height="140%">
+              <!-- Thicken the alpha channel -->
+              <feMorphology in="SourceAlpha" result="DILATED" operator="dilate" [attr.radius]="($any(element).strokeWidth || 1) / 2" />
+              <!-- Color the thickened alpha channel -->
+              <feFlood [attr.flood-color]="$any(element).borderColor || 'black'" flood-opacity="1" result="OUTLINE_COLOR" />
+              <feComposite in="OUTLINE_COLOR" in2="DILATED" operator="in" result="OUTLINE" />
+              <!-- Add a subtle drop shadow to the outline -->
+              <feDropShadow dx="2" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.3" result="SHADOW" />
+              <!-- Place shadow, then outline, then original image -->
+              <feMerge>
+                <feMergeNode in="SHADOW" />
+                <feMergeNode in="OUTLINE" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
           <g [attr.transform]="getNodeTransform(element)">
+            <!-- SVG layered backdrops: offset copies of the actual SVG content -->
+            <g *ngIf="$any(element).layered"
+              [innerHTML]="sanitizeSvgContent($any(element).svgContent)"
+              [attr.transform]="'translate(' + (element.position.x + 24) + ',' + (element.position.y + 24) + ')'"
+              [attr.filter]="'url(#svgOutline-' + element.id + ')'" class="node-layer">
+            </g>
+            <g *ngIf="$any(element).layered"
+              [innerHTML]="sanitizeSvgContent($any(element).svgContent)"
+              [attr.transform]="'translate(' + (element.position.x + 12) + ',' + (element.position.y + 12) + ')'"
+              [attr.filter]="'url(#svgOutline-' + element.id + ')'" class="node-layer">
+            </g>
             <!-- SVG content -->
             <g [innerHTML]="sanitizeSvgContent($any(element).svgContent)"
-              [attr.transform]="'translate(' + element.position.x + ',' + element.position.y + ')'">
+              [attr.transform]="'translate(' + element.position.x + ',' + element.position.y + ')'"
+              [attr.filter]="$any(element).layered ? 'url(#svgOutline-' + element.id + ')' : null">
             </g>
           </g>
 
@@ -123,22 +153,22 @@
         <ng-container *ngIf="isNode(element)">
           <g [attr.transform]="getNodeTransform(element)">
 
-            <!-- Mirrored Rectangle -->
-            <rect *ngIf="$any(element).shape === 'rectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 8"
+            <!-- Layered Rectangle -->
+            <rect *ngIf="$any(element).shape === 'rectangle' && $any(element).layered" [attr.x]="$any(element).position.x + 8"
               [attr.y]="$any(element).position.y + 8" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="$any(element).rounded ? 10 : null" [attr.ry]="$any(element).rounded ? 10 : null"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-            class="node-mirror">
+            class="node-layer">
           </rect>
-          <rect *ngIf="$any(element).shape === 'rectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 4"
+          <rect *ngIf="$any(element).shape === 'rectangle' && $any(element).layered" [attr.x]="$any(element).position.x + 4"
             [attr.y]="$any(element).position.y + 4" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="$any(element).rounded ? 10 : null" [attr.ry]="$any(element).rounded ? 10 : null"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-            class="node-mirror">
+            class="node-layer">
           </rect>
 
           <!-- Main Rectangle -->
@@ -147,26 +177,26 @@
             [attr.height]="$any(element).size.height" [attr.rx]="$any(element).rounded ? 10 : null" [attr.ry]="$any(element).rounded ? 10 : null"
             [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null"
             [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </rect>
 
-          <!-- Mirrored Circle -->
-          <circle *ngIf="$any(element).shape === 'circle' && $any(element).mirror"
+          <!-- Layered Circle -->
+          <circle *ngIf="$any(element).shape === 'circle' && $any(element).layered"
             [attr.cx]="$any(element).position.x + $any(element).size.width / 2 + 8"
             [attr.cy]="$any(element).position.y + $any(element).size.height / 2 + 8" [attr.r]="getCircleRadius(element)"
             [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
             [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-            class="node-mirror">
+            class="node-layer">
           </circle>
-          <circle *ngIf="$any(element).shape === 'circle' && $any(element).mirror"
+          <circle *ngIf="$any(element).shape === 'circle' && $any(element).layered"
             [attr.cx]="$any(element).position.x + $any(element).size.width / 2 + 4"
             [attr.cy]="$any(element).position.y + $any(element).size.height / 2 + 4" [attr.r]="getCircleRadius(element)"
             [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
             [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-            class="node-mirror">
+            class="node-layer">
           </circle>
 
           <!-- Main Circle -->
@@ -175,7 +205,7 @@
             [attr.cy]="$any(element).position.y + $any(element).size.height / 2" [attr.r]="getCircleRadius(element)"
             [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
             [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null"
             [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </circle>
 
@@ -198,22 +228,22 @@
             </text>
           </g>
 
-          <!-- Mirrored Pill -->
-          <rect *ngIf="$any(element).shape === 'pill' && $any(element).mirror" [attr.x]="$any(element).position.x + 8"
+          <!-- Layered Pill -->
+          <rect *ngIf="$any(element).shape === 'pill' && $any(element).layered" [attr.x]="$any(element).position.x + 8"
             [attr.y]="$any(element).position.y + 8" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="$any(element).size.height / 2"
             [attr.ry]="$any(element).size.height / 2" [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-            class="node-mirror">
+            class="node-layer">
           </rect>
-          <rect *ngIf="$any(element).shape === 'pill' && $any(element).mirror" [attr.x]="$any(element).position.x + 4"
+          <rect *ngIf="$any(element).shape === 'pill' && $any(element).layered" [attr.x]="$any(element).position.x + 4"
             [attr.y]="$any(element).position.y + 4" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="$any(element).size.height / 2"
             [attr.ry]="$any(element).size.height / 2" [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-            class="node-mirror">
+            class="node-layer">
           </rect>
 
           <!-- Main Pill -->
@@ -222,12 +252,31 @@
             [attr.height]="$any(element).size.height" [attr.rx]="$any(element).size.height / 2"
             [attr.ry]="$any(element).size.height / 2" [attr.fill]="$any(element).fillColor"
             [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null"
             [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </rect>
+          <!-- Generic layered backdrops for: cylinder, browser, mobile -->
+          <ng-container *ngIf="$any(element).layered">
+            <rect *ngIf="['cylinder','browser','mobile'].includes($any(element).shape)"
+              [attr.x]="$any(element).position.x + 8" [attr.y]="$any(element).position.y + 8"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
+              [attr.rx]="$any(element).shape === 'mobile' ? 12 : 4"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="$any(element).strokeWidth || 1"
+              filter="url(#dropshadow)" class="node-layer">
+            </rect>
+            <rect *ngIf="['cylinder','browser','mobile'].includes($any(element).shape)"
+              [attr.x]="$any(element).position.x + 4" [attr.y]="$any(element).position.y + 4"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
+              [attr.rx]="$any(element).shape === 'mobile' ? 12 : 4"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="$any(element).strokeWidth || 1"
+              filter="url(#dropshadow)" class="node-layer">
+            </rect>
+          </ng-container>
 
           <g *ngIf="$any(element).shape === 'cylinder'" [class.highlighted]="isHighlighted('node', element.id)"
-            class="cylinder" filter="url(#dropshadow)">
+            class="cylinder" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null">
             <!-- Main cylinder body with bottom curve -->
             <path [attr.d]="getCylinderPath(element)" [attr.fill]="$any(element).fillColor"
               [attr.stroke]="$any(element).borderColor" [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
@@ -274,22 +323,22 @@
             </path>
           </g>
 
-          <!-- Mirrored Rounded Rectangle -->
-          <rect *ngIf="$any(element).shape === 'roundedRectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 8"
+          <!-- Layered Rounded Rectangle -->
+          <rect *ngIf="$any(element).shape === 'roundedRectangle' && $any(element).layered" [attr.x]="$any(element).position.x + 8"
             [attr.y]="$any(element).position.y + 8" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="10" [attr.ry]="10"
             [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
             [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-            class="node-mirror">
+            class="node-layer">
           </rect>
-          <rect *ngIf="$any(element).shape === 'roundedRectangle' && $any(element).mirror" [attr.x]="$any(element).position.x + 4"
+          <rect *ngIf="$any(element).shape === 'roundedRectangle' && $any(element).layered" [attr.x]="$any(element).position.x + 4"
             [attr.y]="$any(element).position.y + 4" [attr.width]="$any(element).size.width"
             [attr.height]="$any(element).size.height" [attr.rx]="10" [attr.ry]="10"
             [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
             [attr.stroke-width]="$any(element).strokeWidth || 1"
             [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-            class="node-mirror">
+            class="node-layer">
           </rect>
 
           <!-- Main Rounded Rectangle -->
@@ -298,7 +347,7 @@
             [attr.height]="$any(element).size.height" [attr.rx]="10" [attr.ry]="10"
             [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
             [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null"
             [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </rect>
 
@@ -443,7 +492,7 @@
           </g>
 
           <!-- Wall shape (3D perspective) -->
-          <g *ngIf="$any(element).shape === 'wall'" [class.highlighted]="isHighlighted('node', element.id)" class="node" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null">
+          <g *ngIf="$any(element).shape === 'wall'" [class.highlighted]="isHighlighted('node', element.id)" class="node" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null">
             <!-- Front face -->
             <rect [attr.x]="$any(element).position.x + $any(element).size.width * 0.1"
               [attr.y]="$any(element).position.y + $any(element).size.height * 0.1"
@@ -474,41 +523,6 @@
             [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </path>
 
-          <!-- MQ shape -->
-          <g *ngIf="$any(element).shape === 'mq'" [class.highlighted]="isHighlighted('node', element.id)" class="mq" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null">
-
-            <!-- Mirrored backdrop -->
-            <path *ngIf="$any(element).mirror" [attr.d]="getMQPath(element)"
-              [attr.transform]="'translate(8, 8)'"
-              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
-              [attr.stroke-width]="$any(element).strokeWidth || 1"
-              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-              class="node-mirror">
-            </path>
-            <path *ngIf="$any(element).mirror" [attr.d]="getMQPath(element)"
-              [attr.transform]="'translate(4, 4)'"
-              [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
-              [attr.stroke-width]="$any(element).strokeWidth || 1"
-              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-              class="node-mirror">
-            </path>
-
-            <path [attr.d]="getMQPath(element)"
-              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
-            </path>
-
-            <!-- Four little envelopes centered inside -->
-            <!-- Use a scaled group based on node size with 4 envelopes occupying 70% of the space -->
-            <g [attr.transform]="'translate(' + ($any(element).position.x + $any(element).size.width * 0.05) + ', ' + ($any(element).position.y + $any(element).size.height * 0.5 - 4 * ($any(element).size.width * 0.7 / 54)) + ') scale(' + ($any(element).size.width * 0.7 / 54) + ')'"
-               fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor" stroke-width="2">
-              <rect x="0" y="0" width="12" height="8"/><polyline points="0,0 6,5 12,0"/>
-              <rect x="14" y="0" width="12" height="8"/><polyline points="14,0 20,5 26,0"/>
-              <rect x="28" y="0" width="12" height="8"/><polyline points="28,0 34,5 40,0"/>
-              <rect x="42" y="0" width="12" height="8"/><polyline points="42,0 48,5 54,0"/>
-            </g>
-          </g>
 
           <!-- Cache shape -->
           <g *ngIf="$any(element).shape === 'cache'" [class.highlighted]="isHighlighted('node', element.id)" class="cache" filter="url(#dropshadow)">
@@ -563,50 +577,8 @@
             </path>
           </g>
 
-          <!-- Star shape -->
-          <g *ngIf="$any(element).shape === 'star'" [class.highlighted]="isHighlighted('node', element.id)" class="star" filter="url(#dropshadow)">
-            <polygon [attr.points]="getStarPoints(element)"
-              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-              stroke-linejoin="round">
-            </polygon>
-          </g>
 
-          <!-- Smiley shape -->
-          <g *ngIf="$any(element).shape === 'smiley'" [class.highlighted]="isHighlighted('node', element.id)" class="smiley" filter="url(#dropshadow)">
-            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-                    [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
-                    [attr.r]="getSmileyRadius(element)"
-                    [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                    [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
-            </circle>
-            <!-- Eyes -->
-            <circle [attr.cx]="$any(element).position.x + $any(element).size.width * 0.35"
-                    [attr.cy]="$any(element).position.y + $any(element).size.height * 0.4"
-                    [attr.r]="getSmileyEyeRadius(element)"
-                    [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
-            </circle>
-            <circle [attr.cx]="$any(element).position.x + $any(element).size.width * 0.65"
-                    [attr.cy]="$any(element).position.y + $any(element).size.height * 0.4"
-                    [attr.r]="getSmileyEyeRadius(element)"
-                    [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
-            </circle>
-            <!-- Mouth -->
-            <path [attr.d]="getSmileyMouthPath(element)"
-                  fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-                  stroke-linecap="round">
-            </path>
-          </g>
 
-          <!-- Donut shape -->
-          <g *ngIf="$any(element).shape === 'donut'" [class.highlighted]="isHighlighted('node', element.id)" class="donut" filter="url(#dropshadow)">
-            <path [attr.d]="getDonutPath(element)"
-                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-                  fill-rule="evenodd">
-            </path>
-          </g>
 
           <!-- Lightning shape -->
           <g *ngIf="$any(element).shape === 'lightning'" [class.highlighted]="isHighlighted('node', element.id)" class="lightning" filter="url(#dropshadow)">
@@ -618,28 +590,6 @@
           </g>
 
 
-          <!-- Vault shape -->
-          <g *ngIf="$any(element).shape === 'vault'" [class.highlighted]="isHighlighted('node', element.id)" class="vault" filter="url(#dropshadow)">
-            <path [attr.d]="getVaultPath(element)"
-                  [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                  [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
-                  stroke-linejoin="round">
-            </path>
-            <!-- Vault dial -->
-            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
-                    [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
-                    [attr.r]="$any(element).size.width * 0.2"
-                    fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                    [attr.stroke-width]="isSelected('node', element.id) ? (2 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
-            </circle>
-            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
-                  [attr.y1]="$any(element).position.y + $any(element).size.height / 2"
-                  [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
-                  [attr.y2]="$any(element).position.y + $any(element).size.height * 0.35"
-                  [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
-                  [attr.stroke-width]="isSelected('node', element.id) ? (2 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
-            </line>
-          </g>
 
           <!-- Padlock shape -->
           <g *ngIf="$any(element).shape === 'padlock'" [class.highlighted]="isHighlighted('node', element.id)" class="padlock" filter="url(#dropshadow)">
@@ -672,7 +622,7 @@
           </g>
 
           <!-- Browser shape -->
-          <g *ngIf="$any(element).shape === 'browser'" [class.highlighted]="isHighlighted('node', element.id)" class="browser" filter="url(#dropshadow)">
+          <g *ngIf="$any(element).shape === 'browser'" [class.highlighted]="isHighlighted('node', element.id)" class="browser" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null">
             <path [attr.d]="getBrowserPath(element)"
                   [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
                   [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
@@ -684,7 +634,7 @@
           </g>
 
           <!-- Mobile shape -->
-          <g *ngIf="$any(element).shape === 'mobile'" [class.highlighted]="isHighlighted('node', element.id)" class="mobile" filter="url(#dropshadow)">
+          <g *ngIf="$any(element).shape === 'mobile'" [class.highlighted]="isHighlighted('node', element.id)" class="mobile" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null">
             <!-- Outer body -->
             <path [attr.d]="getMobilePath(element)"
                   [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
@@ -706,24 +656,24 @@
           </g>
 
           <!-- Envelope shape -->
-          <g *ngIf="$any(element).shape === 'envelope'" [class.highlighted]="isHighlighted('node', element.id)" class="envelope" [attr.filter]="!$any(element).mirror ? 'url(#dropshadow)' : null">
+          <g *ngIf="$any(element).shape === 'envelope'" [class.highlighted]="isHighlighted('node', element.id)" class="envelope" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null">
 
-            <!-- Mirrored backdrop -->
-            <rect *ngIf="$any(element).mirror"
+            <!-- Layered backdrop -->
+            <rect *ngIf="$any(element).layered"
               [attr.x]="$any(element).position.x + 8" [attr.y]="$any(element).position.y + 8"
               [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" rx="4"
               [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
               [attr.stroke-width]="$any(element).strokeWidth || 1"
               [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-              class="node-mirror">
+              class="node-layer">
             </rect>
-            <rect *ngIf="$any(element).mirror"
+            <rect *ngIf="$any(element).layered"
               [attr.x]="$any(element).position.x + 4" [attr.y]="$any(element).position.y + 4"
               [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" rx="4"
               [attr.fill]="$any(element).fillColor" [attr.stroke]="$any(element).borderColor"
               [attr.stroke-width]="$any(element).strokeWidth || 1"
               [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
-              class="node-mirror">
+              class="node-layer">
             </rect>
 
             <!-- Main envelope rect -->

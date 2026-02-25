@@ -478,36 +478,6 @@ export class DiagramService {
     };
   }
 
-  toggleFlip(direction: 'horizontal' | 'vertical'): void {
-    const currentState = this.state;
-    const selectedNodes = currentState.selectedNodeIds;
-    const selectedSvgs = currentState.selectedSvgImageIds;
-    const allSelectedIds = [...selectedNodes, ...selectedSvgs];
-
-    if (allSelectedIds.length === 0) return;
-
-    const newElements = currentState.currentDiagram.elements.map(element => {
-      if (allSelectedIds.includes(element.id)) {
-        if (direction === 'horizontal') {
-          return { ...element, flipHorizontal: !element.flipHorizontal };
-        } else {
-          return { ...element, flipVertical: !element.flipVertical };
-        }
-      }
-      return element;
-    });
-
-    const nextDiagram = this.performAutoRouting({
-      ...currentState.currentDiagram,
-      elements: newElements
-    });
-
-    this.state = {
-      ...currentState,
-      currentDiagram: nextDiagram
-    };
-  }
-
   toggleRotation(degrees: number = 90): void {
     const currentState = this.state;
     const selectedNodes = currentState.selectedNodeIds;

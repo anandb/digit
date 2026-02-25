@@ -5,7 +5,7 @@ import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { DiagramService } from '../../services/diagram.service';
 import { DiagramToolbarComponent } from '../diagram-toolbar/diagram-toolbar.component';
-import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox, SvgImage, DiagramElement, isNode, isSvgImage, isBoundingBox } from '../../models/diagram.model';
+import { DiagramState, Node, Tendril, Edge, Position, Size, BoundingBox, SvgImage, DiagramElement, isNode, isSvgImage, isBoundingBox, Group } from '../../models/diagram.model';
 import { PropertiesWindowComponent } from '../properties-window/properties-window.component';
 
 @Component({
@@ -55,6 +55,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // For live path routing during drag
   private movingElementIds = new Set<string>();
   private draggingDelta: Position = { x: 0, y: 0 };
+  private activeDragId?: string;
 
   // Node shapes that support inner diagrams
   private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'cache'];
@@ -160,8 +161,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Unified element drag handling
   onElementDragStarted(element: DiagramElement): void {
+    this.activeDragId = element.id;
     this.movingElementIds.clear();
     this.movingElementIds.add(element.id);
+
+    // If element is part of a group, add all members to movingElementIds
+    if (element.groupId) {
+      const group = this.state.currentDiagram.groups.find(g => g.id === element.groupId);
+      if (group) {
+        group.elementIds.forEach(id => this.movingElementIds.add(id));
+      }
+    }
+
     this.draggingDelta = { x: 0, y: 0 };
   }
 
@@ -191,6 +202,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         this.diagramService.updateNode(element.id, { position: newPosition });
       } else if (isSvgImage(element)) {
         this.diagramService.updateSvgImage(element.id, { position: newPosition });
+      } else if (isBoundingBox(element)) {
+        this.diagramService.updateBoundingBox(element.id, { position: newPosition });
       }
     }
 
@@ -200,8 +213,65 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.movingElementIds.clear();
     this.draggingDelta = { x: 0, y: 0 };
 
-    // Reset transform
+    // Reset transform and state
     elementRef.style.transform = '';
+    this.activeDragId = undefined;
+  }
+
+  // Get transform for synchronized group dragging
+  getGroupMemberTransform(element: DiagramElement): string | null {
+    if (this.activeDragId && this.activeDragId !== element.id && this.movingElementIds.has(element.id)) {
+      return `translate3d(${this.draggingDelta.x}px, ${this.draggingDelta.y}px, 0)`;
+    }
+    return null;
+  }
+
+  // Get all groups for rendering
+  getGroups(): Group[] {
+    return this.state.currentDiagram.groups || [];
+  }
+
+  // Calculate bounding box for a group
+  getGroupBoundingBox(group: Group): { x: number, y: number, width: number, height: number } | null {
+    const elements = this.state.currentDiagram.elements.filter(el => group.elementIds.includes(el.id));
+    const boxMembers = this.state.currentDiagram.boundingBoxes.filter(box => group.elementIds.includes(box.id));
+
+    if (elements.length === 0 && boxMembers.length === 0) return null;
+
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+
+    elements.forEach(el => {
+      minX = Math.min(minX, el.position.x);
+      minY = Math.min(minY, el.position.y);
+      maxX = Math.max(maxX, el.position.x + el.size.width);
+      maxY = Math.max(maxY, el.position.y + el.size.height);
+    });
+
+    boxMembers.forEach(box => {
+      minX = Math.min(minX, box.position.x);
+      minY = Math.min(minY, box.position.y);
+      maxX = Math.max(maxX, box.position.x + box.size.width);
+      maxY = Math.max(maxY, box.position.y + box.size.height);
+    });
+
+    // Add some padding
+    const padding = 10;
+    return {
+      x: minX - padding,
+      y: minY - padding,
+      width: maxX - minX + (padding * 2),
+      height: maxY - minY + (padding * 2)
+    };
+  }
+
+  isGroupSelected(group: Group): boolean {
+    const selectedIds = new Set([
+      ...this.state.selectedNodeIds,
+      ...this.state.selectedSvgImageIds,
+      ...this.state.selectedBoundingBoxIds
+    ]);
+    return group.elementIds.some(id => selectedIds.has(id));
   }
 
   // Unified element interaction methods
@@ -603,6 +673,20 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Group elements (Ctrl+G)
+    if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'g') {
+      event.preventDefault();
+      this.diagramService.groupSelectedElements();
+      return;
+    }
+
+    // Ungroup elements (Ctrl+Shift+G)
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'g') {
+      event.preventDefault();
+      this.diagramService.ungroupSelectedGroups();
+      return;
+    }
+
     // Paste (Ctrl+V)
     if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
       event.preventDefault();
@@ -715,95 +799,6 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Bounding box drag started - highlight contained objects
-  onBoundingBoxDragStarted(box: any): void {
-    this.isDraggingBoundingBox = true;
-    this.highlightedObjectIds.clear();
-    this.movingElementIds.clear();
-    this.movingElementIds.add(box.id);
-    this.draggingDelta = { x: 0, y: 0 };
-
-    // Highlight all elements within the bounding box
-    this.state.currentDiagram.elements.forEach(element => {
-      if (this.isElementInsideBoundingBox(element, box)) {
-        this.movingElementIds.add(element.id);
-        if (isNode(element)) {
-          this.highlightedObjectIds.add(`node-${element.id}`);
-        } else if (isSvgImage(element)) {
-          this.highlightedObjectIds.add(`svg-${element.id}`);
-        }
-      }
-    });
-
-    // Highlight all bounding boxes within this bounding box
-    this.state.currentDiagram.boundingBoxes.forEach(otherBox => {
-      if (otherBox.id !== box.id && this.isBoundingBoxInsideBoundingBox(otherBox, box)) {
-        this.movingElementIds.add(otherBox.id);
-        this.highlightedObjectIds.add(`box-${otherBox.id}`);
-      }
-    });
-  }
-
-  // Bounding box drag moved - update highlights if needed
-  onBoundingBoxDragMoved(event: CdkDragMove, box: any): void {
-    this.draggingDelta = {
-      x: event.distance.x,
-      y: event.distance.y
-    };
-  }
-
-  // Bounding box drag handling
-  onBoundingBoxDragEnd(event: CdkDragEnd, box: any): void {
-    const element = event.source.element.nativeElement;
-    const transform = element.style.transform;
-
-    // Parse transform to get new position
-    const match = transform.match(/translate3d\(([^,]+)px, ([^,]+)px,/);
-    if (match) {
-      const deltaX = parseFloat(match[1]);
-      const deltaY = parseFloat(match[2]);
-
-      // Move the bounding box itself
-      const newBoxPosition: Position = {
-        x: box.position.x + deltaX,
-        y: box.position.y + deltaY
-      };
-      this.diagramService.updateBoundingBox(box.id, { position: newBoxPosition });
-
-      // Move all elements within the bounding box
-      this.state.currentDiagram.elements.forEach(element => {
-        if (this.isElementInsideBoundingBox(element, box)) {
-          const newElementPosition: Position = {
-            x: element.position.x + deltaX,
-            y: element.position.y + deltaY
-          };
-
-          if (isNode(element)) {
-            this.diagramService.updateNode(element.id, { position: newElementPosition });
-          } else if (isSvgImage(element)) {
-            this.diagramService.updateSvgImage(element.id, { position: newElementPosition });
-          }
-        }
-      });
-
-      // Move all other bounding boxes within this bounding box (nested grouping)
-      this.state.currentDiagram.boundingBoxes.forEach(otherBox => {
-        if (otherBox.id !== box.id && this.isBoundingBoxInsideBoundingBox(otherBox, box)) {
-          const newOtherBoxPosition: Position = {
-            x: otherBox.position.x + deltaX,
-            y: otherBox.position.y + deltaY
-          };
-          this.diagramService.updateBoundingBox(otherBox.id, { position: newOtherBoxPosition });
-        }
-      });
-    }
-
-    this.movingElementIds.clear();
-    this.draggingDelta = { x: 0, y: 0 };
-
-    // Reset transform
-    element.style.transform = '';
-  }
 
   // Start resizing a bounding box
   startBoundingBoxResize(event: MouseEvent, box: any, direction: string): void {
@@ -1093,36 +1088,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       nodeTop >= boxTop && nodeBottom <= boxBottom;
   }
 
-  // Check if a bounding box is inside another bounding box
-  private isBoundingBoxInsideBoundingBox(innerBox: any, outerBox: any): boolean {
-    const innerLeft = innerBox.position.x;
-    const innerRight = innerBox.position.x + innerBox.size.width;
-    const innerTop = innerBox.position.y;
-    const innerBottom = innerBox.position.y + innerBox.size.height;
-
-    const outerLeft = outerBox.position.x;
-    const outerRight = outerBox.position.x + outerBox.size.width;
-    const outerTop = outerBox.position.y;
-    const outerBottom = outerBox.position.y + outerBox.size.height;
-
-    return innerLeft >= outerLeft && innerRight <= outerRight &&
-      innerTop >= outerTop && innerBottom <= outerBottom;
-  }
 
   // Check if an element is inside a bounding box
   private isElementInsideBoundingBox(element: DiagramElement, boundingBox: any): boolean {
-    const elementLeft = element.position.x;
-    const elementRight = element.position.x + element.size.width;
-    const elementTop = element.position.y;
-    const elementBottom = element.position.y + element.size.height;
+    return this.diagramService.isElementInsideBoundingBox(element, boundingBox);
+  }
 
-    const boxLeft = boundingBox.position.x;
-    const boxRight = boundingBox.position.x + boundingBox.size.width;
-    const boxTop = boundingBox.position.y;
-    const boxBottom = boundingBox.position.y + boundingBox.size.height;
-
-    return elementLeft >= boxLeft && elementRight <= boxRight &&
-      elementTop >= boxTop && elementBottom <= boxBottom;
+  private isBoundingBoxInsideBoundingBox(innerBox: any, outerBox: any): boolean {
+    return this.diagramService.isBoundingBoxInsideBoundingBox(innerBox, outerBox);
   }
 
   // Check if an SVG image is inside a bounding box

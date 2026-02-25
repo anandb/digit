@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, isNode, isSvgImage, isBoundingBox } from '../models/diagram.model';
+import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, isNode, isSvgImage, isBoundingBox, Group } from '../models/diagram.model';
 
 @Injectable({
   providedIn: 'root'
@@ -94,6 +94,7 @@ export class DiagramService {
       edges: [],
       connectors: [],
       boundingBoxes: [],
+      groups: [],
       attributes: {},
       todos: []
     };
@@ -134,6 +135,7 @@ export class DiagramService {
       edges: [],
       connectors: [],
       boundingBoxes: [],
+      groups: [],
       attributes: {},
       todos: []
     };
@@ -248,6 +250,132 @@ export class DiagramService {
     };
   }
 
+  groupSelectedElements(): void {
+    const currentState = this.state;
+    const selectedIds = [
+      ...currentState.selectedNodeIds,
+      ...currentState.selectedSvgImageIds,
+      ...currentState.selectedBoundingBoxIds
+    ];
+
+    if (selectedIds.length === 0) return;
+
+    // Find all groups that have at least one member in the selection
+    const currentGroups = currentState.currentDiagram.groups || [];
+    const involvedGroups = currentGroups.filter(g =>
+      g.elementIds.some(id => selectedIds.includes(id))
+    );
+
+    let targetGroupId: string;
+    let finalElementIds: Set<string>;
+    let finalGroups: Group[];
+
+    if (involvedGroups.length > 0) {
+      // Use the first involved group as the target
+      targetGroupId = involvedGroups[0].id;
+
+      // Collect ALL element IDs from all involved groups plus all currently selected items
+      finalElementIds = new Set();
+      involvedGroups.forEach(g => {
+        g.elementIds.forEach(id => finalElementIds.add(id));
+      });
+      selectedIds.forEach(id => finalElementIds.add(id));
+
+      // Reconstruct groups list: keep the target, remove all other involved ones
+      const involvedGroupIds = involvedGroups.map(g => g.id);
+      finalGroups = currentGroups.filter(g => !involvedGroupIds.includes(g.id));
+
+      // Update the target group with all members
+      const targetGroup: Group = {
+        id: targetGroupId,
+        elementIds: Array.from(finalElementIds)
+      };
+      finalGroups.push(targetGroup);
+    } else {
+      // No existing groups involved, create a brand new one if at least 2 are selected
+      if (selectedIds.length < 2) return;
+
+      targetGroupId = this.generateId();
+      finalElementIds = new Set(selectedIds);
+      const newGroup: Group = {
+        id: targetGroupId,
+        elementIds: selectedIds
+      };
+      finalGroups = [...currentGroups, newGroup];
+    }
+
+    // Update all members to point to the correct groupId
+    // Check elements (nodes, svg images)
+    const newElements = currentState.currentDiagram.elements.map(el => {
+      if (finalElementIds.has(el.id)) {
+        return { ...el, groupId: targetGroupId };
+      }
+      return el;
+    });
+
+    // Check bounding boxes
+    const newBoundingBoxes = currentState.currentDiagram.boundingBoxes.map(box => {
+      if (finalElementIds.has(box.id)) {
+        return { ...box, groupId: targetGroupId };
+      }
+      return box;
+    });
+
+    this.state = {
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        elements: newElements,
+        boundingBoxes: newBoundingBoxes,
+        groups: finalGroups
+      }
+    };
+  }
+
+  ungroupSelectedGroups(): void {
+    const currentState = this.state;
+    const selectedIds = [
+      ...currentState.selectedNodeIds,
+      ...currentState.selectedSvgImageIds,
+      ...currentState.selectedBoundingBoxIds
+    ];
+
+    // Find all groups that contain at least one selected element
+    const groupsToResolve = currentState.currentDiagram.groups.filter(g =>
+      g.elementIds.some(id => selectedIds.includes(id))
+    );
+
+    if (groupsToResolve.length === 0) return;
+
+    const groupIdsToRemove = groupsToResolve.map(g => g.id);
+
+    const newElements = currentState.currentDiagram.elements.map(el => {
+      if (el.groupId && groupIdsToRemove.includes(el.groupId)) {
+        return { ...el, groupId: undefined };
+      }
+      return el;
+    });
+
+    const newBoundingBoxes = currentState.currentDiagram.boundingBoxes.map(box => {
+      if (box.groupId && groupIdsToRemove.includes(box.groupId)) {
+        return { ...box, groupId: undefined };
+      }
+      return box;
+    });
+
+    const newGroups = currentState.currentDiagram.groups.filter(g => !groupIdsToRemove.includes(g.id));
+
+    this.state = {
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        elements: newElements,
+        boundingBoxes: newBoundingBoxes,
+        groups: newGroups
+      }
+    };
+  }
+
   // Node operations
   addNode(position: Position, options?: { shape?: string; borderColor?: string; fillColor?: string; dotted?: boolean; fontFamily?: string }): void {
     const shape = (options?.shape as any) || 'rectangle';
@@ -338,7 +466,7 @@ export class DiagramService {
   }
 
   // SVG image operations
-  addSvgImage(svgContent: string, fileName: string): void {
+  addSvgImage(svgContent: string, fileName: string, position?: Position): void {
   // Generate a unique ID for this SVG element first, so we can namespace internal IDs
   const elementId = this.generateId();
 
@@ -435,15 +563,15 @@ export class DiagramService {
   }
   // --- End ID namespacing ---
 
-  // Position around the upper-center of the canvas
-  const position = {
+  // Position: use provided or default to center-ish with subtle randomize
+  const finalPosition = position || {
     x: 350 + (Math.random() * 50),
     y: 150 + (Math.random() * 50)
   };
 
   const newSvgImage: import('../models/diagram.model').SvgImage = {
     id: elementId,
-    position,
+    position: finalPosition,
     size: { width, height },
     svgContent: scaledSvgContent,
     fileName,
@@ -507,8 +635,124 @@ export class DiagramService {
     };
   }
 
+  isElementInsideBoundingBox(element: DiagramElement, boundingBox: any): boolean {
+    const elementLeft = element.position.x;
+    const elementRight = element.position.x + element.size.width;
+    const elementTop = element.position.y;
+    const elementBottom = element.position.y + element.size.height;
+
+    const boxLeft = boundingBox.position.x;
+    const boxRight = boundingBox.position.x + boundingBox.size.width;
+    const boxTop = boundingBox.position.y;
+    const boxBottom = boundingBox.position.y + boundingBox.size.height;
+
+    return elementLeft >= boxLeft && elementRight <= boxRight &&
+      elementTop >= boxTop && elementBottom <= boxBottom;
+  }
+
+  isBoundingBoxInsideBoundingBox(innerBox: any, outerBox: any): boolean {
+    const innerLeft = innerBox.position.x;
+    const innerRight = innerBox.position.x + innerBox.size.width;
+    const innerTop = innerBox.position.y;
+    const innerBottom = innerBox.position.y + innerBox.size.height;
+
+    const outerLeft = outerBox.position.x;
+    const outerRight = outerBox.position.x + outerBox.size.width;
+    const outerTop = outerBox.position.y;
+    const outerBottom = outerBox.position.y + outerBox.size.height;
+
+    return innerLeft >= outerLeft && innerRight <= outerRight &&
+      innerTop >= outerTop && innerBottom <= outerBottom;
+  }
+
   updateElement(elementId: string, updates: any): void {
     const currentState = this.state;
+    // Check elements (Nodes/SvgImages) and Bounding Boxes
+    const element = currentState.currentDiagram.elements.find(e => e.id === elementId) ||
+                    currentState.currentDiagram.boundingBoxes.find(b => b.id === elementId);
+
+    // Handle grouped movement
+    if (element && element.groupId && updates.position) {
+      const group = currentState.currentDiagram.groups.find(g => g.id === element.groupId);
+      if (group) {
+        const deltaX = updates.position.x - element.position.x;
+        const deltaY = updates.position.y - element.position.y;
+
+        // Update all elements in the group
+        const newElements = currentState.currentDiagram.elements.map(el => {
+          if (group.elementIds.includes(el.id)) {
+            const elNewPos = {
+              x: el.position.x + deltaX,
+              y: el.position.y + deltaY
+            };
+            return { ...el, position: elNewPos };
+          }
+          return el;
+        });
+
+        // Update all bounding boxes in the group
+        const newBoundingBoxes = currentState.currentDiagram.boundingBoxes.map(box => {
+          if (group.elementIds.includes(box.id)) {
+            const boxNewPos = {
+              x: box.position.x + deltaX,
+              y: box.position.y + deltaY
+            };
+            return { ...box, position: boxNewPos };
+          }
+          return box;
+        });
+
+        this.state = {
+          ...currentState,
+          currentDiagram: {
+            ...currentState.currentDiagram,
+            elements: newElements,
+            boundingBoxes: newBoundingBoxes
+          }
+        };
+        return; // Already updated the whole group
+      }
+    }
+
+    // Handle Bounding Box recursive movement (if not handled by explicit group above)
+    if (element && isBoundingBox(element) && updates.position) {
+      const deltaX = updates.position.x - element.position.x;
+      const deltaY = updates.position.y - element.position.y;
+
+      const newElements = currentState.currentDiagram.elements.map(el => {
+        if (this.isElementInsideBoundingBox(el, element)) {
+          return {
+            ...el,
+            position: { x: el.position.x + deltaX, y: el.position.y + deltaY }
+          };
+        }
+        return el;
+      });
+
+      const newBoundingBoxes = currentState.currentDiagram.boundingBoxes.map(box => {
+        if (box.id === element.id) {
+          return { ...box, ...updates };
+        }
+        if (this.isBoundingBoxInsideBoundingBox(box, element)) {
+          return {
+            ...box,
+            position: { x: box.position.x + deltaX, y: box.position.y + deltaY }
+          };
+        }
+        return box;
+      });
+
+      this.state = {
+        ...currentState,
+        currentDiagram: {
+          ...currentState.currentDiagram,
+          elements: newElements,
+          boundingBoxes: newBoundingBoxes
+        }
+      };
+      return;
+    }
+
     let updated = false;
 
     const newElements = currentState.currentDiagram.elements.map(element => {
@@ -663,7 +907,10 @@ export class DiagramService {
         ),
         connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
           connector.fromNodeId !== nodeId && connector.toNodeId !== nodeId
-        )
+        ),
+        groups: (currentState.currentDiagram.groups || [])
+          .map(g => ({ ...g, elementIds: g.elementIds.filter(id => id !== nodeId) }))
+          .filter(g => g.elementIds.length > 0)
       }
     };
   }
@@ -688,7 +935,10 @@ export class DiagramService {
         ),
         connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
           !idSet.has(connector.fromNodeId) && !idSet.has(connector.toNodeId)
-        )
+        ),
+        groups: (currentState.currentDiagram.groups || [])
+          .map(g => ({ ...g, elementIds: g.elementIds.filter(id => !idSet.has(id)) }))
+          .filter(g => g.elementIds.length > 0)
       },
       selectedNodeIds: [],
       selectedSvgImageIds: [],
@@ -1115,9 +1365,8 @@ export class DiagramService {
       this.state = {
         ...this.state,
         selectedNodeIds: currentSelections,
+        selectedNodeId: currentSelections[currentSelections.length - 1],
         selectedTendrilId: undefined,
-        selectedBoundingBoxIds: [],
-        selectedSvgImageIds: [],
         selectedEdgeIds: [],
         selectedConnectorIds: []
       };
@@ -1126,6 +1375,7 @@ export class DiagramService {
       this.state = {
         ...this.state,
         selectedNodeIds: nodeId ? [nodeId] : [],
+        selectedNodeId: nodeId,
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: [],
         selectedSvgImageIds: [],
@@ -1162,10 +1412,9 @@ export class DiagramService {
 
       this.state = {
         ...this.state,
-        selectedNodeIds: [],
-        selectedTendrilId: undefined,
         selectedBoundingBoxIds: currentSelections,
-        selectedSvgImageIds: [],
+        selectedBoundingBoxId: currentSelections[currentSelections.length - 1],
+        selectedTendrilId: undefined,
         selectedEdgeIds: [],
         selectedConnectorIds: []
       };
@@ -1176,6 +1425,7 @@ export class DiagramService {
         selectedNodeIds: [],
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: boundingBoxId ? [boundingBoxId] : [],
+        selectedBoundingBoxId: boundingBoxId,
         selectedSvgImageIds: [],
         selectedEdgeIds: [],
         selectedConnectorIds: []
@@ -1199,10 +1449,9 @@ export class DiagramService {
 
       this.state = {
         ...this.state,
-        selectedNodeIds: [],
-        selectedTendrilId: undefined,
-        selectedBoundingBoxIds: [],
         selectedSvgImageIds: currentSelections,
+        selectedSvgImageId: currentSelections[currentSelections.length - 1],
+        selectedTendrilId: undefined,
         selectedEdgeIds: [],
         selectedConnectorIds: []
       };
@@ -1214,6 +1463,7 @@ export class DiagramService {
         selectedTendrilId: undefined,
         selectedBoundingBoxIds: [],
         selectedSvgImageIds: svgImageId ? [svgImageId] : [],
+        selectedSvgImageId: svgImageId,
         selectedEdgeIds: [],
         selectedConnectorIds: []
       };
@@ -1716,6 +1966,11 @@ export class DiagramService {
         this.storeDiagramsRecursively(element.innerDiagram);
       }
     });
+
+    // Ensure groups array exists
+    if (!diag.groups) {
+      diag.groups = [];
+    }
   }
 
   // Centroid and Auto-routing Helpers

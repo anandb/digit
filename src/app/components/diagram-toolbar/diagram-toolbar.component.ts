@@ -225,8 +225,22 @@ export class DiagramToolbarComponent {
       const reader = new FileReader();
       reader.onload = (e) => {
         const svgContent = e.target?.result as string;
-        this.diagramService.addSvgImage(svgContent, file.name);
 
+        // If chaos mode is on, spawn 4-7 images.
+        const count = this.isChaosMode ? Math.floor(Math.random() * 4) + 4 : 1;
+        const viewportCenter = this.diagramService.currentState.viewportCenter;
+        const basePosition = {
+          x: (viewportCenter?.x || 500) - 40,
+          y: (viewportCenter?.y || 300) - 25
+        };
+
+        for (let i = 0; i < count; i++) {
+          const offsetPos = {
+            x: basePosition.x + (this.isChaosMode ? (Math.random() * 200 - 100) : (Math.random() * 20)),
+            y: basePosition.y + (this.isChaosMode ? (Math.random() * 200 - 100) : (Math.random() * 20))
+          };
+          this.diagramService.addSvgImage(svgContent, file.name, offsetPos);
+        }
       };
       reader.readAsText(file);
     }

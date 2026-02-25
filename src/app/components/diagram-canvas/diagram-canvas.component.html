@@ -27,8 +27,9 @@
     <!-- Bounding boxes - bottom layer -->
     <g class="bounding-boxes">
       <g *ngFor="let box of state.currentDiagram.boundingBoxes" class="bounding-box-group" cdkDrag
-        (cdkDragStarted)="onBoundingBoxDragStarted(box)" (cdkDragMoved)="onBoundingBoxDragMoved($event, box)"
-        (cdkDragEnded)="onBoundingBoxDragEnd($event, box)" (click)="onBoundingBoxClick($event, box)"
+        [attr.transform]="getGroupMemberTransform(box)"
+        (cdkDragStarted)="onElementDragStarted(box)" (cdkDragMoved)="onElementDragMoved($event)"
+        (cdkDragEnded)="onElementDragEnd($event, box)" (click)="onBoundingBoxClick($event, box)"
         (contextmenu)="onBoundingBoxContextMenu($event, box)">
 
         <!-- Bounding box rectangle -->
@@ -66,9 +67,23 @@
       </g>
     </g>
 
+    <!-- Groups -->
+    <g class="groups">
+      <ng-container *ngFor="let group of getGroups()">
+        <rect *ngIf="isGroupSelected(group) && getGroupBoundingBox(group) as bbox"
+          [attr.x]="bbox.x"
+          [attr.y]="bbox.y"
+          [attr.width]="bbox.width"
+          [attr.height]="bbox.height"
+          class="group-rect">
+        </rect>
+      </ng-container>
+    </g>
+
     <!-- Elements (Nodes and SVG Images) -->
     <g class="elements">
       <g *ngFor="let element of state.currentDiagram.elements" class="element-group" cdkDrag
+        [style.transform]="getGroupMemberTransform(element)"
         [cdkDragDisabled]="isSelected('node', element.id) || isSelected('svg', element.id)"
         (cdkDragStarted)="onElementDragStarted(element)"
         (cdkDragMoved)="onElementDragMoved($event)"

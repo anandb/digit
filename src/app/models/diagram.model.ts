@@ -23,6 +23,7 @@ export interface DiagramElement extends HasNotes {
   tendrils: Tendril[];
   innerDiagram?: Diagram;
   rotation?: number;
+  groupId?: string;
 }
 
 export interface Tendril extends HasNotes {
@@ -110,6 +111,11 @@ export interface SvgImage extends DiagramElement {
   strokeWidth?: number;
 }
 
+export interface Group {
+  id: string;
+  elementIds: string[];
+}
+
 export interface TodoItem {
   id: string;
   text: string;
@@ -123,6 +129,7 @@ export interface Diagram {
   edges: Edge[];
   connectors: Connector[];
   boundingBoxes: BoundingBox[];
+  groups: Group[];
   attributes: { [key: string]: any };
   todos: TodoItem[];
 }

@@ -223,23 +223,23 @@
       <div class="dropdown-popout instructions-popout" *ngIf="isInstructionsOpen">
         <h4>Keyboard Shortcuts</h4>
         <ul>
-          <li><strong>Shift + Click</strong>: Select multiple elements simultaneously</li>
-          <li><strong>Ctrl/Cmd + Click</strong>: Draw an edge between two nodes</li>
-          <li><strong>Alt + Click</strong>: Draw a connector between two nodes</li>
-          <li><strong>Ctrl/Cmd + Z</strong>: Undo last action</li>
-          <li><strong>Ctrl/Cmd + A</strong>: Select All elements on canvas</li>
-          <li><strong>Ctrl/Cmd + C</strong>: Copy selected elements</li>
-          <li><strong>Ctrl/Cmd + V</strong>: Paste copied elements</li>
-          <li><strong>Delete/Backspace</strong>: Remove selected item(s)</li>
-          <li><strong>Double-click node</strong>: Enter inner nested diagram</li>
+          <li><strong>Shift + Click</strong>: Multi-select elements for group movement</li>
+          <li><strong>Ctrl/Cmd + Click</strong>: Atomic edge creation (Click start node, then end node)</li>
+          <li><strong>Alt + Click</strong>: Atomic connector creation (Click start node, then end node)</li>
+          <li><strong>Ctrl/Cmd + Z</strong>: Undo last action (Supports multi-step operations)</li>
+          <li><strong>Ctrl/Cmd + A</strong>: Select all elements in the current diagram</li>
+          <li><strong>Ctrl/Cmd + C / V</strong>: Copy and Paste selected elements</li>
+          <li><strong>Delete / Backspace</strong>: Delete all currently selected items</li>
+          <li><strong>Double-click Node</strong>: Drill down into nested diagram architecture</li>
         </ul>
         <h4>Mouse Actions</h4>
         <ul>
-          <li><strong>Right-click element</strong>: Open properties window for configuration</li>
-          <li><strong>Drag node edges</strong>: Resize element (select it first)</li>
-          <li><strong>Drag element</strong>: Click canvas to deselect, then drag to move</li>
-          <li><strong>Drag tendril handle</strong>: Draw edge manually</li>
-          <li><strong>Drag canvas</strong>: Pan the view across the diagram</li>
+          <li><strong>Right-click</strong>: Open Properties Window for colors, labels, and attributes</li>
+          <li><strong>Drag Borders</strong>: Resize Nodes, SVGs (aspect-locked), or Bounding Boxes</li>
+          <li><strong>Drag Element</strong>: Move individual elements or synchronized selection groups</li>
+          <li><strong>Drag Tendril Handle</strong>: Manually draw a connection to another element</li>
+          <li><strong>Drag Canvas</strong>: Pan the viewport to navigate large diagrams</li>
+          <li><strong>Zoom Controls</strong>: Use the floating strip to adjust diagram scale</li>
         </ul>
       </div>
     </div>

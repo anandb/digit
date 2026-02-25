@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, isNode, isSvgImage, isBoundingBox, Group } from '../models/diagram.model';
+import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, isNode, isSvgImage, isBoundingBox, Group, BoundingBox, SvgImage } from '../models/diagram.model';
 
 @Injectable({
   providedIn: 'root'
@@ -51,6 +51,8 @@ export class DiagramService {
 
   constructor() { }
 
+  private nextStateSkipUndo = false;
+
   private set state(newState: DiagramState) {
     const prev = this.state;
     const prevDiagramId = prev?.currentDiagram?.id;
@@ -66,7 +68,7 @@ export class DiagramService {
     // where selection happens to stay the same (e.g. addEdgeWithAutoTendrils).
     const diagramContentChanged = prev?.currentDiagram !== newState?.currentDiagram;
 
-    if (!isNavigation && diagramContentChanged && prevDiagramId) {
+    if (!isNavigation && diagramContentChanged && prevDiagramId && !this.nextStateSkipUndo) {
       // Push a deep-clone of the current diagram onto that diagram's own undo stack.
       if (!this.undoStacks.has(prevDiagramId)) {
         this.undoStacks.set(prevDiagramId, []);
@@ -75,6 +77,8 @@ export class DiagramService {
       stack.push(JSON.parse(JSON.stringify(prev.currentDiagram)));
       if (stack.length > 50) stack.shift();
     }
+
+    this.nextStateSkipUndo = false; // Always reset
 
     // Always keep allDiagrams in sync with the live current diagram so that
     // prepareDiagramForSave and getExposedTendrils always see the latest state.
@@ -108,6 +112,18 @@ export class DiagramService {
 
   private generateId(): string {
     return Math.random().toString(36).substr(2, 9);
+  }
+
+  public recordUndoSnapshot(): void {
+    const diagram = this.state.currentDiagram;
+    if (diagram) {
+      if (!this.undoStacks.has(diagram.id)) {
+        this.undoStacks.set(diagram.id, []);
+      }
+      const stack = this.undoStacks.get(diagram.id)!;
+      stack.push(JSON.parse(JSON.stringify(diagram)));
+      if (stack.length > 50) stack.shift();
+    }
   }
 
   // Navigation methods
@@ -589,21 +605,8 @@ export class DiagramService {
     }
   };
 }
-  updateBoundingBox(boundingBoxId: string, updates: Partial<import('../models/diagram.model').BoundingBox>): void {
-    const currentState = this.state;
-    const newBoundingBoxes = currentState.currentDiagram.boundingBoxes.map(box =>
-      box.id === boundingBoxId ? { ...box, ...updates } : box
-    );
-
-    const nextDiagram = this.performAutoRouting({
-      ...currentState.currentDiagram,
-      boundingBoxes: newBoundingBoxes
-    });
-
-    this.state = {
-      ...currentState,
-      currentDiagram: nextDiagram
-    };
+  updateBoundingBox(boundingBoxId: string, updates: Partial<BoundingBox>, recordUndo: boolean = true): void {
+    this.updateElement(boundingBoxId, updates, recordUndo);
   }
 
   toggleRotation(degrees: number = 90): void {
@@ -635,37 +638,31 @@ export class DiagramService {
     };
   }
 
-  isElementInsideBoundingBox(element: DiagramElement, boundingBox: any): boolean {
-    const elementLeft = element.position.x;
+  // --- Centralized AABB Geometry Logic ---
+  isElementInsideBoundingBox(element: DiagramElement, boundingBox: BoundingBox): boolean {
     const elementRight = element.position.x + element.size.width;
-    const elementTop = element.position.y;
     const elementBottom = element.position.y + element.size.height;
-
-    const boxLeft = boundingBox.position.x;
     const boxRight = boundingBox.position.x + boundingBox.size.width;
-    const boxTop = boundingBox.position.y;
     const boxBottom = boundingBox.position.y + boundingBox.size.height;
 
-    return elementLeft >= boxLeft && elementRight <= boxRight &&
-      elementTop >= boxTop && elementBottom <= boxBottom;
+    return element.position.x >= boundingBox.position.x && elementRight <= boxRight &&
+           element.position.y >= boundingBox.position.y && elementBottom <= boxBottom;
   }
 
-  isBoundingBoxInsideBoundingBox(innerBox: any, outerBox: any): boolean {
-    const innerLeft = innerBox.position.x;
+  isBoundingBoxInsideBoundingBox(innerBox: BoundingBox, outerBox: BoundingBox): boolean {
     const innerRight = innerBox.position.x + innerBox.size.width;
-    const innerTop = innerBox.position.y;
     const innerBottom = innerBox.position.y + innerBox.size.height;
-
-    const outerLeft = outerBox.position.x;
     const outerRight = outerBox.position.x + outerBox.size.width;
-    const outerTop = outerBox.position.y;
     const outerBottom = outerBox.position.y + outerBox.size.height;
 
-    return innerLeft >= outerLeft && innerRight <= outerRight &&
-      innerTop >= outerTop && innerBottom <= outerBottom;
+    return innerBox.position.x >= outerBox.position.x && innerRight <= outerRight &&
+           innerBox.position.y >= outerBox.position.y && innerBottom <= outerBottom;
   }
 
-  updateElement(elementId: string, updates: any): void {
+  updateElement(elementId: string, updates: Partial<Node> | Partial<SvgImage> | Partial<BoundingBox>, recordUndo: boolean = true): void {
+    if (!recordUndo) {
+      this.nextStateSkipUndo = true;
+    }
     const currentState = this.state;
     // Check elements (Nodes/SvgImages) and Bounding Boxes
     const element = currentState.currentDiagram.elements.find(e => e.id === elementId) ||
@@ -873,8 +870,8 @@ export class DiagramService {
     };
   }
 
-  updateSvgImage(svgImageId: string, updates: Partial<import('../models/diagram.model').SvgImage>): void {
-    this.updateElement(svgImageId, updates);
+  updateSvgImage(svgImageId: string, updates: Partial<SvgImage>, recordUndo: boolean = true): void {
+    this.updateElement(svgImageId, updates, recordUndo);
   }
 
   deleteBoundingBox(boundingBoxId: string): void {
@@ -891,8 +888,8 @@ export class DiagramService {
     };
   }
 
-  updateNode(nodeId: string, updates: Partial<Node>): void {
-    this.updateElement(nodeId, updates);
+  updateNode(nodeId: string, updates: Partial<Node>, recordUndo: boolean = true): void {
+    this.updateElement(nodeId, updates, recordUndo);
   }
 
   deleteNode(nodeId: string): void {
@@ -1003,7 +1000,10 @@ export class DiagramService {
     return newTendril.id;
   }
 
-  updateTendril(elementId: string, tendrilId: string, updates: Partial<Tendril>): void {
+  updateTendril(elementId: string, tendrilId: string, updates: Partial<Tendril>, recordUndo: boolean = true): void {
+    if (!recordUndo) {
+      this.nextStateSkipUndo = true;
+    }
     const element = this.getElement(elementId);
     if (element) {
       this.updateElement(elementId, {
@@ -1348,195 +1348,129 @@ export class DiagramService {
     }
   }
 
-  selectNode(nodeId: string | undefined, multiSelect: boolean = false): void {
-    if (multiSelect && nodeId) {
-      // Multi-select mode: toggle selection
-      const currentSelections = [...this.state.selectedNodeIds];
-      const index = currentSelections.indexOf(nodeId);
-
-      if (index > -1) {
-        // Already selected, remove it
-        currentSelections.splice(index, 1);
-      } else {
-        // Not selected, add it
-        currentSelections.push(nodeId);
-      }
-
-      this.state = {
-        ...this.state,
-        selectedNodeIds: currentSelections,
-        selectedNodeId: currentSelections[currentSelections.length - 1],
-        selectedTendrilId: undefined,
-        selectedEdgeIds: [],
-        selectedConnectorIds: []
-      };
-    } else {
-      // Single select mode: clear all other selections
-      this.state = {
-        ...this.state,
-        selectedNodeIds: nodeId ? [nodeId] : [],
-        selectedNodeId: nodeId,
-        selectedTendrilId: undefined,
-        selectedBoundingBoxIds: [],
-        selectedSvgImageIds: [],
-        selectedEdgeIds: [],
-        selectedConnectorIds: []
-      };
-    }
-  }
-
-  selectTendril(nodeId: string, tendrilId: string | undefined): void {
+  // Unified Selection Logic
+  private updateSelection(updates: Partial<DiagramState>, multiSelect: boolean): void {
+    const prev = this.state;
     this.state = {
-      ...this.state,
-      selectedNodeIds: nodeId ? [nodeId] : [],
-      selectedTendrilId: tendrilId,
-      selectedBoundingBoxIds: [],
-      selectedSvgImageIds: [],
-      selectedEdgeIds: []
+      ...prev,
+      ...updates,
+      // Always clear tendril selection when element selection changes, unless explicitly updating it
+      selectedTendrilId: updates.hasOwnProperty('selectedTendrilId') ? updates.selectedTendrilId : undefined
     };
   }
 
-  selectBoundingBox(boundingBoxId: string | undefined, multiSelect: boolean = false): void {
-    if (multiSelect && boundingBoxId) {
-      // Multi-select mode: toggle selection
-      const currentSelections = [...this.state.selectedBoundingBoxIds];
-      const index = currentSelections.indexOf(boundingBoxId);
-
-      if (index > -1) {
-        // Already selected, remove it
-        currentSelections.splice(index, 1);
-      } else {
-        // Not selected, add it
-        currentSelections.push(boundingBoxId);
-      }
-
-      this.state = {
-        ...this.state,
-        selectedBoundingBoxIds: currentSelections,
-        selectedBoundingBoxId: currentSelections[currentSelections.length - 1],
-        selectedTendrilId: undefined,
-        selectedEdgeIds: [],
-        selectedConnectorIds: []
-      };
+  selectNode(nodeId: string | undefined, multiSelect: boolean = false): void {
+    const state = this.state;
+    if (multiSelect && nodeId) {
+      const ids = this.toggleId(state.selectedNodeIds, nodeId);
+      this.updateSelection({
+        selectedNodeIds: ids,
+        selectedNodeId: ids[ids.length - 1]
+      }, true);
     } else {
-      // Single select mode: clear all other selections
-      this.state = {
-        ...this.state,
-        selectedNodeIds: [],
-        selectedTendrilId: undefined,
-        selectedBoundingBoxIds: boundingBoxId ? [boundingBoxId] : [],
-        selectedBoundingBoxId: boundingBoxId,
+      this.updateSelection({
+        selectedNodeIds: nodeId ? [nodeId] : [],
+        selectedNodeId: nodeId,
         selectedSvgImageIds: [],
+        selectedBoundingBoxIds: [],
         selectedEdgeIds: [],
         selectedConnectorIds: []
-      };
+      }, false);
     }
   }
 
   selectSvgImage(svgImageId: string | undefined, multiSelect: boolean = false): void {
+    const state = this.state;
     if (multiSelect && svgImageId) {
-      // Multi-select mode: toggle selection
-      const currentSelections = [...this.state.selectedSvgImageIds];
-      const index = currentSelections.indexOf(svgImageId);
-
-      if (index > -1) {
-        // Already selected, remove it
-        currentSelections.splice(index, 1);
-      } else {
-        // Not selected, add it
-        currentSelections.push(svgImageId);
-      }
-
-      this.state = {
-        ...this.state,
-        selectedSvgImageIds: currentSelections,
-        selectedSvgImageId: currentSelections[currentSelections.length - 1],
-        selectedTendrilId: undefined,
-        selectedEdgeIds: [],
-        selectedConnectorIds: []
-      };
+      const ids = this.toggleId(state.selectedSvgImageIds, svgImageId);
+      this.updateSelection({
+        selectedSvgImageIds: ids,
+        selectedSvgImageId: ids[ids.length - 1]
+      }, true);
     } else {
-      // Single select mode: clear all other selections
-      this.state = {
-        ...this.state,
-        selectedNodeIds: [],
-        selectedTendrilId: undefined,
-        selectedBoundingBoxIds: [],
+      this.updateSelection({
         selectedSvgImageIds: svgImageId ? [svgImageId] : [],
         selectedSvgImageId: svgImageId,
+        selectedNodeIds: [],
+        selectedBoundingBoxIds: [],
         selectedEdgeIds: [],
         selectedConnectorIds: []
-      };
+      }, false);
     }
   }
 
-  selectEdge(edgeId: string | undefined, multiSelect: boolean = false): void {
-    if (multiSelect && edgeId) {
-      // Multi-select mode: toggle selection
-      const currentSelections = [...this.state.selectedEdgeIds];
-      const index = currentSelections.indexOf(edgeId);
-
-      if (index > -1) {
-        // Already selected, remove it
-        currentSelections.splice(index, 1);
-      } else {
-        // Not selected, add it
-        currentSelections.push(edgeId);
-      }
-
-      this.state = {
-        ...this.state,
-        selectedNodeIds: [],
-        selectedTendrilId: undefined,
-        selectedBoundingBoxIds: [],
-        selectedSvgImageIds: [],
-        selectedEdgeIds: currentSelections,
-        selectedConnectorIds: []
-      };
+  selectBoundingBox(boundingBoxId: string | undefined, multiSelect: boolean = false): void {
+    const state = this.state;
+    if (multiSelect && boundingBoxId) {
+      const ids = this.toggleId(state.selectedBoundingBoxIds, boundingBoxId);
+      this.updateSelection({
+        selectedBoundingBoxIds: ids,
+        selectedBoundingBoxId: ids[ids.length - 1]
+      }, true);
     } else {
-      // Single select mode: clear all other selections
-      this.state = {
-        ...this.state,
+      this.updateSelection({
+        selectedBoundingBoxIds: boundingBoxId ? [boundingBoxId] : [],
+        selectedBoundingBoxId: boundingBoxId,
         selectedNodeIds: [],
-        selectedTendrilId: undefined,
-        selectedBoundingBoxIds: [],
         selectedSvgImageIds: [],
-        selectedEdgeIds: edgeId ? [edgeId] : [],
+        selectedEdgeIds: [],
         selectedConnectorIds: []
-      };
+      }, false);
+    }
+  }
+
+  private toggleId(list: string[], id: string): string[] {
+    const index = list.indexOf(id);
+    return index > -1 ? list.filter(i => i !== id) : [...list, id];
+  }
+  selectTendril(nodeId: string, tendrilId: string | undefined): void {
+    this.updateSelection({
+      selectedNodeIds: nodeId ? [nodeId] : [],
+      selectedTendrilId: tendrilId,
+      selectedBoundingBoxIds: [],
+      selectedSvgImageIds: [],
+      selectedEdgeIds: [],
+      selectedConnectorIds: []
+    }, false);
+  }
+
+  selectEdge(edgeId: string | undefined, multiSelect: boolean = false): void {
+    const state = this.state;
+    if (multiSelect && edgeId) {
+      const ids = this.toggleId(state.selectedEdgeIds, edgeId);
+      this.updateSelection({
+        selectedEdgeIds: ids,
+        selectedEdgeId: ids[ids.length - 1]
+      }, true);
+    } else {
+      this.updateSelection({
+        selectedEdgeIds: edgeId ? [edgeId] : [],
+        selectedEdgeId: edgeId,
+        selectedNodeIds: [],
+        selectedSvgImageIds: [],
+        selectedBoundingBoxIds: [],
+        selectedConnectorIds: []
+      }, false);
     }
   }
 
   selectConnector(connectorId: string | undefined, multiSelect: boolean = false): void {
+    const state = this.state;
     if (multiSelect && connectorId) {
-      const currentSelections = [...(this.state.selectedConnectorIds || [])];
-      const index = currentSelections.indexOf(connectorId);
-
-      if (index > -1) {
-        currentSelections.splice(index, 1);
-      } else {
-        currentSelections.push(connectorId);
-      }
-
-      this.state = {
-        ...this.state,
-        selectedNodeIds: [],
-        selectedTendrilId: undefined,
-        selectedBoundingBoxIds: [],
-        selectedSvgImageIds: [],
-        selectedEdgeIds: [],
-        selectedConnectorIds: currentSelections
-      };
+      const ids = this.toggleId(state.selectedConnectorIds || [], connectorId);
+      this.updateSelection({
+        selectedConnectorIds: ids,
+        selectedConnectorId: ids[ids.length - 1]
+      }, true);
     } else {
-      this.state = {
-        ...this.state,
+      this.updateSelection({
+        selectedConnectorIds: connectorId ? [connectorId] : [],
+        selectedConnectorId: connectorId,
         selectedNodeIds: [],
-        selectedTendrilId: undefined,
-        selectedBoundingBoxIds: [],
         selectedSvgImageIds: [],
-        selectedEdgeIds: [],
-        selectedConnectorIds: connectorId ? [connectorId] : []
-      };
+        selectedBoundingBoxIds: [],
+        selectedEdgeIds: []
+      }, false);
     }
   }
 

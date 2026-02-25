@@ -481,10 +481,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       // Update node size
       this.diagramService.updateNode(this.resizeNodeId, {
         size: { width: newWidth, height: newHeight }
-      });
+      }, false);
 
       // Reposition tendrils to stay on borders
-      this.repositionTendrilsAfterResize(this.resizeNodeId, newWidth, newHeight);
+      this.repositionTendrilsAfterResize(this.resizeNodeId, newWidth, newHeight, false);
     } else if (this.isResizing && this.resizeBoundingBoxId) {
       const rect = this.canvas.nativeElement.getBoundingClientRect();
       const currentPos = {
@@ -501,7 +501,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       // Update bounding box size
       this.diagramService.updateBoundingBox(this.resizeBoundingBoxId, {
         size: { width: newWidth, height: newHeight }
-      });
+      }, false);
     } else if (this.isResizing && this.resizeSvgImageId) {
       const rect = this.canvas.nativeElement.getBoundingClientRect();
       const currentPos = {
@@ -534,10 +534,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       // Update SVG image size
       this.diagramService.updateSvgImage(this.resizeSvgImageId, {
         size: { width: finalWidth, height: finalHeight }
-      });
+      }, false);
 
       // Reposition tendrils to stay on borders
-      this.repositionTendrilsAfterResize(this.resizeSvgImageId, finalWidth, finalHeight);
+      this.repositionTendrilsAfterResize(this.resizeSvgImageId, finalWidth, finalHeight, false);
     }
   }
 
@@ -576,6 +576,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Keyboard shortcuts for deletion, undo, save, and Ctrl key tracking
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
+    // Ignore keyboard shortcuts if an input or textarea is focused
+    const target = event.target as HTMLElement;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      return;
+    }
+
     // Handle Ctrl+Z (or Cmd+Z on macOS) for undo
     if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
       event.preventDefault();
@@ -746,13 +752,16 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.resizeStartSize = { ...node.size };
     this.resizeNodeId = node.id;
     this.isResizing = true;
+    this.diagramService.recordUndoSnapshot();
   }
 
   // Node click to select or start Ctrl edge creation
   onNodeClick(event: MouseEvent, node: Node): void {
     event.stopPropagation();
 
-    if (event.ctrlKey || event.metaKey) {
+    if (event.shiftKey) {
+      this.diagramService.selectNode(node.id, true);
+    } else if (event.ctrlKey || event.metaKey) {
       this.handleCtrlClick(node.id);
     } else {
       this.diagramService.selectNode(node.id);
@@ -784,7 +793,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Bounding box click to select
   onBoundingBoxClick(event: MouseEvent, box: any): void {
     event.stopPropagation();
-    const multiSelect = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
+    const multiSelect = event.shiftKey;
     this.diagramService.selectBoundingBox(box.id, multiSelect);
   }
 
@@ -813,6 +822,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.resizeStartSize = { ...box.size };
     this.resizeBoundingBoxId = box.id;
     this.isResizing = true;
+    this.diagramService.recordUndoSnapshot();
   }
 
   // Start resizing an SVG image
@@ -828,6 +838,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.resizeStartSize = { ...svgImage.size };
     this.resizeSvgImageId = svgImage.id;
     this.isResizing = true;
+    this.diagramService.recordUndoSnapshot();
   }
 
   // Utility methods for template
@@ -1181,7 +1192,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
 
   // Reposition tendrils to stay on borders after element resize
-  private repositionTendrilsAfterResize(elementId: string, newWidth: number, newHeight: number): void {
+  private repositionTendrilsAfterResize(elementId: string, newWidth: number, newHeight: number, recordUndo: boolean = true): void {
     const element = this.state.currentDiagram.elements.find(e => e.id === elementId);
     if (!element) return;
 
@@ -1199,7 +1210,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
           x: 0, // Left border
           y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
         }
-      });
+      }, recordUndo);
     });
 
     // Reposition outgoing tendrils along right edge
@@ -1212,7 +1223,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
           x: newWidth, // Right border
           y: Math.max(10, Math.min(newHeight - 10, y)) // Keep within bounds
         }
-      });
+      }, recordUndo);
     });
   }
 
@@ -2350,7 +2361,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
   // Tendril drag handling
   onTendrilDragStarted(event: any, element: DiagramElement, tendril: Tendril): void {
-    // Allow default drag behavior
+    this.diagramService.recordUndoSnapshot();
   }
 
   onTendrilDragMoved(event: any, element: DiagramElement, tendril: Tendril): void {
@@ -2371,7 +2382,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Update the tendril position in the data model during drag for live edge updates
     this.diagramService.updateTendril(element.id, tendril.id, {
       position: constrainedPosition
-    });
+    }, false);
 
     // Force re-render of edge paths during drag
     this.forceUpdate++;
@@ -2393,7 +2404,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     // Update the tendril position in the service
     this.diagramService.updateTendril(element.id, tendril.id, {
       position: constrainedPosition
-    });
+    }, false);
 
     // Force re-render of edge paths by incrementing forceUpdate
     this.forceUpdate++;

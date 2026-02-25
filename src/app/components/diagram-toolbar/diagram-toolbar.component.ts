@@ -82,8 +82,8 @@ export class DiagramToolbarComponent {
     for (let i = 0; i < count; i++) {
       // Add slight randomization to position if adding multiple
       const offsetPos = {
-        x: position.x + (this.isChaosMode ? (Math.random() * 160 - 80) : 0),
-        y: position.y + (this.isChaosMode ? (Math.random() * 160 - 80) : 0)
+        x: Math.max(0, position.x + (this.isChaosMode ? (Math.random() * 200 - 100) : 0)),
+        y: Math.max(0, position.y + (this.isChaosMode ? (Math.random() * 200 - 100) : 0))
       };
 
       this.diagramService.addNode(offsetPos, {
@@ -236,8 +236,8 @@ export class DiagramToolbarComponent {
 
         for (let i = 0; i < count; i++) {
           const offsetPos = {
-            x: basePosition.x + (this.isChaosMode ? (Math.random() * 200 - 100) : (Math.random() * 20)),
-            y: basePosition.y + (this.isChaosMode ? (Math.random() * 200 - 100) : (Math.random() * 20))
+            x: Math.max(0, basePosition.x + (this.isChaosMode ? (Math.random() * 200 - 100) : (i * 20))),
+            y: Math.max(0, basePosition.y + (this.isChaosMode ? (Math.random() * 200 - 100) : (i * 20)))
           };
           this.diagramService.addSvgImage(svgContent, file.name, offsetPos);
         }

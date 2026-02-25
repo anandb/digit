@@ -76,12 +76,6 @@ export class DiagramToolbarComponent {
       shape: shape,
     });
 
-    // Find the newly created node and select it
-    const currentElements = this.diagramService.currentState.currentDiagram.elements;
-    const newNode = currentElements[currentElements.length - 1];
-    if (newNode) {
-      this.diagramService.selectNode(newNode.id);
-    }
   }
 
   addNewBoundingBox(): void {
@@ -218,13 +212,6 @@ export class DiagramToolbarComponent {
         const svgContent = e.target?.result as string;
         this.diagramService.addSvgImage(svgContent, file.name);
 
-        // Find the newly created SVG image and select it
-        // Since we just added it, it should be the last element in the array
-        const currentElements = this.diagramService.currentState.currentDiagram.elements;
-        const newSvgImage = currentElements[currentElements.length - 1];
-        if (newSvgImage) {
-          this.diagramService.selectSvgImage(newSvgImage.id);
-        }
       };
       reader.readAsText(file);
     }

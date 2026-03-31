@@ -286,6 +286,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
 
     // Only handle Ctrl+Click for edge creation if it's strictly a ctrl-click
     if (event.ctrlKey || event.metaKey) {
+      event.preventDefault(); // Prevent context menu on macOS Ctrl+Click
       if (event.altKey) {
         // Ctrl + Alt + Click as a fallback for Linux
         this.handleAltClick(element.id);
@@ -293,6 +294,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         this.handleCtrlClick(element.id);
       }
     } else if (event.altKey) {
+      event.preventDefault();
       this.handleAltClick(element.id);
     } else {
       const multiSelect = event.shiftKey; // User requested Shift+Click for multi-select
@@ -369,6 +371,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.edgeStartNodeId = undefined;
       this.edgeStartTendrilId = undefined;
     } else if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
       // Ctrl+click: Start edge creation from outgoing tendrils
       if (tendril.type === 'outgoing') {
         this.isCreatingEdge = true;
@@ -607,7 +610,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (event.key === 'Delete') {
+    if (event.key === 'Delete' || event.key === 'Backspace') {
       // Handle Tendril deletion separately to prevent deleting the parent node
       if (this.state.selectedTendrilId) {
         const tendrilId = this.state.selectedTendrilId;
@@ -706,6 +709,17 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     this.updateServiceViewport();
   }
 
+  @HostListener('window:blur')
+  onWindowBlur(): void {
+    // Reset modifier states when window loses focus to prevent "sticky" keys
+    this.isCtrlEdgeMode = false;
+    if (this.isCreatingEdge) {
+      this.cancelEdgeCreation();
+    }
+    this.ctrlEdgeStartElementId = undefined;
+    this.altConnectorStartElementId = undefined;
+  }
+
   private updateServiceViewport(): void {
     const el = this.canvas?.nativeElement;
     if (!el) return;
@@ -762,6 +776,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (event.shiftKey) {
       this.diagramService.selectNode(node.id, true);
     } else if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
       this.handleCtrlClick(node.id);
     } else {
       this.diagramService.selectNode(node.id);

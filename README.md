@@ -6,7 +6,7 @@
 
 **Digit** is a powerful, web-based diagram editor that revolutionizes the way you create and manage complex hierarchical diagrams. Built with modern web technologies, it offers an intuitive interface for creating interconnected node-based diagrams with unlimited nesting capabilities.
 
-![Digit Diagram Editor](https://via.placeholder.com/800x400/4a90e2/ffffff?text=Digit+Diagram+Editor)
+![Digit Diagram Editor](./screenshot.png)
 
 ## ✨ Key Features
 

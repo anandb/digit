@@ -89,6 +89,11 @@
         <span class="line-text">{{ getIsBrickWall() ? 'Brick Wall' : 'Plain Wall' }}</span>
       </button>
 
+      <!-- Stereotypes (Rectangle and Rounded Rectangle only) -->
+      <div class="property-block" *ngIf="isRectangleShape || isRoundedRectangleShape">
+        <label>Stereotypes (comma separated)</label>
+        <textarea rows="2" [value]="getStereotypes().join(', ')" (input)="updateStereotypes($event)" placeholder="e.g. Metaclass, Abstract"></textarea>
+      </div>
 
       <div class="color-grid" *ngIf="type === 'node' || type === 'boundingBox' || type === 'svg'">
         <!-- Fill Button (Node & Box) -->
@@ -204,6 +209,49 @@
         </div>
       </div>
     </div>
+
+    <!-- CRC Card Properties -->
+    <ng-container *ngIf="isCrcCardShape">
+      <div class="property-block">
+        <label>Class Name</label>
+        <input type="text" [value]="getCrcCardData().className" (input)="updateCrcCardClassName($event)" placeholder="Class name...">
+      </div>
+
+      <div class="property-block">
+        <label>Super Classes (comma separated)</label>
+        <textarea rows="2" [value]="getCrcCardData().superClasses.join(', ')" (input)="updateCrcCardSuperClasses($event)" placeholder="SuperClass1, SuperClass2..."></textarea>
+      </div>
+
+      <div class="property-block">
+        <label>Sub Classes (comma separated)</label>
+        <textarea rows="2" [value]="getCrcCardData().subClasses.join(', ')" (input)="updateCrcCardSubClasses($event)" placeholder="SubClass1, SubClass2..."></textarea>
+      </div>
+
+      <div class="property-block">
+        <label>Description</label>
+        <textarea rows="3" [value]="getCrcCardData().description" (input)="updateCrcCardDescription($event)" placeholder="Description..."></textarea>
+      </div>
+
+      <div class="property-block">
+        <label>Attributes</label>
+        <div class="crc-table-editor">
+          <div class="crc-table-row" *ngFor="let attr of getCrcCardData().attributes; let i = index">
+            <input type="text" [value]="attr.name" (input)="updateCrcCardAttribute(i, 'name', $event)" (blur)="onCrcAttributeBlur(i)" placeholder="Name">
+            <input type="text" [value]="attr.description" (input)="updateCrcCardAttribute(i, 'description', $event)" (blur)="onCrcAttributeBlur(i)" placeholder="Description">
+          </div>
+        </div>
+      </div>
+
+      <div class="property-block">
+        <label>Responsibilities</label>
+        <div class="crc-table-editor">
+          <div class="crc-table-row" *ngFor="let resp of getCrcCardData().responsibilities; let i = index">
+            <input type="text" [value]="resp.name" (input)="updateCrcCardResponsibility(i, 'name', $event)" (blur)="onCrcResponsibilityBlur(i)" placeholder="Name">
+            <input type="text" [value]="resp.collaborator" (input)="updateCrcCardResponsibility(i, 'collaborator', $event)" (blur)="onCrcResponsibilityBlur(i)" placeholder="Collaborator">
+          </div>
+        </div>
+      </div>
+    </ng-container>
 
     <!-- Empty State -->
     <div class="empty-state" *ngIf="!type">

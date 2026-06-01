@@ -2,13 +2,13 @@
   "name": "digit",
   "version": "0.0.0",
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "serve:ssr:digit": "node dist/digit/server/server.mjs",
-    "build:single": "ng build && node scripts/package-single-html.js"
+    "grunt": "grunt",
+    "start": "node dist\/digit\/browser\/index.html",
+    "build": "grunt build",
+    "watch": "grunt watch",
+    "test": "grunt test",
+    "serve:ssr:digit": "grunt serve:ssr:digit",
+    "build:single": "grunt build:single"
   },
   "private": true,
   "dependencies": {
@@ -35,6 +35,8 @@
     "@types/jasmine": "~5.1.0",
     "@types/node": "^18.18.0",
     "baseline-browser-mapping": "^2.9.15",
+    "grunt": "^1.6.2",
+    "grunt-exec": "^3.0.0",
     "jasmine-core": "~5.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

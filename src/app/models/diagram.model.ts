@@ -39,7 +39,26 @@ export interface Tendril extends HasNotes {
   strokeWidth?: number;
 }
 
-export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'envelope' | 'cache' | 'tick' | 'cross' | 'lightning' | 'padlock' | 'dataLake' | 'browser' | 'mobile' | 'bar';
+export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'envelope' | 'cache' | 'tick' | 'cross' | 'lightning' | 'padlock' | 'dataLake' | 'browser' | 'mobile' | 'bar' | 'crcCard';
+
+export interface CrcCardAttribute {
+  name: string;
+  description: string;
+}
+
+export interface CrcCardResponsibility {
+  name: string;
+  collaborator: string;
+}
+
+export interface CrcCardData {
+  className: string;
+  superClasses: string[];
+  subClasses: string[];
+  description: string;
+  attributes: CrcCardAttribute[];
+  responsibilities: CrcCardResponsibility[];
+}
 
 export interface Node extends DiagramElement {
   shape: NodeShape;

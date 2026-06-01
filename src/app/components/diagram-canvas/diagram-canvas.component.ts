@@ -953,6 +953,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return Math.min(node.size.width, node.size.height) / 2;
   }
 
+  getCrcCardData(element: any): import('../../models/diagram.model').CrcCardData | null {
+    try {
+      const data = element?.attributes?.crcCardData;
+      if (typeof data === 'string') {
+        return JSON.parse(data);
+      }
+      return data || null;
+    } catch {
+      return null;
+    }
+  }
+
   // Get spring path for tendrils
   getTendrilSpringPath(node: any, tendril: any): string {
     const startX = node.position.x + tendril.position.x;
@@ -980,6 +992,10 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
 
     return path;
+  }
+
+  getStereotypes(element: DiagramElement): string[] {
+    return (element as any).attributes?.stereotypes || [];
   }
 
   // Get X position for node text based on shape

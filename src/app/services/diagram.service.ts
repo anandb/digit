@@ -403,6 +403,8 @@ export class DiagramService {
       size = { width: 100, height: 40 };
     } else if (shape === 'note' || shape === 'wall') {
       size = { width: 180, height: 180 };
+    } else if (shape === 'crcCard') {
+      size = { width: 600, height: 800 };
     }
 
     const newNode: Node = {

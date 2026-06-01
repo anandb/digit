@@ -228,9 +228,24 @@ export class PropertiesWindowComponent implements OnInit {
     return !!(element && isNode(element) && element.shape === 'padlock');
   }
 
+  get isCrcCardShape(): boolean {
+    const element = this.selectedElement;
+    return !!(element && isNode(element) && element.shape === 'crcCard');
+  }
+
   get isWallShape(): boolean {
     const element = this.selectedElement;
     return !!(element && isNode(element) && element.shape === 'wall');
+  }
+
+  get isRectangleShape(): boolean {
+    const element = this.selectedElement;
+    return !!(element && isNode(element) && element.shape === 'rectangle');
+  }
+
+  get isRoundedRectangleShape(): boolean {
+    const element = this.selectedElement;
+    return !!(element && isNode(element) && element.shape === 'roundedRectangle');
   }
 
   // --- Common Properties: Notes ---
@@ -676,6 +691,22 @@ export class PropertiesWindowComponent implements OnInit {
     }
   }
 
+  // --- Rectangle Stereotypes ---
+
+  getStereotypes(): string[] {
+    return (this.selectedElement as any)?.attributes?.stereotypes || [];
+  }
+
+  updateStereotypes(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    const stereotypes = value.split(',').map(s => s.trim()).filter(Boolean);
+    const currentAttributes = (this.selectedElement as any)?.attributes || {};
+    this.diagramService.updateElementProperty(this.selectedElement!.id, 'attributes', {
+      ...currentAttributes,
+      stereotypes
+    });
+  }
+
   // --- Node Only Properties: Fill Color ---
 
   getFillColor(): string {
@@ -706,6 +737,112 @@ export class PropertiesWindowComponent implements OnInit {
       }
       tendril.exposedOverrides[this.diagramService.currentState.currentDiagram.id] = newValue;
       this.diagramService.updateTendril(tendrilData.nodeId, tendrilData.tendril.id, tendril);
+    }
+  }
+
+  getCrcCardData(): import('../../models/diagram.model').CrcCardData {
+    const element = this.selectedElement;
+    if (!element) return this.getDefaultCrcCardData();
+    const data = (element as any).attributes?.crcCardData;
+    if (typeof data === 'string') {
+      try { return JSON.parse(data); } catch { return this.getDefaultCrcCardData(); }
+    }
+    return data || this.getDefaultCrcCardData();
+  }
+
+  getDefaultCrcCardData(): import('../../models/diagram.model').CrcCardData {
+    return {
+      className: '',
+      superClasses: [],
+      subClasses: [],
+      description: '',
+      attributes: [{ name: '', description: '' }],
+      responsibilities: [{ name: '', collaborator: '' }]
+    };
+  }
+
+  updateCrcCardData(updates: Partial<import('../../models/diagram.model').CrcCardData>) {
+    const element = this.selectedElement;
+    if (!element) return;
+    const current = this.getCrcCardData();
+    const merged = { ...current, ...updates };
+    this.diagramService.updateElementProperty(element.id, 'attributes', {
+      ...(element as any).attributes,
+      crcCardData: merged
+    });
+  }
+
+  updateCrcCardClassName(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.updateCrcCardData({ className: value });
+  }
+
+  updateCrcCardDescription(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.updateCrcCardData({ description: value });
+  }
+
+  updateCrcCardSuperClasses(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.updateCrcCardData({ superClasses: value.split(',').map(s => s.trim()).filter(Boolean) });
+  }
+
+  updateCrcCardSubClasses(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.updateCrcCardData({ subClasses: value.split(',').map(s => s.trim()).filter(Boolean) });
+  }
+
+  updateCrcCardAttribute(index: number, field: 'name' | 'description', event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    const attrs = [...this.getCrcCardData().attributes];
+    if (!attrs[index]) attrs[index] = { name: '', description: '' };
+    attrs[index][field] = value;
+    this.updateCrcCardData({ attributes: attrs });
+  }
+
+  onCrcAttributeBlur(index: number) {
+    const attrs = [...this.getCrcCardData().attributes];
+    if (index >= attrs.length) return;
+    const name = attrs[index].name.trim();
+    const desc = attrs[index].description.trim();
+    if (name && desc) {
+      // Both filled → ensure trailing empty row exists for next input
+      const last = attrs[attrs.length - 1];
+      if (last && (last.name || last.description)) {
+        attrs.push({ name: '', description: '' });
+      }
+      this.updateCrcCardData({ attributes: attrs });
+    } else if (!name && !desc && attrs.length > 1) {
+      // Both empty and not the only row → remove
+      attrs.splice(index, 1);
+      this.updateCrcCardData({ attributes: attrs });
+    }
+  }
+
+  updateCrcCardResponsibility(index: number, field: 'name' | 'collaborator', event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    const resps = [...this.getCrcCardData().responsibilities];
+    if (!resps[index]) resps[index] = { name: '', collaborator: '' };
+    resps[index][field] = value;
+    this.updateCrcCardData({ responsibilities: resps });
+  }
+
+  onCrcResponsibilityBlur(index: number) {
+    const resps = [...this.getCrcCardData().responsibilities];
+    if (index >= resps.length) return;
+    const name = resps[index].name.trim();
+    const collab = resps[index].collaborator.trim();
+    if (name && collab) {
+      // Both filled → ensure trailing empty row exists
+      const last = resps[resps.length - 1];
+      if (last && (last.name || last.collaborator)) {
+        resps.push({ name: '', collaborator: '' });
+      }
+      this.updateCrcCardData({ responsibilities: resps });
+    } else if (!name && !collab && resps.length > 1) {
+      // Both empty and not the only row → remove
+      resps.splice(index, 1);
+      this.updateCrcCardData({ responsibilities: resps });
     }
   }
 }

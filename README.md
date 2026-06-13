@@ -4,7 +4,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7.2-blue.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Digit** is a powerful, web-based diagram editor that revolutionizes the way you create and manage complex hierarchical diagrams. Built with modern web technologies, it offers an intuitive interface for creating interconnected node-based diagrams with unlimited nesting capabilities.
+**Digit** is a powerful, web-based diagram editor that revolutionizes the way you create and manage complex hierarchical diagrams. Built with modern web technologies, it offers an intuitive interface for creating interconnected node-based diagrams with unlimited nesting capabilities. [Try It Out](https://anandb.github.io/digit.html)
 
 ![Digit Diagram Editor](./screenshot.png)
 

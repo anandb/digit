@@ -399,3 +399,85 @@
 
   tbody tr:nth-child(odd)
     background-color: #fafafa
+
+.threat-table-content
+  font-family: Arial, sans-serif
+  font-size: 11px
+  line-height: 1.3
+  display: flex
+  flex-direction: column
+  box-sizing: border-box
+  height: 100%
+  width: 100%
+  overflow: hidden
+
+.threat-table-header
+  display: flex
+  align-items: center
+  padding: 6px 10px
+  height: 32px
+  box-sizing: border-box
+  font-weight: bold
+  font-size: 13px
+  flex-shrink: 0
+  user-select: none
+
+  .threat-table-toggle
+    width: 14px
+    height: 14px
+    display: flex
+    align-items: center
+    justify-content: center
+    font-size: 10px
+    font-weight: bold
+    background-color: #ffffff
+    border: 1px solid #999999
+    border-radius: 2px
+    cursor: pointer
+    padding: 0
+    margin-right: 8px
+    line-height: 1
+    flex-shrink: 0
+
+    &:hover
+      background-color: #f0f0f0
+
+  .threat-table-title
+    flex: 1
+    text-align: center
+    margin-right: 14px
+
+.threat-table-body
+  flex: 1
+  overflow-y: auto
+  background-color: #ffffff
+  width: 100%
+
+.threat-table-grid
+  width: 100%
+  border-collapse: collapse
+  font-size: 11px
+  table-layout: fixed
+
+  th
+    font-weight: bold
+    border-bottom: 1px solid #999
+    border-right: 1px solid #999
+    padding: 6px 8px
+    text-align: left
+    
+    &:last-child
+      border-right: none
+
+  td
+    border-bottom: 1px solid #ccc
+    border-right: 1px solid #999
+    padding: 6px 8px
+    vertical-align: top
+    word-break: break-word
+    
+    &:last-child
+      border-right: none
+
+  tbody tr:last-child td
+    border-bottom: none

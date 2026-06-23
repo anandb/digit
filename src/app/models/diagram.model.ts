@@ -39,7 +39,7 @@ export interface Tendril extends HasNotes {
   strokeWidth?: number;
 }
 
-export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'envelope' | 'cache' | 'tick' | 'cross' | 'lightning' | 'padlock' | 'dataLake' | 'browser' | 'mobile' | 'bar' | 'crcCard';
+export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'envelope' | 'cache' | 'tick' | 'cross' | 'lightning' | 'padlock' | 'dataLake' | 'browser' | 'mobile' | 'bar' | 'crcCard' | 'package' | 'component' | 'interface' | 'queue' | 'serverRack' | 'lambda' | 'star' | 'octagon' | 'user' | 'shield' | 'key' | 'gear' | 'dbCluster' | 'pod' | 'msgTopic' | 'hardDrive' | 'terminal' | 'bell' | 'threatTable';
 
 export interface CrcCardAttribute {
   name: string;
@@ -58,6 +58,19 @@ export interface CrcCardData {
   description: string;
   attributes: CrcCardAttribute[];
   responsibilities: CrcCardResponsibility[];
+}
+
+export interface ThreatTableRow {
+  col1: string;
+  col2: string;
+}
+
+export interface ThreatTableData {
+  title: string;
+  col1Header: string;
+  col2Header: string;
+  collapsed: boolean;
+  rows: ThreatTableRow[];
 }
 
 export interface Node extends DiagramElement {

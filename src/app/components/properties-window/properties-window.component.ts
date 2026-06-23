@@ -233,6 +233,11 @@ export class PropertiesWindowComponent implements OnInit {
     return !!(element && isNode(element) && element.shape === 'crcCard');
   }
 
+  get isThreatTableShape(): boolean {
+    const element = this.selectedElement;
+    return !!(element && isNode(element) && element.shape === 'threatTable');
+  }
+
   get isWallShape(): boolean {
     const element = this.selectedElement;
     return !!(element && isNode(element) && element.shape === 'wall');
@@ -843,6 +848,77 @@ export class PropertiesWindowComponent implements OnInit {
       // Both empty and not the only row → remove
       resps.splice(index, 1);
       this.updateCrcCardData({ responsibilities: resps });
+    }
+  }
+
+  getThreatTableData(): import('../../models/diagram.model').ThreatTableData {
+    const element = this.selectedElement;
+    if (!element) return this.getDefaultThreatTableData();
+    const data = (element as any).attributes?.threatTableData;
+    if (typeof data === 'string') {
+      try { return JSON.parse(data); } catch { return this.getDefaultThreatTableData(); }
+    }
+    return data || this.getDefaultThreatTableData();
+  }
+
+  getDefaultThreatTableData(): import('../../models/diagram.model').ThreatTableData {
+    return {
+      title: '',
+      col1Header: 'ID',
+      col2Header: 'Description',
+      collapsed: false,
+      rows: [{ col1: '', col2: '' }]
+    };
+  }
+
+  updateThreatTableData(updates: Partial<import('../../models/diagram.model').ThreatTableData>) {
+    const element = this.selectedElement;
+    if (!element) return;
+    const current = this.getThreatTableData();
+    const merged = { ...current, ...updates };
+    this.diagramService.updateElementProperty(element.id, 'attributes', {
+      ...(element as any).attributes,
+      threatTableData: merged
+    });
+  }
+
+  updateThreatTableTitle(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.updateThreatTableData({ title: value });
+  }
+
+  updateThreatTableCol1Header(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.updateThreatTableData({ col1Header: value });
+  }
+
+  updateThreatTableCol2Header(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.updateThreatTableData({ col2Header: value });
+  }
+
+  updateThreatTableRow(index: number, field: 'col1' | 'col2', event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    const rows = [...this.getThreatTableData().rows];
+    if (!rows[index]) rows[index] = { col1: '', col2: '' };
+    rows[index][field] = value;
+    this.updateThreatTableData({ rows });
+  }
+
+  onThreatTableRowBlur(index: number) {
+    const rows = [...this.getThreatTableData().rows];
+    if (index >= rows.length) return;
+    const col1 = rows[index].col1.trim();
+    const col2 = rows[index].col2.trim();
+    if (col1 && col2) {
+      const last = rows[rows.length - 1];
+      if (last && (last.col1 || last.col2)) {
+        rows.push({ col1: '', col2: '' });
+      }
+      this.updateThreatTableData({ rows });
+    } else if (!col1 && !col2 && rows.length > 1) {
+      rows.splice(index, 1);
+      this.updateThreatTableData({ rows });
     }
   }
 }

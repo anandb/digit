@@ -405,6 +405,8 @@ export class DiagramService {
       size = { width: 180, height: 180 };
     } else if (shape === 'crcCard') {
       size = { width: 600, height: 800 };
+    } else if (shape === 'threatTable') {
+      size = { width: 300, height: 200 };
     }
 
     const newNode: Node = {
@@ -414,11 +416,23 @@ export class DiagramService {
       position,
       size,
       tendrils: [],
-      attributes: {},
+      attributes: shape === 'threatTable' ? {
+        threatTableData: {
+          title: 'Threat Actors',
+          col1Header: 'ID',
+          col2Header: 'Description',
+          collapsed: false,
+          rows: [
+            { col1: 'T01', col2: 'Malicious user' },
+            { col1: 'T02', col2: 'Man-in-the-middle' },
+            { col1: 'T03', col2: 'Compromised payment partner' }
+          ]
+        }
+      } : {},
       notes: '',
       shape: shape,
       borderColor: options?.borderColor || '#000000',
-      fillColor: options?.fillColor || (shape === 'note' ? '#fff9c4' : (shape === 'lightning' ? '#fdd835' : '#ffffff')),
+      fillColor: options?.fillColor || (shape === 'note' ? '#fff9c4' : (shape === 'lightning' ? '#fdd835' : (shape === 'threatTable' ? '#ffe0e0' : '#ffffff'))),
       dotted: options?.dotted || false,
       fontFamily: options?.fontFamily || 'Purisa, Chalkboard',
       fontSize: 14,
@@ -1929,7 +1943,7 @@ export class DiagramService {
     if (dx === 0 && dy === 0) return { x: w, y: h / 2 };
 
     // Circle intersection
-    if ('shape' in element && element.shape === 'circle') {
+    if ('shape' in element && (element.shape === 'circle' || element.shape === 'interface' || element.shape === 'msgTopic')) {
        const radius = Math.min(w, h) / 2;
        const dist = Math.sqrt(dx * dx + dy * dy);
        return {

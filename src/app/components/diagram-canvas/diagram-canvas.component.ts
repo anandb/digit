@@ -58,7 +58,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private activeDragId?: string;
 
   // Node shapes that support inner diagrams
-  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'cache'];
+  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'cache', 'package', 'component', 'serverRack', 'dbCluster', 'pod', 'terminal'];
 
   supportsInnerDiagram(element: DiagramElement): boolean {
     if (isNode(element)) {
@@ -965,6 +965,56 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     }
   }
 
+  getThreatTableData(element: any): import('../../models/diagram.model').ThreatTableData | null {
+    try {
+      const data = element?.attributes?.threatTableData;
+      if (typeof data === 'string') {
+        return JSON.parse(data);
+      }
+      return data || null;
+    } catch {
+      return null;
+    }
+  }
+
+  toggleTableCollapse(event: MouseEvent, element: any): void {
+    event.stopPropagation();
+    event.preventDefault();
+
+    const data = this.getThreatTableData(element);
+    if (!data) return;
+
+    const collapsed = !data.collapsed;
+    const currentHeight = element.size.height;
+    const currentAttributes = { ...element.attributes };
+    
+    let newHeight = 32;
+    let expandedHeight = currentAttributes.expandedHeight || 200;
+
+    if (collapsed) {
+      if (currentHeight > 40) {
+        expandedHeight = currentHeight;
+        currentAttributes.expandedHeight = expandedHeight;
+      }
+      newHeight = 32;
+    } else {
+      newHeight = expandedHeight;
+    }
+
+    const updatedData = {
+      ...data,
+      collapsed
+    };
+
+    this.diagramService.updateElement(element.id, {
+      size: { ...element.size, height: newHeight },
+      attributes: {
+        ...currentAttributes,
+        threatTableData: updatedData
+      }
+    });
+  }
+
   // Get spring path for tendrils
   getTendrilSpringPath(node: any, tendril: any): string {
     const startX = node.position.x + tendril.position.x;
@@ -1012,12 +1062,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get Y position for node text based on shape
   getNodeTextY(node: any): number {
     // Shapes that display text INSIDE the shape
-    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note', 'cloud'];
+    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note', 'cloud', 'package', 'component', 'star', 'octagon', 'shield', 'terminal', 'pod'];
 
     if (insideShapes.includes(node.shape)) {
       // Center text within the shape
       return node.position.y + node.size.height / 2;
-    } else if (node.shape === 'circle' || node.shape === 'cylinder' || node.shape === 'wall') {
+    } else if (node.shape === 'circle' || node.shape === 'interface' || node.shape === 'cylinder' || node.shape === 'wall' || node.shape === 'lambda' || node.shape === 'user' || node.shape === 'serverRack' || node.shape === 'key' || node.shape === 'gear' || node.shape === 'dbCluster' || node.shape === 'msgTopic' || node.shape === 'hardDrive' || node.shape === 'bell' || node.shape === 'queue') {
       // Position text below the shape
       return node.position.y + node.size.height + 20;
     } else if (node.shape === 'triangle') {
@@ -1562,6 +1612,158 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   }
 
   // Shape calculation methods for new flowchart symbols
+  getShieldPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    return `M ${x + w * 0.2},${y} ` +
+           `L ${x + w * 0.8},${y} ` +
+           `L ${x + w * 0.8},${y + h * 0.4} ` +
+           `C ${x + w * 0.8},${y + h * 0.75} ${x + w * 0.5},${y + h} ${x + w * 0.5},${y + h} ` +
+           `C ${x + w * 0.5},${y + h} ${x + w * 0.2},${y + h * 0.75} ${x + w * 0.2},${y + h * 0.4} Z`;
+  }
+
+  getGearPath(node: any): string {
+    const cx = node.position.x + node.size.width / 2;
+    const cy = node.position.y + node.size.height / 2;
+    const w = node.size.width;
+    const h = node.size.height;
+    const rOut = Math.min(w, h) * 0.45;
+    const rIn = Math.min(w, h) * 0.32;
+    const rHole = Math.min(w, h) * 0.15;
+    const path: string[] = [];
+
+    const teeth = 8;
+    for (let i = 0; i < teeth; i++) {
+      const angle = (i * 2 * Math.PI) / teeth;
+      const nextAngle = ((i + 1) * 2 * Math.PI) / teeth;
+
+      const a1 = angle - 0.15;
+      const a2 = angle - 0.06;
+      const a3 = angle + 0.06;
+      const a4 = angle + 0.15;
+
+      const x1 = cx + Math.cos(a1) * rIn;
+      const y1 = cy + Math.sin(a1) * rIn;
+      const x2 = cx + Math.cos(a2) * rOut;
+      const y2 = cy + Math.sin(a2) * rOut;
+      const x3 = cx + Math.cos(a3) * rOut;
+      const y3 = cy + Math.sin(a3) * rOut;
+      const x4 = cx + Math.cos(a4) * rIn;
+      const y4 = cy + Math.sin(a4) * rIn;
+
+      if (i === 0) {
+        path.push(`M ${x1},${y1}`);
+      } else {
+        path.push(`L ${x1},${y1}`);
+      }
+      path.push(`L ${x2},${y2} L ${x3},${y3} L ${x4},${y4}`);
+
+      const next_a1 = nextAngle - 0.15;
+      const next_x1 = cx + Math.cos(next_a1) * rIn;
+      const next_y1 = cy + Math.sin(next_a1) * rIn;
+      path.push(`A ${rIn},${rIn} 0 0,1 ${next_x1},${next_y1}`);
+    }
+    path.push('Z');
+    path.push(`M ${cx},${cy - rHole} A ${rHole},${rHole} 0 1,0 ${cx},${cy + rHole} A ${rHole},${rHole} 0 1,0 ${cx},${cy - rHole} Z`);
+    return path.join(' ');
+  }
+
+  getDbClusterCylinderPath(x: number, y: number, w: number, h: number): string {
+    const ry = Math.min(w, h) * 0.15;
+    const rx = w / 2;
+    return `M ${x},${y + ry} L ${x},${y + h - ry} A ${rx},${ry} 0 0 0 ${x + w},${y + h - ry} L ${x + w},${y + ry} Z`;
+  }
+
+  getDbClusterCylinderRy(w: number, h: number): number {
+    return Math.min(w, h) * 0.15;
+  }
+
+  getBellPath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    return `M ${x + w * 0.5},${y + h * 0.2} ` +
+           `C ${x + w * 0.3},${y + h * 0.2} ${x + w * 0.25},${y + h * 0.6} ${x + w * 0.15},${y + h * 0.8} ` +
+           `L ${x + w * 0.85},${y + h * 0.8} ` +
+           `C ${x + w * 0.75},${y + h * 0.6} ${x + w * 0.7},${y + h * 0.2} ${x + w * 0.5},${y + h * 0.2} Z`;
+  }
+
+  getComponentInset(node: any): number {
+    return Math.min(15, node.size.width * 0.15);
+  }
+
+  getInterfaceRadius(node: any): number {
+    return Math.min(node.size.width, node.size.height) / 2;
+  }
+
+  getPackagePath(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const tabH = Math.min(20, h * 0.2);
+    const tabW = Math.min(60, w * 0.4);
+    return `M ${x},${y} L ${x + tabW},${y} L ${x + tabW + 8},${y + tabH} L ${x + w},${y + tabH} L ${x + w},${y + h} L ${x},${y + h} Z`;
+  }
+
+  getLambdaPath(node: any): string {
+    const cx = node.position.x + node.size.width / 2;
+    const cy = node.position.y + node.size.height / 2;
+    const w = node.size.width;
+    const h = node.size.height;
+    const size = Math.min(w, h) * 0.5;
+
+    const topY = cy - size / 2;
+    const bottomY = cy + size / 2;
+    const leftX = cx - size / 2;
+    const rightX = cx + size / 2;
+    const midX = cx;
+    const midY = cy - size * 0.1;
+
+    return `M ${rightX - size*0.1},${topY} ` +
+           `L ${leftX + size*0.1},${bottomY} ` +
+           `M ${midX},${midY} ` +
+           `L ${rightX},${bottomY}`;
+  }
+
+  getStarPoints(node: any): string {
+    const cx = node.position.x + node.size.width / 2;
+    const cy = node.position.y + node.size.height / 2;
+    const rx = node.size.width / 2;
+    const ry = node.size.height / 2;
+    const points: string[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      const angle = (i * Math.PI) / 5 - Math.PI / 2;
+      const r = i % 2 === 0 ? 1 : 0.4;
+      const x = cx + Math.cos(angle) * rx * r;
+      const y = cy + Math.sin(angle) * ry * r;
+      points.push(`${x},${y}`);
+    }
+    return points.join(' ');
+  }
+
+  getOctagonPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    const dx = w * 0.29;
+    const dy = h * 0.29;
+
+    return `${x + dx},${y} ` +
+           `${x + w - dx},${y} ` +
+           `${x + w},${y + dy} ` +
+           `${x + w},${y + h - dy} ` +
+           `${x + w - dx},${y + h} ` +
+           `${x + dx},${y + h} ` +
+           `${x},${y + h - dy} ` +
+           `${x},${y + dy}`;
+  }
+
   getDiamondPoints(node: any): string {
     const x = node.position.x;
     const y = node.position.y;
@@ -1980,6 +2182,24 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       case 'dataLake': return 'Data Lake';
       case 'browser': return 'Browser';
       case 'mobile': return 'Mobile';
+      case 'package': return 'Package';
+      case 'component': return 'Component';
+      case 'interface': return 'Interface';
+      case 'queue': return 'Queue';
+      case 'serverRack': return 'Server Rack';
+      case 'lambda': return 'Lambda';
+      case 'star': return 'Star';
+      case 'octagon': return 'Octagon';
+      case 'user': return 'User';
+      case 'shield': return 'Shield';
+      case 'key': return 'Key';
+      case 'gear': return 'Gear';
+      case 'dbCluster': return 'DB Cluster';
+      case 'pod': return 'Pod';
+      case 'msgTopic': return 'Topic';
+      case 'hardDrive': return 'Disk';
+      case 'terminal': return 'Terminal';
+      case 'bell': return 'Bell';
       default: return shape.charAt(0).toUpperCase() + shape.slice(1);
     }
   }

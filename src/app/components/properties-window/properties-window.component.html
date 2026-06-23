@@ -253,6 +253,35 @@
       </div>
     </ng-container>
 
+    <!-- Threat Table Properties -->
+    <ng-container *ngIf="isThreatTableShape">
+      <div class="property-block">
+        <label>Table Title</label>
+        <input type="text" [value]="getThreatTableData().title" (input)="updateThreatTableTitle($event)" placeholder="Threat Table Title...">
+      </div>
+
+      <div class="property-row">
+        <div class="property-block" style="flex: 1; margin-right: 8px;">
+          <label>Col 1 Header</label>
+          <input type="text" [value]="getThreatTableData().col1Header" (input)="updateThreatTableCol1Header($event)" placeholder="ID...">
+        </div>
+        <div class="property-block" style="flex: 2;">
+          <label>Col 2 Header</label>
+          <input type="text" [value]="getThreatTableData().col2Header" (input)="updateThreatTableCol2Header($event)" placeholder="Description...">
+        </div>
+      </div>
+
+      <div class="property-block">
+        <label>Table Rows</label>
+        <div class="crc-table-editor">
+          <div class="crc-table-row" *ngFor="let row of getThreatTableData().rows; let i = index">
+            <input type="text" [value]="row.col1" (input)="updateThreatTableRow(i, 'col1', $event)" (blur)="onThreatTableRowBlur(i)" [placeholder]="getThreatTableData().col1Header">
+            <input type="text" [value]="row.col2" (input)="updateThreatTableRow(i, 'col2', $event)" (blur)="onThreatTableRowBlur(i)" [placeholder]="getThreatTableData().col2Header">
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
     <!-- Empty State -->
     <div class="empty-state" *ngIf="!type">
       Select an element to edit properties.

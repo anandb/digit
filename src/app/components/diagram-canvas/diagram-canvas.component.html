@@ -710,6 +710,439 @@
               [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
             </polyline>
           </g>
+
+          <!-- Package/Folder shape -->
+          <path *ngIf="$any(element).shape === 'package'" [attr.d]="getPackagePath(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </path>
+
+          <!-- Component shape -->
+          <g *ngIf="$any(element).shape === 'component'" [class.highlighted]="isHighlighted('node', element.id)" class="component" filter="url(#dropshadow)">
+            <!-- Main body rect -->
+            <rect [attr.x]="$any(element).position.x + getComponentInset(element)"
+              [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width - getComponentInset(element)"
+              [attr.height]="$any(element).size.height"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Protrusion 1 -->
+            <rect [attr.x]="$any(element).position.x"
+              [attr.y]="$any(element).position.y + $any(element).size.height * 0.2"
+              [attr.width]="getComponentInset(element) * 2"
+              [attr.height]="$any(element).size.height * 0.2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Protrusion 2 -->
+            <rect [attr.x]="$any(element).position.x"
+              [attr.y]="$any(element).position.y + $any(element).size.height * 0.6"
+              [attr.width]="getComponentInset(element) * 2"
+              [attr.height]="$any(element).size.height * 0.2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+          </g>
+
+          <!-- Interface shape -->
+          <g *ngIf="$any(element).shape === 'interface'" [class.highlighted]="isHighlighted('node', element.id)" class="interface" filter="url(#dropshadow)">
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.r]="getInterfaceRadius(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </circle>
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.r]="getInterfaceRadius(element) * 0.4"
+              fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (2 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1) * 0.8"
+              [attr.stroke-dasharray]="$any(element).dotted ? '3,3' : null">
+            </circle>
+          </g>
+
+          <!-- Queue shape -->
+          <g *ngIf="$any(element).shape === 'queue'" [class.highlighted]="isHighlighted('node', element.id)" class="queue" filter="url(#dropshadow)">
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" rx="6" ry="6"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- 6 vertical segment dividers (splitting into 7 slots) -->
+            <line *ngFor="let i of [1,2,3,4,5,6]"
+              [attr.x1]="$any(element).position.x + $any(element).size.width * (i / 7)"
+              [attr.y1]="$any(element).position.y"
+              [attr.x2]="$any(element).position.x + $any(element).size.width * (i / 7)"
+              [attr.y2]="$any(element).position.y + $any(element).size.height"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (2 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '3,3' : null">
+            </line>
+          </g>
+
+          <!-- Server Rack shape -->
+          <g *ngIf="$any(element).shape === 'serverRack'" [class.highlighted]="isHighlighted('node', element.id)" class="server-rack" filter="url(#dropshadow)">
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" rx="3" ry="3"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Drawer 1 -->
+            <rect [attr.x]="$any(element).position.x + 6" [attr.y]="$any(element).position.y + $any(element).size.height * 0.15"
+              [attr.width]="$any(element).size.width - 12" [attr.height]="$any(element).size.height * 0.2" rx="2" ry="2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1" [attr.stroke-dasharray]="$any(element).dotted ? '3,3' : null">
+            </rect>
+            <circle [attr.cx]="$any(element).position.x + 12" [attr.cy]="$any(element).position.y + $any(element).size.height * 0.25" r="2.5"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : '#4caf50'"></circle>
+            <circle [attr.cx]="$any(element).position.x + 20" [attr.cy]="$any(element).position.y + $any(element).size.height * 0.25" r="1.5"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"></circle>
+            <!-- Drawer 2 -->
+            <rect [attr.x]="$any(element).position.x + 6" [attr.y]="$any(element).position.y + $any(element).size.height * 0.42"
+              [attr.width]="$any(element).size.width - 12" [attr.height]="$any(element).size.height * 0.2" rx="2" ry="2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1" [attr.stroke-dasharray]="$any(element).dotted ? '3,3' : null">
+            </rect>
+            <circle [attr.cx]="$any(element).position.x + 12" [attr.cy]="$any(element).position.y + $any(element).size.height * 0.52" r="2.5"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : '#4caf50'"></circle>
+            <circle [attr.cx]="$any(element).position.x + 20" [attr.cy]="$any(element).position.y + $any(element).size.height * 0.52" r="1.5"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"></circle>
+            <!-- Drawer 3 -->
+            <rect [attr.x]="$any(element).position.x + 6" [attr.y]="$any(element).position.y + $any(element).size.height * 0.69"
+              [attr.width]="$any(element).size.width - 12" [attr.height]="$any(element).size.height * 0.2" rx="2" ry="2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1" [attr.stroke-dasharray]="$any(element).dotted ? '3,3' : null">
+            </rect>
+            <circle [attr.cx]="$any(element).position.x + 12" [attr.cy]="$any(element).position.y + $any(element).size.height * 0.79" r="2.5"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : '#f44336'"></circle>
+            <circle [attr.cx]="$any(element).position.x + 20" [attr.cy]="$any(element).position.y + $any(element).size.height * 0.79" r="1.5"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"></circle>
+          </g>
+
+          <!-- Lambda shape -->
+          <g *ngIf="$any(element).shape === 'lambda'" [class.highlighted]="isHighlighted('node', element.id)" class="lambda" filter="url(#dropshadow)">
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.r]="getInterfaceRadius(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </circle>
+            <path [attr.d]="getLambdaPath(element)" fill="none"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="(isSelected('node', element.id) ? 4 : 3) + ($any(element).strokeWidth || 1)"
+              stroke-linecap="round" stroke-linejoin="round">
+            </path>
+          </g>
+
+          <!-- Star shape -->
+          <polygon *ngIf="$any(element).shape === 'star'" [attr.points]="getStarPoints(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </polygon>
+
+          <!-- Octagon shape -->
+          <polygon *ngIf="$any(element).shape === 'octagon'" [attr.points]="getOctagonPoints(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </polygon>
+
+          <!-- User/Persona shape -->
+          <g *ngIf="$any(element).shape === 'user'" [class.highlighted]="isHighlighted('node', element.id)" class="user" filter="url(#dropshadow)">
+            <!-- Head -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height * 0.3"
+              [attr.r]="getInterfaceRadius(element) * 0.36"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </circle>
+            <!-- Shoulders -->
+            <path [attr.d]="'M ' + $any(element).position.x + ',' + ($any(element).position.y + $any(element).size.height) +
+                           ' C ' + $any(element).position.x + ',' + ($any(element).position.y + $any(element).size.height * 0.6) + ' ' +
+                                  ($any(element).position.x + $any(element).size.width * 0.25) + ',' + ($any(element).position.y + $any(element).size.height * 0.6) + ' ' +
+                                  ($any(element).position.x + $any(element).size.width * 0.25) + ',' + ($any(element).position.y + $any(element).size.height * 0.55) +
+                           ' L ' + ($any(element).position.x + $any(element).size.width * 0.75) + ',' + ($any(element).position.y + $any(element).size.height * 0.55) +
+                           ' C ' + ($any(element).position.x + $any(element).size.width * 0.75) + ',' + ($any(element).position.y + $any(element).size.height * 0.6) + ' ' +
+                                  ($any(element).position.x + $any(element).size.width) + ',' + ($any(element).position.y + $any(element).size.height * 0.6) + ' ' +
+                                  ($any(element).position.x + $any(element).size.width) + ',' + ($any(element).position.y + $any(element).size.height) + ' Z'"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </path>
+          </g>
+
+          <!-- Shield shape -->
+          <path *ngIf="$any(element).shape === 'shield'" [attr.d]="getShieldPath(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </path>
+
+          <!-- Key shape -->
+          <g *ngIf="$any(element).shape === 'key'" [class.highlighted]="isHighlighted('node', element.id)" class="key" filter="url(#dropshadow)">
+            <!-- Outer head circle -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width * 0.3"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.r]="getInterfaceRadius(element) * 0.25"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </circle>
+            <!-- Inner head circle (cutout) -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width * 0.3"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.r]="getInterfaceRadius(element) * 0.1"
+              fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1" opacity="0.5">
+            </circle>
+            <!-- Key shaft -->
+            <rect [attr.x]="$any(element).position.x + $any(element).size.width * 0.3 + getInterfaceRadius(element) * 0.25"
+              [attr.y]="$any(element).position.y + $any(element).size.height / 2 - $any(element).size.height * 0.05"
+              [attr.width]="$any(element).size.width * 0.45"
+              [attr.height]="$any(element).size.height * 0.1"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <!-- Key teeth -->
+            <rect [attr.x]="$any(element).position.x + $any(element).size.width * 0.3 + getInterfaceRadius(element) * 0.25 + $any(element).size.width * 0.25"
+              [attr.y]="$any(element).position.y + $any(element).size.height / 2 + $any(element).size.height * 0.05"
+              [attr.width]="$any(element).size.width * 0.06"
+              [attr.height]="$any(element).size.height * 0.15"
+              [attr.fill]="$any(element).borderColor" stroke="none">
+            </rect>
+            <rect [attr.x]="$any(element).position.x + $any(element).size.width * 0.3 + getInterfaceRadius(element) * 0.25 + $any(element).size.width * 0.35"
+              [attr.y]="$any(element).position.y + $any(element).size.height / 2 + $any(element).size.height * 0.05"
+              [attr.width]="$any(element).size.width * 0.06"
+              [attr.height]="$any(element).size.height * 0.15"
+              [attr.fill]="$any(element).borderColor" stroke="none">
+            </rect>
+          </g>
+
+          <!-- Gear shape -->
+          <path *ngIf="$any(element).shape === 'gear'" [attr.d]="getGearPath(element)"
+            [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+            [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+            [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null" filter="url(#dropshadow)"
+            fill-rule="evenodd"
+            [class.highlighted]="isHighlighted('node', element.id)" class="node">
+          </path>
+
+          <!-- Database Cluster shape -->
+          <g *ngIf="$any(element).shape === 'dbCluster'" [class.highlighted]="isHighlighted('node', element.id)" class="db-cluster" filter="url(#dropshadow)">
+            <!-- Cylinder 1 (Back Left) -->
+            <path [attr.d]="getDbClusterCylinderPath($any(element).position.x, $any(element).position.y, $any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1" [attr.stroke-dasharray]="$any(element).dotted ? '3,3' : null">
+            </path>
+            <ellipse [attr.cx]="$any(element).position.x + $any(element).size.width * 0.325"
+              [attr.cy]="$any(element).position.y + getDbClusterCylinderRy($any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.rx]="$any(element).size.width * 0.325"
+              [attr.ry]="getDbClusterCylinderRy($any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1">
+            </ellipse>
+
+            <!-- Cylinder 2 (Back Right) -->
+            <path [attr.d]="getDbClusterCylinderPath($any(element).position.x + $any(element).size.width * 0.35, $any(element).position.y, $any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1" [attr.stroke-dasharray]="$any(element).dotted ? '3,3' : null">
+            </path>
+            <ellipse [attr.cx]="$any(element).position.x + $any(element).size.width * 0.675"
+              [attr.cy]="$any(element).position.y + getDbClusterCylinderRy($any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.rx]="$any(element).size.width * 0.325"
+              [attr.ry]="getDbClusterCylinderRy($any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1">
+            </ellipse>
+
+            <!-- Cylinder 3 (Front Center) -->
+            <path [attr.d]="getDbClusterCylinderPath($any(element).position.x + $any(element).size.width * 0.175, $any(element).position.y + $any(element).size.height * 0.35, $any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </path>
+            <ellipse [attr.cx]="$any(element).position.x + $any(element).size.width * 0.5"
+              [attr.cy]="$any(element).position.y + $any(element).size.height * 0.35 + getDbClusterCylinderRy($any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.rx]="$any(element).size.width * 0.325"
+              [attr.ry]="getDbClusterCylinderRy($any(element).size.width * 0.65, $any(element).size.height * 0.65)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </ellipse>
+          </g>
+
+          <!-- Pod shape -->
+          <g *ngIf="$any(element).shape === 'pod'" [class.highlighted]="isHighlighted('node', element.id)" class="pod" filter="url(#dropshadow)">
+            <!-- Outer dotted capsule -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
+              [attr.rx]="$any(element).size.height / 2" [attr.ry]="$any(element).size.height / 2"
+              fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              stroke-dasharray="3,3">
+            </rect>
+            <!-- Inner solid capsule -->
+            <rect [attr.x]="$any(element).position.x + 4" [attr.y]="$any(element).position.y + 4"
+              [attr.width]="$any(element).size.width - 8" [attr.height]="$any(element).size.height - 8"
+              [attr.rx]="($any(element).size.height - 8) / 2" [attr.ry]="($any(element).size.height - 8) / 2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+          </g>
+
+          <!-- Message Topic shape -->
+          <g *ngIf="$any(element).shape === 'msgTopic'" [class.highlighted]="isHighlighted('node', element.id)" class="msg-topic" filter="url(#dropshadow)">
+            <!-- Central circle -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.r]="getInterfaceRadius(element) * 0.25"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </circle>
+            <!-- Outward Arrow: Top -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y1]="$any(element).position.y + $any(element).size.height / 2 - getInterfaceRadius(element) * 0.25"
+              [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y2]="$any(element).position.y + $any(element).size.height / 2 - getInterfaceRadius(element) * 0.45"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="2" stroke-linecap="round">
+            </line>
+            <polygon [attr.points]="($any(element).position.x + $any(element).size.width / 2) + ',' + ($any(element).position.y + $any(element).size.height / 2 - getInterfaceRadius(element) * 0.45) + ' ' +
+                                     ($any(element).position.x + $any(element).size.width / 2 - 3) + ',' + ($any(element).position.y + $any(element).size.height / 2 - getInterfaceRadius(element) * 0.38) + ' ' +
+                                     ($any(element).position.x + $any(element).size.width / 2 + 3) + ',' + ($any(element).position.y + $any(element).size.height / 2 - getInterfaceRadius(element) * 0.38)"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
+            </polygon>
+
+            <!-- Outward Arrow: Bottom -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y1]="$any(element).position.y + $any(element).size.height / 2 + getInterfaceRadius(element) * 0.25"
+              [attr.x2]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.y2]="$any(element).position.y + $any(element).size.height / 2 + getInterfaceRadius(element) * 0.45"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="2" stroke-linecap="round">
+            </line>
+            <polygon [attr.points]="($any(element).position.x + $any(element).size.width / 2) + ',' + ($any(element).position.y + $any(element).size.height / 2 + getInterfaceRadius(element) * 0.45) + ' ' +
+                                     ($any(element).position.x + $any(element).size.width / 2 - 3) + ',' + ($any(element).position.y + $any(element).size.height / 2 + getInterfaceRadius(element) * 0.38) + ' ' +
+                                     ($any(element).position.x + $any(element).size.width / 2 + 3) + ',' + ($any(element).position.y + $any(element).size.height / 2 + getInterfaceRadius(element) * 0.38)"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
+            </polygon>
+
+            <!-- Outward Arrow: Left -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2 - getInterfaceRadius(element) * 0.25"
+              [attr.y1]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.x2]="$any(element).position.x + $any(element).size.width / 2 - getInterfaceRadius(element) * 0.45"
+              [attr.y2]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="2" stroke-linecap="round">
+            </line>
+            <polygon [attr.points]="($any(element).position.x + $any(element).size.width / 2 - getInterfaceRadius(element) * 0.45) + ',' + ($any(element).position.y + $any(element).size.height / 2) + ' ' +
+                                     ($any(element).position.x + $any(element).size.width / 2 - getInterfaceRadius(element) * 0.38) + ',' + ($any(element).position.y + $any(element).size.height / 2 - 3) + ' ' +
+                                     ($any(element).position.x + $any(element).size.width / 2 - getInterfaceRadius(element) * 0.38) + ',' + ($any(element).position.y + $any(element).size.height / 2 + 3)"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
+            </polygon>
+
+            <!-- Outward Arrow: Right -->
+            <line [attr.x1]="$any(element).position.x + $any(element).size.width / 2 + getInterfaceRadius(element) * 0.25"
+              [attr.y1]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.x2]="$any(element).position.x + $any(element).size.width / 2 + getInterfaceRadius(element) * 0.45"
+              [attr.y2]="$any(element).position.y + $any(element).size.height / 2"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="2" stroke-linecap="round">
+            </line>
+            <polygon [attr.points]="($any(element).position.x + $any(element).size.width / 2 + getInterfaceRadius(element) * 0.45) + ',' + ($any(element).position.y + $any(element).size.height / 2) + ' ' +
+                                     ($any(element).position.x + $any(element).size.width / 2 + getInterfaceRadius(element) * 0.38) + ',' + ($any(element).position.y + $any(element).size.height / 2 - 3) + ' ' +
+                                     ($any(element).position.x + $any(element).size.width / 2 + getInterfaceRadius(element) * 0.38) + ',' + ($any(element).position.y + $any(element).size.height / 2 + 3)"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">
+            </polygon>
+          </g>
+
+          <!-- Hard Drive shape -->
+          <g *ngIf="$any(element).shape === 'hardDrive'" [class.highlighted]="isHighlighted('node', element.id)" class="hard-drive" filter="url(#dropshadow)">
+            <!-- Outer Frame / Platters -->
+            <rect [attr.x]="$any(element).position.x + 4" [attr.y]="$any(element).position.y + $any(element).size.height * 0.1"
+              [attr.width]="$any(element).size.width - 8" [attr.height]="$any(element).size.height * 0.2" rx="2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? 2 : 1">
+            </rect>
+            <rect [attr.x]="$any(element).position.x + 4" [attr.y]="$any(element).position.y + $any(element).size.height * 0.4"
+              [attr.width]="$any(element).size.width - 8" [attr.height]="$any(element).size.height * 0.2" rx="2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? 2 : 1">
+            </rect>
+            <rect [attr.x]="$any(element).position.x + 4" [attr.y]="$any(element).position.y + $any(element).size.height * 0.7"
+              [attr.width]="$any(element).size.width - 8" [attr.height]="$any(element).size.height * 0.2" rx="2"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? 2 : 1">
+            </rect>
+            <!-- R/W Head Arm -->
+            <path [attr.d]="'M' + ($any(element).position.x + $any(element).size.width - 8) + ',' + ($any(element).position.y + $any(element).size.height * 0.8) + ' ' +
+                            'L' + ($any(element).position.x + $any(element).size.width - 16) + ',' + ($any(element).position.y + $any(element).size.height * 0.5) + ' ' +
+                            'L' + ($any(element).position.x + $any(element).size.width - 24) + ',' + ($any(element).position.y + $any(element).size.height * 0.5)"
+              fill="none" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1.5">
+            </path>
+          </g>
+
+          <!-- Terminal shape -->
+          <g *ngIf="$any(element).shape === 'terminal'" [class.highlighted]="isHighlighted('node', element.id)" class="terminal" filter="url(#dropshadow)">
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height" rx="4"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </rect>
+            <line [attr.x1]="$any(element).position.x" [attr.y1]="$any(element).position.y + 16"
+              [attr.x2]="$any(element).position.x + $any(element).size.width" [attr.y2]="$any(element).position.y + 16"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="1">
+            </line>
+            <!-- Code Console prompt characters -->
+            <text [attr.x]="$any(element).position.x + 8" [attr.y]="$any(element).position.y + 32"
+              font-family="monospace" font-size="12" font-weight="bold"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor">>_</text>
+          </g>
+
+          <!-- Bell shape -->
+          <g *ngIf="$any(element).shape === 'bell'" [class.highlighted]="isHighlighted('node', element.id)" class="bell" filter="url(#dropshadow)">
+            <!-- Handle loop -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height * 0.15"
+              [attr.r]="$any(element).size.width * 0.08" fill="none"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)">
+            </circle>
+            <!-- Main bell -->
+            <path [attr.d]="getBellPath(element)"
+              [attr.fill]="$any(element).fillColor" [attr.stroke]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null">
+            </path>
+            <!-- Bell clapper -->
+            <circle [attr.cx]="$any(element).position.x + $any(element).size.width / 2"
+              [attr.cy]="$any(element).position.y + $any(element).size.height * 0.88"
+              [attr.r]="$any(element).size.width * 0.08"
+              [attr.fill]="isSelected('node', element.id) ? '#007bff' : $any(element).borderColor"
+              stroke="none">
+            </circle>
+          </g>
+
           <!-- Note shape (page with curled corner and pushpin) -->
           <g *ngIf="$any(element).shape === 'note'" [class.highlighted]="isHighlighted('node', element.id)" class="note">
             <!-- Custom shadow for the note -->
@@ -833,6 +1266,57 @@
               <circle r="9" fill="#fff" stroke="#aaa" stroke-width="1" opacity="0.92"/>
               <text font-size="11" text-anchor="middle" dominant-baseline="central" fill="#555" style="pointer-events:none">⚙</text>
             </g>
+          </g>
+
+          <!-- Threat Table shape -->
+          <g *ngIf="$any(element).shape === 'threatTable'" [class.highlighted]="isHighlighted('node', element.id)"
+            class="threat-table" [attr.filter]="!$any(element).layered ? 'url(#dropshadow)' : null">
+
+            <!-- Main background (for selection/hit area) -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
+              [attr.fill]="'#ffffff'"
+              [attr.stroke]="isSelected('node', element.id) ? '#007bff' : ($any(element).borderColor || '#000000')"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              class="node">
+            </rect>
+
+            <!-- HTML content via foreignObject -->
+            <foreignObject [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height">
+              <div xmlns="http://www.w3.org/1999/xhtml" class="threat-table-content"
+                [style.width.px]="$any(element).size.width"
+                [style.height.px]="$any(element).size.height"
+                [style.border-color]="$any(element).borderColor || '#000000'">
+
+                <!-- Header Bar -->
+                <div class="threat-table-header" [style.background-color]="$any(element).fillColor || '#f0f0f0'" [style.border-bottom]="!getThreatTableData(element)?.collapsed ? '1px solid ' + ($any(element).borderColor || '#000000') : 'none'">
+                  <!-- Collapse Button -->
+                  <button class="threat-table-toggle" (click)="toggleTableCollapse($event, element)" [style.border-color]="$any(element).borderColor || '#000000'">
+                    {{ getThreatTableData(element)?.collapsed ? '+' : '–' }}
+                  </button>
+                  <span class="threat-table-title">{{ getThreatTableData(element)?.title || 'Threat Table' }}</span>
+                </div>
+
+                <!-- Table Body -->
+                <div class="threat-table-body" *ngIf="!getThreatTableData(element)?.collapsed">
+                  <table class="threat-table-grid" [style.border-color]="$any(element).borderColor || '#000000'">
+                    <thead>
+                      <tr [style.background-color]="($any(element).fillColor) ? ($any(element).fillColor + '33') : '#f8f9fa'">
+                        <th [style.border-color]="$any(element).borderColor || '#000000'" [style.border-right-color]="$any(element).borderColor || '#000000'">{{ getThreatTableData(element)?.col1Header || 'ID' }}</th>
+                        <th [style.border-color]="$any(element).borderColor || '#000000'">{{ getThreatTableData(element)?.col2Header || 'Description' }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of getThreatTableData(element)?.rows || []">
+                        <td class="col-id" [style.border-color]="$any(element).borderColor || '#000000'" [style.border-right-color]="$any(element).borderColor || '#000000'">{{ row.col1 }}</td>
+                        <td class="col-desc" [style.border-color]="$any(element).borderColor || '#000000'">{{ row.col2 }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </foreignObject>
           </g>
 
           <!-- Resize handles -->

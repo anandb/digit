@@ -58,7 +58,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private activeDragId?: string;
 
   // Node shapes that support inner diagrams
-  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'cache', 'package', 'component', 'serverRack', 'dbCluster', 'pod', 'terminal'];
+  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'cache', 'package', 'component', 'serverRack', 'dbCluster', 'pod', 'terminal', 'container'];
 
   supportsInnerDiagram(element: DiagramElement): boolean {
     if (isNode(element)) {
@@ -1088,12 +1088,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get Y position for node text based on shape
   getNodeTextY(node: any): number {
     // Shapes that display text INSIDE the shape
-    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note', 'cloud', 'package', 'component', 'octagon', 'shield', 'terminal', 'pod'];
+    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note', 'cloud', 'package', 'component', 'octagon', 'shield', 'terminal'];
 
     if (insideShapes.includes(node.shape)) {
       // Center text within the shape
       return node.position.y + node.size.height / 2;
-    } else if (node.shape === 'circle' || node.shape === 'interface' || node.shape === 'cylinder' || node.shape === 'wall' || node.shape === 'lambda' || node.shape === 'user' || node.shape === 'serverRack' || node.shape === 'key' || node.shape === 'gear' || node.shape === 'dbCluster' || node.shape === 'msgTopic' || node.shape === 'hardDrive' || node.shape === 'bell' || node.shape === 'queue' || node.shape === 'star') {
+    } else if (node.shape === 'circle' || node.shape === 'interface' || node.shape === 'cylinder' || node.shape === 'wall' || node.shape === 'lambda' || node.shape === 'user' || node.shape === 'serverRack' || node.shape === 'key' || node.shape === 'gear' || node.shape === 'dbCluster' || node.shape === 'msgTopic' || node.shape === 'hardDrive' || node.shape === 'bell' || node.shape === 'queue' || node.shape === 'star' || node.shape === 'pod' || node.shape === 'container') {
       // Position text below the shape
       return node.position.y + node.size.height + 20;
     } else if (node.shape === 'triangle') {
@@ -1771,6 +1771,31 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `translate(${cx}, ${cy}) scale(${scale}) translate(-8, -8)`;
   }
 
+  getPodTransform(node: any): string {
+    const scaleX = node.size.width / 16;
+    const scaleY = node.size.height / 16;
+    return `translate(${node.position.x}, ${node.position.y}) scale(${scaleX}, ${scaleY})`;
+  }
+
+  getContainerTransform(node: any): string {
+    const scaleX = node.size.width / 73;
+    const scaleY = node.size.height / 73;
+    return `translate(${node.position.x}, ${node.position.y}) scale(${scaleX}, ${scaleY})`;
+  }
+
+  getPodHexagonPoints(node: any): string {
+    const x = node.position.x;
+    const y = node.position.y;
+    const w = node.size.width;
+    const h = node.size.height;
+    return `${x + w * 0.5},${y + h * 0.03125}
+            ${x + w * 0.90625},${y + h * 0.265625}
+            ${x + w * 0.90625},${y + h * 0.734375}
+            ${x + w * 0.5},${y + h * 0.96875}
+            ${x + w * 0.09375},${y + h * 0.734375}
+            ${x + w * 0.09375},${y + h * 0.265625}`;
+  }
+
   getStarPoints(node: any): string {
     const cx = node.position.x + node.size.width / 2;
     const cy = node.position.y + node.size.height / 2;
@@ -2238,6 +2263,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       case 'gear': return 'Gear';
       case 'dbCluster': return 'DB Cluster';
       case 'pod': return 'Pod';
+      case 'container': return 'Container';
       case 'msgTopic': return 'Topic';
       case 'hardDrive': return 'Disk';
       case 'terminal': return 'Terminal';

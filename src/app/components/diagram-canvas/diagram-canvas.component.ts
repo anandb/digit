@@ -650,9 +650,25 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
                             this.state.currentDiagram.edges.length +
                             (this.state.currentDiagram.connectors || []).length;
 
-      const selectedElements = this.state.selectedNodeIds.length +
-                               this.state.selectedBoundingBoxIds.length +
-                               this.state.selectedSvgImageIds.length +
+      // Group-cascade: deleting one grouped shape kills the whole group.
+      // Expand the union of all selected shape ids (nodes, svg images,
+      // bounding boxes) with any group siblings, then route each expanded
+      // id to the correct deleter based on its actual type.
+      const selectedShapeIds = [
+        ...this.state.selectedNodeIds,
+        ...this.state.selectedSvgImageIds,
+        ...this.state.selectedBoundingBoxIds
+      ];
+      const expandedShapeIds = this.diagramService.expandIdsWithGroupSiblings(selectedShapeIds);
+
+      // Split expanded ids by concrete type so group members that are
+      // bounding boxes don't accidentally get routed to deleteNode.
+      const elementIdSet = new Set(this.state.currentDiagram.elements.map(e => e.id));
+      const expandedElementIds = expandedShapeIds.filter(id => elementIdSet.has(id));
+      const expandedBoxIds = expandedShapeIds.filter(id => !elementIdSet.has(id));
+
+      const selectedElements = expandedElementIds.length +
+                               expandedBoxIds.length +
                                this.state.selectedEdgeIds.length +
                                (this.state.selectedConnectorIds || []).length;
 
@@ -662,18 +678,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
          }
       }
 
-      // Delete all selected items
-      this.state.selectedNodeIds.forEach(nodeId => {
-        this.diagramService.deleteNode(nodeId);
-      });
+      // Delete all selected items (group siblings cascade in a single undo entry per type)
+      if (expandedElementIds.length > 0) {
+        this.diagramService.deleteElements(expandedElementIds);
+      }
 
-      this.state.selectedBoundingBoxIds.forEach(boxId => {
-        this.diagramService.deleteBoundingBox(boxId);
-      });
-
-      this.state.selectedSvgImageIds.forEach(svgId => {
-        this.diagramService.deleteNode(svgId);
-      });
+      if (expandedBoxIds.length > 0) {
+        this.diagramService.deleteBoundingBoxes(expandedBoxIds);
+      }
 
       this.state.selectedEdgeIds.forEach(edgeId => {
         this.diagramService.deleteEdge(edgeId);

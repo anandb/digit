@@ -899,7 +899,31 @@ export class DiagramService {
         boundingBoxes: currentState.currentDiagram.boundingBoxes.filter(box => box.id !== boundingBoxId),
         connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
           connector.fromNodeId !== boundingBoxId && connector.toNodeId !== boundingBoxId
-        )
+        ),
+        // Remove the deleted box from any group it belonged to
+        groups: (currentState.currentDiagram.groups || [])
+          .map(g => ({ ...g, elementIds: g.elementIds.filter(id => id !== boundingBoxId) }))
+          .filter(g => g.elementIds.length > 0)
+      }
+    };
+  }
+
+  // Delete multiple bounding boxes at once (one undo entry) — mirrors deleteElements
+  deleteBoundingBoxes(ids: string[]): void {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    const currentState = this.state;
+    this.state = {
+      ...currentState,
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        boundingBoxes: currentState.currentDiagram.boundingBoxes.filter(box => !idSet.has(box.id)),
+        connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
+          !idSet.has(connector.fromNodeId) && !idSet.has(connector.toNodeId)
+        ),
+        groups: (currentState.currentDiagram.groups || [])
+          .map(g => ({ ...g, elementIds: g.elementIds.filter(id => !idSet.has(id)) }))
+          .filter(g => g.elementIds.length > 0)
       }
     };
   }
@@ -931,6 +955,29 @@ export class DiagramService {
   // Semantic alias for SVG images (same logic as deleteNode — elements share one array)
   deleteSvgImage(svgImageId: string): void {
     this.deleteNode(svgImageId);
+  }
+
+  // Expand a set of element/bounding-box ids to include all siblings that share
+  // a group with any of the input ids. Pure read — no state mutation. Used by
+  // the canvas Delete handler so that deleting one grouped shape cascades to
+  // the entire group (Behaviour B).
+  expandIdsWithGroupSiblings(ids: string[]): string[] {
+    if (ids.length === 0) return [];
+    const diag = this.state.currentDiagram;
+    const groups = diag.groups || [];
+    if (groups.length === 0) return Array.from(new Set(ids));
+
+    const result = new Set(ids);
+    ids.forEach(id => {
+      const el = diag.elements.find(e => e.id === id);
+      const box = el ? null : diag.boundingBoxes.find(b => b.id === id);
+      const groupId = el?.groupId ?? box?.groupId;
+      if (groupId) {
+        const group = groups.find(g => g.id === groupId);
+        group?.elementIds.forEach(sid => result.add(sid));
+      }
+    });
+    return Array.from(result);
   }
 
   // Delete multiple elements at once (one undo entry)

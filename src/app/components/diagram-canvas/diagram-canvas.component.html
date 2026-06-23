@@ -1508,14 +1508,30 @@
     <!-- Edges -->
     <g class="edges">
       <g *ngFor="let edge of getCurrentEdges()" class="edge-group">
-        <!-- For labeled edges, render hit area first, then two path segments with a gap -->
-        <ng-container *ngIf="edge.name && getEdgePathSegments(edge) as segments">
+        <!-- If it's a curved edge (has control points), render single continuous path and name -->
+        <ng-container *ngIf="(edge.attributes?.['controlPoints'] || []).length > 0 || !edge.name">
           <!-- Hit area for easier selection -->
-          <path [attr.d]="segments.first + forceUpdate" class="edge-hit-area" fill="none" stroke="transparent" stroke-width="20"
+          <path [attr.d]="getEdgePath(edge)" class="edge-hit-area" fill="none" stroke="transparent" stroke-width="20"
+            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)"
+            (dblclick)="onEdgePathDoubleClick($event, edge)">
+          </path>
+          <path [attr.d]="getEdgePath(edge)" class="edge"
+            [class.selected]="isSelected('edge', edge.id)" [attr.stroke]="edge.borderColor || '#666'"
+            [attr.stroke-width]="isSelected('edge', edge.id) ? (3 + (edge.strokeWidth || 1)) : (edge.strokeWidth || 1)"
+            [attr.stroke-dasharray]="edge.dotted ? '5,5' : null" fill="none" marker-end="url(#arrowhead-v2)"
             (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
           </path>
+        </ng-container>
+        <!-- For straight labeled edges, keep the two path segments with a gap -->
+        <ng-container *ngIf="edge.name && !(edge.attributes?.['controlPoints'] || []).length && getEdgePathSegments(edge) as segments">
+          <!-- Hit area for easier selection -->
+          <path [attr.d]="segments.first + forceUpdate" class="edge-hit-area" fill="none" stroke="transparent" stroke-width="20"
+            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)"
+            (dblclick)="onEdgePathDoubleClick($event, edge)">
+          </path>
           <path [attr.d]="segments.second + forceUpdate" class="edge-hit-area" fill="none" stroke="transparent" stroke-width="20"
-            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
+            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)"
+            (dblclick)="onEdgePathDoubleClick($event, edge)">
           </path>
 
           <path [attr.d]="segments.first + forceUpdate" class="edge" [class.selected]="isSelected('edge', edge.id)"
@@ -1527,19 +1543,6 @@
             [attr.stroke]="edge.borderColor || '#666'" [attr.stroke-width]="isSelected('edge', edge.id) ? (3 + (edge.strokeWidth || 1)) : (edge.strokeWidth || 1)"
             [attr.stroke-dasharray]="edge.dotted ? '5,5' : null" fill="none"
             marker-end="url(#arrowhead-v2)" (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
-          </path>
-        </ng-container>
-        <!-- For unlabeled edges, render single continuous path with hit area -->
-        <ng-container *ngIf="!edge.name">
-          <!-- Hit area for easier selection -->
-          <path [attr.d]="getEdgePath(edge)" class="edge-hit-area" fill="none" stroke="transparent" stroke-width="20"
-            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
-          </path>
-          <path [attr.d]="getEdgePath(edge)" class="edge"
-            [class.selected]="isSelected('edge', edge.id)" [attr.stroke]="edge.borderColor || '#666'"
-            [attr.stroke-width]="isSelected('edge', edge.id) ? (3 + (edge.strokeWidth || 1)) : (edge.strokeWidth || 1)"
-            [attr.stroke-dasharray]="edge.dotted ? '5,5' : null" fill="none" marker-end="url(#arrowhead-v2)"
-            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
           </path>
         </ng-container>
         <!-- Edge name label -->
@@ -1560,7 +1563,8 @@
       <g *ngFor="let connector of getCurrentConnectors()" class="connector-group">
         <!-- Hit area -->
         <path [attr.d]="getConnectorPath(connector)" class="connector-hit-area" fill="none" stroke="transparent" stroke-width="20"
-          (click)="onConnectorClick($event, connector)" (contextmenu)="onConnectorContextMenu($event, connector)">
+          (click)="onConnectorClick($event, connector)" (contextmenu)="onConnectorContextMenu($event, connector)"
+          (dblclick)="onConnectorPathDoubleClick($event, connector)">
         </path>
         <!-- Line -->
         <path [attr.d]="getConnectorPath(connector)" class="connector"
@@ -1586,6 +1590,43 @@
     <path *ngIf="isCreatingEdge" [attr.d]="getTempEdgePath()" class="temp-edge" stroke="#999" stroke-width="2"
       stroke-dasharray="5,5" fill="none">
     </path>
+
+    <!-- Control Point Handles (visible when edge/connector is selected) -->
+    <g class="control-point-handles" style="pointer-events: all;">
+      <!-- Selected Edge handles -->
+      <ng-container *ngFor="let edge of getCurrentEdges()">
+        <ng-container *ngIf="isSelected('edge', edge.id)">
+          <!-- Real Control Point Handles -->
+          <circle *ngFor="let cp of (edge.attributes?.['controlPoints'] || []); let i = index"
+            [attr.cx]="cp.x" [attr.cy]="cp.y" r="6" fill="#007bff" stroke="#ffffff" stroke-width="1.5"
+            style="cursor: move;" (mousedown)="startDragControlPoint($event, edge.id, i, 'edge')"
+            (dblclick)="deleteControlPoint($event, edge.id, i, 'edge')" title="Double click to delete control point">
+          </circle>
+          <!-- Ghost Mid-segment Handles -->
+          <circle *ngFor="let ghost of getEdgeGhostPoints(edge); let i = index"
+            [attr.cx]="ghost.x" [attr.cy]="ghost.y" r="4.5" fill="#007bff" opacity="0.5" stroke="#ffffff" stroke-width="1"
+            style="cursor: pointer;" (mousedown)="startDragGhostControlPoint($event, edge.id, i, ghost, 'edge')" title="Drag to add curve bend">
+          </circle>
+        </ng-container>
+      </ng-container>
+
+      <!-- Selected Connector handles -->
+      <ng-container *ngFor="let connector of getCurrentConnectors()">
+        <ng-container *ngIf="isSelected('connector', connector.id)">
+          <!-- Real Control Point Handles -->
+          <circle *ngFor="let cp of (connector.attributes?.['controlPoints'] || []); let i = index"
+            [attr.cx]="cp.x" [attr.cy]="cp.y" r="6" fill="#007bff" stroke="#ffffff" stroke-width="1.5"
+            style="cursor: move;" (mousedown)="startDragControlPoint($event, connector.id, i, 'connector')"
+            (dblclick)="deleteControlPoint($event, connector.id, i, 'connector')" title="Double click to delete control point">
+          </circle>
+          <!-- Ghost Mid-segment Handles -->
+          <circle *ngFor="let ghost of getConnectorGhostPoints(connector); let i = index"
+            [attr.cx]="ghost.x" [attr.cy]="ghost.y" r="4.5" fill="#007bff" opacity="0.5" stroke="#ffffff" stroke-width="1"
+            style="cursor: pointer;" (mousedown)="startDragGhostControlPoint($event, connector.id, i, ghost, 'connector')" title="Drag to add curve bend">
+          </circle>
+        </ng-container>
+      </ng-container>
+    </g>
 
     <!-- Arrow marker, grid pattern, and drop shadow filter definitions -->
     <defs>

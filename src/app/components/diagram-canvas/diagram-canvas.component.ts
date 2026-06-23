@@ -73,6 +73,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private panStart: Position = { x: 0, y: 0 };
   viewOffset: Position = { x: 0, y: 0 };
   zoomLevel = 1;
+
+  // For control points dragging
+  isDraggingControlPoint = false;
+  dragControlPointElementId?: string;
+  dragControlPointIndex?: number;
+  dragControlPointType?: 'edge' | 'connector';
+
   private currentDiagramId?: string;
 
   get svgViewBox(): string {
@@ -458,6 +465,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top
       };
+    } else if (this.isDraggingControlPoint && this.dragControlPointElementId && this.dragControlPointIndex !== undefined && this.dragControlPointType) {
+      const pos = this.getCanvasCoordinates(event);
+      if (this.dragControlPointType === 'edge') {
+        this.updateEdgeControlPoint(this.dragControlPointElementId, this.dragControlPointIndex, pos);
+      } else {
+        this.updateConnectorControlPoint(this.dragControlPointElementId, this.dragControlPointIndex, pos);
+      }
     } else if (this.isResizing && this.resizeNodeId) {
       const rect = this.canvas.nativeElement.getBoundingClientRect();
       const currentPos = {
@@ -552,6 +566,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       this.resizeNodeId = undefined;
       this.resizeBoundingBoxId = undefined;
       this.resizeSvgImageId = undefined;
+    }
+    if (this.isDraggingControlPoint) {
+      this.isDraggingControlPoint = false;
+      this.dragControlPointElementId = undefined;
+      this.dragControlPointIndex = undefined;
+      this.dragControlPointType = undefined;
     }
     // Also reset pan even when mouse is released outside the SVG (issue #4)
     this.isPanning = false;
@@ -879,8 +899,14 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const start = this.getLiveGlobalIntersection(fromElement, toC);
     const end = this.getLiveGlobalIntersection(toElement, fromC);
 
-    // Shortest straight line
-    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+    const controlPoints = edge.attributes?.['controlPoints'] || [];
+    if (controlPoints.length === 0) {
+      // Shortest straight line
+      return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+    }
+
+    const points = [start, ...controlPoints, end];
+    return this.getBezierCurvePath(points);
   }
 
   // Get two path segments with a gap in the middle for labeled edges
@@ -1352,7 +1378,13 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const start = this.getLiveGlobalIntersection(fromEl, toC);
     const end = this.getLiveGlobalIntersection(toEl, fromC);
 
-    return `M ${start.x},${start.y} L ${end.x},${end.y}`;
+    const controlPoints = connector.attributes?.['controlPoints'] || [];
+    if (controlPoints.length === 0) {
+      return `M ${start.x},${start.y} L ${end.x},${end.y}`;
+    }
+
+    const points = [start, ...controlPoints, end];
+    return this.getBezierCurvePath(points);
   }
 
   getConnectorLabelPosition(connector: import('../../models/diagram.model').Connector): Position {
@@ -1367,10 +1399,32 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     const start = this.getLiveGlobalIntersection(fromEl, toC);
     const end = this.getLiveGlobalIntersection(toEl, fromC);
 
-    return {
-      x: (start.x + end.x) / 2,
-      y: (start.y + end.y) / 2
-    };
+    const controlPoints = connector.attributes?.['controlPoints'] || [];
+    if (controlPoints.length === 0) {
+      return {
+        x: (start.x + end.x) / 2,
+        y: (start.y + end.y) / 2
+      };
+    }
+
+    if (controlPoints.length === 1) {
+      return { x: controlPoints[0].x, y: controlPoints[0].y };
+    } else if (controlPoints.length === 2) {
+      return {
+        x: (controlPoints[0].x + controlPoints[1].x) / 2,
+        y: (controlPoints[0].y + controlPoints[1].y) / 2
+      };
+    } else {
+      const mid = Math.floor(controlPoints.length / 2);
+      if (controlPoints.length % 2 === 1) {
+        return { x: controlPoints[mid].x, y: controlPoints[mid].y };
+      } else {
+        return {
+          x: (controlPoints[mid - 1].x + controlPoints[mid].x) / 2,
+          y: (controlPoints[mid - 1].y + controlPoints[mid].y) / 2
+        };
+      }
+    }
   }
 
   private handleAltClick(elementId: string): void {
@@ -2735,5 +2789,284 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       x: centroid.x + dx * scale,
       y: centroid.y + dy * scale
     };
+  }
+
+  // Curve and Control Point Helpers
+  getCanvasCoordinates(event: MouseEvent): Position {
+    const rect = this.canvas.nativeElement.getBoundingClientRect();
+    const clientX = event.clientX - rect.left;
+    const clientY = event.clientY - rect.top;
+
+    return {
+      x: Math.round(this.viewOffset.x + (clientX / this.zoomLevel)),
+      y: Math.round(this.viewOffset.y + (clientY / this.zoomLevel))
+    };
+  }
+
+  getBezierCurvePath(points: Position[]): string {
+    if (points.length < 2) return '';
+    if (points.length === 2) {
+      return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+    }
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+    const tension = 0.3; // adjusts curve stiffness
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i];
+      const p1 = points[i + 1];
+      
+      const prev = points[i - 1] || p0;
+      const next1 = points[i + 2] || p1;
+
+      const cp1x = p0.x + (p1.x - prev.x) * tension;
+      const cp1y = p0.y + (p1.y - prev.y) * tension;
+
+      const cp2x = p1.x - (next1.x - p0.x) * tension;
+      const cp2y = p1.y - (next1.y - p0.y) * tension;
+
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
+    }
+    return path;
+  }
+
+  getEdgePointsList(edge: Edge): Position[] {
+    const fromElement = this.getElementAny(edge.fromNodeId);
+    const toElement = this.getElementAny(edge.toNodeId);
+
+    if (!fromElement || !toElement) return [];
+
+    const fromC = this.getLiveCentroid(fromElement);
+    const toC = this.getLiveCentroid(toElement);
+
+    const start = this.getLiveGlobalIntersection(fromElement, toC);
+    const end = this.getLiveGlobalIntersection(toElement, fromC);
+
+    const controlPoints = edge.attributes?.['controlPoints'] || [];
+    return [start, ...controlPoints, end];
+  }
+
+  getEdgeGhostPoints(edge: Edge): Position[] {
+    const points = this.getEdgePointsList(edge);
+    if (points.length < 2) return [];
+
+    const ghosts: Position[] = [];
+    for (let i = 0; i < points.length - 1; i++) {
+      ghosts.push({
+        x: (points[i].x + points[i + 1].x) / 2,
+        y: (points[i].y + points[i + 1].y) / 2
+      });
+    }
+    return ghosts;
+  }
+
+  getConnectorPointsList(connector: import('../../models/diagram.model').Connector): Position[] {
+    const fromEl = this.diagramService.getElement(connector.fromNodeId);
+    const toEl = this.diagramService.getElement(connector.toNodeId);
+
+    if (!fromEl || !toEl) return [];
+
+    const fromC = this.getLiveCentroid(fromEl);
+    const toC = this.getLiveCentroid(toEl);
+
+    const start = this.getLiveGlobalIntersection(fromEl, toC);
+    const end = this.getLiveGlobalIntersection(toEl, fromC);
+
+    const controlPoints = connector.attributes?.['controlPoints'] || [];
+    return [start, ...controlPoints, end];
+  }
+
+  getConnectorGhostPoints(connector: import('../../models/diagram.model').Connector): Position[] {
+    const points = this.getConnectorPointsList(connector);
+    if (points.length < 2) return [];
+
+    const ghosts: Position[] = [];
+    for (let i = 0; i < points.length - 1; i++) {
+      ghosts.push({
+        x: (points[i].x + points[i + 1].x) / 2,
+        y: (points[i].y + points[i + 1].y) / 2
+      });
+    }
+    return ghosts;
+  }
+
+  startDragControlPoint(event: MouseEvent, elementId: string, index: number, type: 'edge' | 'connector'): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    this.isDraggingControlPoint = true;
+    this.dragControlPointElementId = elementId;
+    this.dragControlPointIndex = index;
+    this.dragControlPointType = type;
+    this.diagramService.recordUndoSnapshot();
+  }
+
+  startDragGhostControlPoint(event: MouseEvent, elementId: string, insertIndex: number, pos: Position, type: 'edge' | 'connector'): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    this.diagramService.recordUndoSnapshot();
+
+    if (type === 'edge') {
+      const edge = this.diagramService.currentState.currentDiagram.edges.find(e => e.id === elementId);
+      if (!edge) return;
+      const controlPoints = [...(edge.attributes['controlPoints'] || [])];
+      controlPoints.splice(insertIndex, 0, pos);
+      this.diagramService.updateEdge(elementId, {
+        attributes: {
+          ...edge.attributes,
+          controlPoints
+        }
+      });
+    } else {
+      const connector = this.diagramService.currentState.currentDiagram.connectors.find(c => c.id === elementId);
+      if (!connector) return;
+      const controlPoints = [...(connector.attributes['controlPoints'] || [])];
+      controlPoints.splice(insertIndex, 0, pos);
+      this.diagramService.updateConnector(elementId, {
+        attributes: {
+          ...connector.attributes,
+          controlPoints
+        }
+      });
+    }
+
+    this.isDraggingControlPoint = true;
+    this.dragControlPointElementId = elementId;
+    this.dragControlPointIndex = insertIndex;
+    this.dragControlPointType = type;
+  }
+
+  updateEdgeControlPoint(edgeId: string, index: number, pos: Position): void {
+    const edge = this.diagramService.currentState.currentDiagram.edges.find(e => e.id === edgeId);
+    if (!edge) return;
+
+    const controlPoints = [...(edge.attributes['controlPoints'] || [])];
+    controlPoints[index] = pos;
+
+    this.diagramService.updateEdge(edgeId, {
+      attributes: {
+        ...edge.attributes,
+        controlPoints
+      }
+    });
+  }
+
+  updateConnectorControlPoint(connectorId: string, index: number, pos: Position): void {
+    const connector = this.diagramService.currentState.currentDiagram.connectors.find(c => c.id === connectorId);
+    if (!connector) return;
+
+    const controlPoints = [...(connector.attributes['controlPoints'] || [])];
+    controlPoints[index] = pos;
+
+    this.diagramService.updateConnector(connectorId, {
+      attributes: {
+        ...connector.attributes,
+        controlPoints
+      }
+    });
+  }
+
+  deleteControlPoint(event: MouseEvent, elementId: string, index: number, type: 'edge' | 'connector'): void {
+    event.stopPropagation();
+    event.preventDefault();
+
+    this.diagramService.recordUndoSnapshot();
+
+    if (type === 'edge') {
+      const edge = this.diagramService.currentState.currentDiagram.edges.find(e => e.id === elementId);
+      if (!edge) return;
+      const controlPoints = [...(edge.attributes['controlPoints'] || [])];
+      controlPoints.splice(index, 1);
+      this.diagramService.updateEdge(elementId, {
+        attributes: {
+          ...edge.attributes,
+          controlPoints
+        }
+      });
+    } else {
+      const connector = this.diagramService.currentState.currentDiagram.connectors.find(c => c.id === elementId);
+      if (!connector) return;
+      const controlPoints = [...(connector.attributes['controlPoints'] || [])];
+      controlPoints.splice(index, 1);
+      this.diagramService.updateConnector(elementId, {
+        attributes: {
+          ...connector.attributes,
+          controlPoints
+        }
+      });
+    }
+  }
+
+  onEdgePathDoubleClick(event: MouseEvent, edge: Edge): void {
+    event.stopPropagation();
+    event.preventDefault();
+
+    const pos = this.getCanvasCoordinates(event);
+    const points = this.getEdgePointsList(edge);
+    if (points.length < 2) return;
+
+    this.diagramService.recordUndoSnapshot();
+
+    const insertIndex = this.findInsertIndexForControlPoint(pos, points);
+    const controlPoints = [...(edge.attributes['controlPoints'] || [])];
+    controlPoints.splice(insertIndex, 0, pos);
+
+    this.diagramService.updateEdge(edge.id, {
+      attributes: {
+        ...edge.attributes,
+        controlPoints
+      }
+    });
+  }
+
+  onConnectorPathDoubleClick(event: MouseEvent, connector: import('../../models/diagram.model').Connector): void {
+    event.stopPropagation();
+    event.preventDefault();
+
+    const pos = this.getCanvasCoordinates(event);
+    const points = this.getConnectorPointsList(connector);
+    if (points.length < 2) return;
+
+    this.diagramService.recordUndoSnapshot();
+
+    const insertIndex = this.findInsertIndexForControlPoint(pos, points);
+    const controlPoints = [...(connector.attributes['controlPoints'] || [])];
+    controlPoints.splice(insertIndex, 0, pos);
+
+    this.diagramService.updateConnector(connector.id, {
+      attributes: {
+        ...connector.attributes,
+        controlPoints
+      }
+    });
+  }
+
+  getDistanceToSegment(p: Position, v: Position, w: Position): number {
+    const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
+    if (l2 === 0) return Math.sqrt(Math.pow(p.x - v.x, 2) + Math.pow(p.y - v.y, 2));
+    
+    let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    
+    const projection = {
+      x: v.x + t * (w.x - v.x),
+      y: v.y + t * (w.y - v.y)
+    };
+    return Math.sqrt(Math.pow(p.x - projection.x, 2) + Math.pow(p.y - projection.y, 2));
+  }
+
+  findInsertIndexForControlPoint(clickPos: Position, points: Position[]): number {
+    let minDistance = Infinity;
+    let insertIndex = 0;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const dist = this.getDistanceToSegment(clickPos, points[i], points[i + 1]);
+      if (dist < minDistance) {
+        minDistance = dist;
+        insertIndex = i;
+      }
+    }
+    return insertIndex;
   }
 }

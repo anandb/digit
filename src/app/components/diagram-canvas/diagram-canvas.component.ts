@@ -1088,12 +1088,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get Y position for node text based on shape
   getNodeTextY(node: any): number {
     // Shapes that display text INSIDE the shape
-    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note', 'cloud', 'package', 'component', 'star', 'octagon', 'shield', 'terminal', 'pod'];
+    const insideShapes = ['pill', 'rectangle', 'diamond', 'trapezoid', 'roundedRectangle', 'hexagon', 'parallelogram', 'process', 'note', 'cloud', 'package', 'component', 'octagon', 'shield', 'terminal', 'pod'];
 
     if (insideShapes.includes(node.shape)) {
       // Center text within the shape
       return node.position.y + node.size.height / 2;
-    } else if (node.shape === 'circle' || node.shape === 'interface' || node.shape === 'cylinder' || node.shape === 'wall' || node.shape === 'lambda' || node.shape === 'user' || node.shape === 'serverRack' || node.shape === 'key' || node.shape === 'gear' || node.shape === 'dbCluster' || node.shape === 'msgTopic' || node.shape === 'hardDrive' || node.shape === 'bell' || node.shape === 'queue') {
+    } else if (node.shape === 'circle' || node.shape === 'interface' || node.shape === 'cylinder' || node.shape === 'wall' || node.shape === 'lambda' || node.shape === 'user' || node.shape === 'serverRack' || node.shape === 'key' || node.shape === 'gear' || node.shape === 'dbCluster' || node.shape === 'msgTopic' || node.shape === 'hardDrive' || node.shape === 'bell' || node.shape === 'queue' || node.shape === 'star') {
       // Position text below the shape
       return node.position.y + node.size.height + 20;
     } else if (node.shape === 'triangle') {

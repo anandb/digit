@@ -558,7 +558,7 @@ export class PropertiesWindowComponent implements OnInit {
     if (!element) return false;
     if (isSvgImage(element)) return true;
     if (!isNode(element)) return false;
-    return ['rectangle', 'pill', 'cylinder', 'circle', 'envelope', 'browser', 'mobile'].includes(element.shape);
+    return ['rectangle', 'pill', 'cylinder', 'circle', 'envelope', 'browser', 'mobile', 'octagon', 'package', 'shield', 'user', 'star', 'stickman', 'gear', 'roundedRectangle', 'pod', 'container', 'queue', 'diamond', 'parallelogram', 'document'].includes(element.shape);
   }
 
   getIsLayered(): boolean {

@@ -58,7 +58,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   private activeDragId?: string;
 
   // Node shapes that support inner diagrams
-  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'cache', 'package', 'component', 'serverRack', 'dbCluster', 'pod', 'terminal', 'container'];
+  private readonly INNER_DIAGRAM_ALLOWED_SHAPES = ['rectangle', 'roundedRectangle', 'pill', 'cylinder', 'circle', 'wall', 'cache', 'package', 'component', 'serverRack', 'dbCluster', 'pod', 'terminal', 'container', 'hourglass'];
 
   supportsInnerDiagram(element: DiagramElement): boolean {
     if (isNode(element)) {
@@ -1093,7 +1093,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     if (insideShapes.includes(node.shape)) {
       // Center text within the shape
       return node.position.y + node.size.height / 2;
-    } else if (node.shape === 'circle' || node.shape === 'interface' || node.shape === 'cylinder' || node.shape === 'wall' || node.shape === 'lambda' || node.shape === 'user' || node.shape === 'serverRack' || node.shape === 'key' || node.shape === 'gear' || node.shape === 'dbCluster' || node.shape === 'msgTopic' || node.shape === 'hardDrive' || node.shape === 'bell' || node.shape === 'queue' || node.shape === 'star' || node.shape === 'pod' || node.shape === 'container') {
+    } else if (node.shape === 'circle' || node.shape === 'interface' || node.shape === 'cylinder' || node.shape === 'wall' || node.shape === 'lambda' || node.shape === 'user' || node.shape === 'serverRack' || node.shape === 'key' || node.shape === 'gear' || node.shape === 'dbCluster' || node.shape === 'msgTopic' || node.shape === 'hardDrive' || node.shape === 'bell' || node.shape === 'queue' || node.shape === 'star' || node.shape === 'pod' || node.shape === 'container' || node.shape === 'hourglass' || node.shape === 'document') {
       // Position text below the shape
       return node.position.y + node.size.height + 20;
     } else if (node.shape === 'triangle') {
@@ -1783,6 +1783,18 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `translate(${node.position.x}, ${node.position.y}) scale(${scaleX}, ${scaleY})`;
   }
 
+  getHourglassInnerTransform(node: any): string {
+    const padX = node.size.width * 0.2;
+    const padY = node.size.height * 0.2;
+    const innerW = node.size.width - 2 * padX;
+    const innerH = node.size.height - 2 * padY;
+    const scaleX = innerW / 36;
+    const scaleY = innerH / 36;
+    const tx = node.position.x + padX;
+    const ty = node.position.y + padY;
+    return `translate(${tx}, ${ty}) scale(${scaleX}, ${scaleY})`;
+  }
+
   getPodHexagonPoints(node: any): string {
     const x = node.position.x;
     const y = node.position.y;
@@ -2237,7 +2249,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       case 'stickman': return 'Stickman';
       case 'callout': return 'Callout';
       case 'tape': return 'Tape';
-      case 'wall': return 'Wall';
+      case 'wall': return 'Wall/Cube';
       case 'text': return 'Text';
       case 'note': return 'Note';
       case 'envelope': return 'Envelope';
@@ -2264,6 +2276,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       case 'dbCluster': return 'DB Cluster';
       case 'pod': return 'Pod';
       case 'container': return 'Container';
+      case 'hourglass': return 'Hourglass';
       case 'msgTopic': return 'Topic';
       case 'hardDrive': return 'Disk';
       case 'terminal': return 'Terminal';

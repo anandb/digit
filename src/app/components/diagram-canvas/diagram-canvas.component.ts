@@ -1763,24 +1763,12 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
     return `M ${x},${y} L ${x + tabW},${y} L ${x + tabW + 8},${y + tabH} L ${x + w},${y + tabH} L ${x + w},${y + h} L ${x},${y + h} Z`;
   }
 
-  getLambdaPath(node: any): string {
+  getLambdaTransform(node: any): string {
     const cx = node.position.x + node.size.width / 2;
     const cy = node.position.y + node.size.height / 2;
-    const w = node.size.width;
-    const h = node.size.height;
-    const size = Math.min(w, h) * 0.5;
-
-    const topY = cy - size / 2;
-    const bottomY = cy + size / 2;
-    const leftX = cx - size / 2;
-    const rightX = cx + size / 2;
-    const midX = cx;
-    const midY = cy - size * 0.1;
-
-    return `M ${rightX - size*0.1},${topY} ` +
-           `L ${leftX + size*0.1},${bottomY} ` +
-           `M ${midX},${midY} ` +
-           `L ${rightX},${bottomY}`;
+    const size = Math.min(node.size.width, node.size.height) * 0.55;
+    const scale = size / 16;
+    return `translate(${cx}, ${cy}) scale(${scale}) translate(-8, -8)`;
   }
 
   getStarPoints(node: any): string {

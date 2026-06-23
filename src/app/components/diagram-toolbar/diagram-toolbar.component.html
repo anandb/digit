@@ -139,6 +139,12 @@
             </svg>
             <span>Cylinder</span>
           </button>
+          <button class="shape-btn" (click)="addNewNode('diamond')" title="Diamond">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+              <polygon points="12,2 22,12 12,22 2,12"/>
+            </svg>
+            <span>Diamond</span>
+          </button>
           <button class="shape-btn" (click)="addNewNode('hardDrive')" title="Disk Drive">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="6" rx="1"/>
@@ -153,6 +159,13 @@
               <polyline points="2,2 12,9 22,2"/>
             </svg>
             <span>Envelope</span>
+          </button>
+          <button class="shape-btn" (click)="addNewNode('document')" title="Document">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+              <path d="M4,4 L16,4 L20,8 L20,20 L4,20 Z M16,4 L16,8 L20,8"/>
+              <path d="M4,17 Q6,15 8,17 Q10,19 12,17 Q14,15 16,17 L16,20 L4,20 Z" opacity="0.4"/>
+            </svg>
+            <span>Document</span>
           </button>
           <button class="shape-btn" (click)="addNewNode('gear')" title="Gear / Cog">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

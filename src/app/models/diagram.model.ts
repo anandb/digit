@@ -20,23 +20,9 @@ export interface DiagramElement extends HasNotes {
   position: Position;
   size: Size;
   attributes: { [key: string]: any };
-  tendrils: Tendril[];
   innerDiagram?: Diagram;
   rotation?: number;
   groupId?: string;
-}
-
-export interface Tendril extends HasNotes {
-  id: string;
-  name: string;
-  position: Position; // relative to node
-  type: 'incoming' | 'outgoing';
-  exposed: boolean;
-  exposedOverrides: { [parentDiagramId: string]: boolean };
-  attributes: { [key: string]: any };
-  borderColor: string;
-  borderThickness: number;
-  strokeWidth?: number;
 }
 
 export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'envelope' | 'cache' | 'tick' | 'cross' | 'lightning' | 'padlock' | 'dataLake' | 'browser' | 'mobile' | 'bar' | 'crcCard' | 'package' | 'component' | 'interface' | 'queue' | 'serverRack' | 'lambda' | 'star' | 'octagon' | 'user' | 'shield' | 'key' | 'gear' | 'dbCluster' | 'pod' | 'msgTopic' | 'hardDrive' | 'terminal' | 'bell' | 'threatTable' | 'container' | 'hourglass';
@@ -90,23 +76,6 @@ export interface Node extends DiagramElement {
   brickWall?: boolean;
 }
 
-export interface Edge extends HasNotes {
-  id: string;
-  fromNodeId: string;
-  fromTendrilId: string;
-  toNodeId: string;
-  toTendrilId: string;
-  name?: string;
-  borderColor?: string;
-  strokeWidth?: number;
-  dotted?: boolean;
-  fontFamily?: string;
-  fontSize?: number;
-  fontWeight?: string;
-  fontStyle?: string;
-  attributes: { [key: string]: any };
-}
-
 export interface Connector extends HasNotes {
   id: string;
   fromNodeId: string;
@@ -115,8 +84,8 @@ export interface Connector extends HasNotes {
   borderColor?: string;
   strokeWidth?: number;
   dotted?: boolean;
-  startArrow?: boolean;
-  endArrow?: boolean;
+  startArrow?: boolean | 'none' | 'arrow' | 'solid';
+  endArrow?: boolean | 'none' | 'arrow' | 'solid';
   fontFamily?: string;
   fontSize?: number;
   fontWeight?: string;
@@ -158,7 +127,6 @@ export interface Diagram {
   id: string;
   name: string;
   elements: DiagramElement[];
-  edges: Edge[];
   connectors: Connector[];
   boundingBoxes: BoundingBox[];
   groups: Group[];
@@ -184,15 +152,14 @@ export interface DiagramState {
   diagramStack: Diagram[]; // for navigation history
   viewportCenter: Position;
   selectedNodeIds: string[]; // Support multiple selections
-  selectedTendrilId?: string;
   selectedBoundingBoxIds: string[]; // Support multiple selections
   selectedSvgImageIds: string[]; // Support multiple selections
-  selectedEdgeIds: string[]; // Support multiple selections
   selectedConnectorIds: string[]; // Support multiple selections
   // Computed properties for backward compatibility
   selectedNodeId?: string;
   selectedBoundingBoxId?: string;
   selectedSvgImageId?: string;
-  selectedEdgeId?: string;
   selectedConnectorId?: string;
+  viewSvgContent?: string;
+  viewSvgFileName?: string;
 }

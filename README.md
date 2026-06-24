@@ -105,7 +105,7 @@ Digit supports unlimited nesting levels:
 ### Advanced Features
 
 #### Multi-Selection
-- Hold Ctrl/Cmd while clicking to select multiple elements
+- Hold Shift while clicking to select multiple elements
 - Selected elements can be moved, styled, or deleted together
 
 #### SVG Integration
@@ -117,7 +117,7 @@ Digit supports unlimited nesting levels:
 - `Ctrl+Z`: Undo last action
 - `Ctrl+S`: Save diagram
 - `Delete`: Remove selected elements
-- `Ctrl+Click`: Multi-select or create edges
+- `Shift+Click`: Multi-select elements
 
 ## 🏛️ Architecture
 

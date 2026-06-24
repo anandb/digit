@@ -41,7 +41,7 @@ The application heavily relies on Angular and SVG for rendering.
 - Renders elements and edges using SVG (`<svg>`) for crisp scaling.
 - Handles complex pointer events for:
   - Dragging and dropping elements.
-  - Multi-selection (Ctrl/Cmd + Click).
+  - Multi-selection (Shift + Click).
   - Dragging tendrils along element perimeters.
   - Edge routing calculations.
 - Detects double-clicks to drill down into nested diagrams.

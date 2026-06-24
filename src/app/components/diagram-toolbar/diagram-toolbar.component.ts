@@ -1,8 +1,8 @@
 // Forced rebuild to resolve stale template issues
-import { Component, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, HostListener, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { DiagramService } from '../../services/diagram.service';
-import { DiagramElement, Tendril, isNode, isSvgImage } from '../../models/diagram.model';
+import { DiagramElement, isNode, isSvgImage } from '../../models/diagram.model';
 
 @Component({
   selector: 'app-diagram-toolbar',
@@ -18,15 +18,30 @@ export class DiagramToolbarComponent {
   // Dropdown state for Instructions
   isInstructionsOpen = false;
   isChaosMode = false;
+  isMac = false;
 
-  constructor(private diagramService: DiagramService) {
+  constructor(
+    private diagramService: DiagramService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    if (isPlatformBrowser(this.platformId)) {
+      this.isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform) ||
+                   (navigator.userAgent.indexOf('Mac') !== -1);
+    }
+  }
+
+  get modifierKey(): string {
+    return this.isMac ? 'Cmd' : 'Ctrl';
+  }
+
+  get state(): import('../../models/diagram.model').DiagramState {
+    return this.diagramService.currentState;
   }
 
   newDiagram(): void {
     const state = this.diagramService.currentState;
     const hasElements = state.currentDiagram.elements.length > 0 ||
                         state.currentDiagram.boundingBoxes.length > 0 ||
-                        state.currentDiagram.edges.length > 0 ||
                         (state.currentDiagram.connectors || []).length > 0;
 
     if (hasElements && !confirm('Are you sure you want to clear the canvas? All unsaved progress will be lost.')) {
@@ -103,40 +118,6 @@ export class DiagramToolbarComponent {
     this.diagramService.addBoundingBox(position);
   }
 
-  addIncomingTendril(): void {
-    const selectedElementId = this.diagramService.currentState.selectedNodeId || this.diagramService.currentState.selectedSvgImageId;
-    if (selectedElementId) {
-      this.addTendrilToElement(selectedElementId, 'incoming');
-    }
-  }
-
-  addOutgoingTendril(): void {
-    const selectedElementId = this.diagramService.currentState.selectedNodeId || this.diagramService.currentState.selectedSvgImageId;
-    if (selectedElementId) {
-      this.addTendrilToElement(selectedElementId, 'outgoing');
-    }
-  }
-
-  private addTendrilToElement(elementId: string, type: 'incoming' | 'outgoing'): void {
-    // Get the element from the unified elements array
-    const element = this.diagramService.currentState.currentDiagram.elements.find(e => e.id === elementId);
-    if (!element) return;
-
-    // Count existing tendrils of this type
-    const tendrilCount = element.tendrils.filter(t => t.type === type).length;
-
-    // Calculate vertical spacing for tendrils along the appropriate edge
-    const spacing = element.size.height / (tendrilCount + 1);
-    const y = spacing * (tendrilCount + 0.5); // Center between existing tendrils
-
-    const position = {
-      x: type === 'incoming' ? 0 : element.size.width,
-      y: Math.max(10, Math.min(element.size.height - 10, y)) // Keep within element bounds
-    };
-
-    this.diagramService.addTendril(elementId, type, position);
-  }
-
   isSingleElementSelected(): boolean {
     const state = this.diagramService.currentState;
     const nodeCount = state.selectedNodeIds.length;
@@ -194,7 +175,7 @@ export class DiagramToolbarComponent {
 
     // Remove interactive elements that shouldn't be in the exported SVG
     // Remove resize handles, click areas, and other interactive elements
-    const elementsToRemove = svgClone.querySelectorAll('.resize-handle, .tendril-click-area');
+    const elementsToRemove = svgClone.querySelectorAll('.resize-handle');
     elementsToRemove.forEach(el => el.remove());
 
     // Get the SVG content as string
@@ -248,6 +229,21 @@ export class DiagramToolbarComponent {
     input.value = '';
   }
 
+  viewSvgImage(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const svgContent = e.target?.result as string;
+        this.diagramService.setViewSvgContent(svgContent, file.name);
+      };
+      reader.readAsText(file);
+    }
+    // Reset input
+    input.value = '';
+  }
+
   getCurrentDiagramName(): string {
     return this.diagramService.currentState.currentDiagram.name || '';
   }
@@ -263,16 +259,6 @@ export class DiagramToolbarComponent {
   deleteSelectedElement(): void {
     const state = this.diagramService.currentState;
 
-    // If a tendril is selected, delete the tendril — NOT the parent node
-    if (state.selectedTendrilId) {
-      const parentNodeId = state.selectedNodeIds[0];
-      if (parentNodeId && state.selectedTendrilId) {
-        this.diagramService.deleteTendril(parentNodeId, state.selectedTendrilId);
-      }
-      this.diagramService.clearSelection();
-      return;
-    }
-
     // Collect all selected element IDs across all types for batch delete
     const nodeIds = state.selectedNodeIds;
     const svgIds = state.selectedSvgImageIds;
@@ -287,19 +273,10 @@ export class DiagramToolbarComponent {
     this.diagramService.clearSelection();
   }
 
-  deleteSelectedTendril(): void {
-    const selectedNodeId = this.diagramService.currentState.selectedNodeId;
-    const selectedTendrilId = this.diagramService.currentState.selectedTendrilId;
-    if (selectedNodeId && selectedTendrilId) {
-      this.diagramService.deleteTendril(selectedNodeId, selectedTendrilId);
-    }
-  }
-
   get selectedElementId(): string | undefined {
     return this.diagramService.currentState.selectedNodeId ||
            this.diagramService.currentState.selectedSvgImageId ||
            this.diagramService.currentState.selectedBoundingBoxId ||
-           this.diagramService.currentState.selectedEdgeId ||
            (this.diagramService.currentState.selectedConnectorIds || [])[0];
   }
 
@@ -307,12 +284,7 @@ export class DiagramToolbarComponent {
     const elementId = this.selectedElementId;
     if (!elementId) return undefined;
 
-    // Check elements
-    const element = this.diagramService.getElement(elementId);
-    if (element) return element;
-
-    // Check edges
-    return this.diagramService.getEdge(elementId);
+    return this.diagramService.getElement(elementId);
   }
 
   get selectedNodeId(): string | undefined {
@@ -325,14 +297,6 @@ export class DiagramToolbarComponent {
 
   get selectedSvgImageId(): string | undefined {
     return this.diagramService.currentState.selectedSvgImageId;
-  }
-
-  get selectedTendrilId(): string | undefined {
-    return this.diagramService.currentState.selectedTendrilId;
-  }
-
-  get selectedEdgeId(): string | undefined {
-    return this.diagramService.currentState.selectedEdgeId;
   }
 
   get selectedConnectorId(): string | undefined {
@@ -349,17 +313,7 @@ export class DiagramToolbarComponent {
   }
 
   // Unified element getter methods
-  get selectedTendril(): Tendril | undefined {
-    const tendrilId = this.diagramService.currentState.selectedTendrilId;
-    if (!tendrilId) return undefined;
-    return this.diagramService.getTendrilById(tendrilId) || undefined;
-  }
-
   getSelectedElementName(): string {
-    // Tendril takes priority — show its name, not the parent node's label
-    const tendril = this.selectedTendril;
-    if (tendril) return tendril.name || '';
-
     const element = this.selectedElement;
     if (!element) return '';
     return element.label || element.name || '';
@@ -369,26 +323,11 @@ export class DiagramToolbarComponent {
     const target = event.target as HTMLInputElement;
     const value = target.value;
 
-    // If a tendril is selected, rename the tendril
-    const tendrilId = this.diagramService.currentState.selectedTendrilId;
-    if (tendrilId) {
-      const parentNodeId = this.diagramService.currentState.selectedNodeIds[0];
-      if (parentNodeId) {
-        this.diagramService.updateTendril(parentNodeId, tendrilId, { name: value });
-      }
-      return;
-    }
-
     const elementId = this.selectedElementId;
     if (elementId) {
       const element = this.diagramService.getElement(elementId);
       if (element) {
         this.diagramService.updateElement(elementId, { label: value });
-      } else {
-        const edge = this.diagramService.getEdge(elementId);
-        if (edge) {
-          this.diagramService.updateEdgeProperty(elementId, 'name', value);
-        }
       }
     }
   }

@@ -54,9 +54,10 @@
     background: rgba(0, 0, 0, 0.1)
     color: #000
 
-  &:disabled
+  &:disabled, &.disabled
     opacity: 0.5
     cursor: not-allowed
+    pointer-events: none
 
   &.error:hover:not(:disabled)
     background: rgba(220, 53, 69, 0.15)
@@ -200,7 +201,7 @@
 
 /* Instructions Popout */
 .instructions-popout
-  width: 640px
+  width: max-content
   left: auto
   right: 0
   transform: none
@@ -234,6 +235,7 @@
     margin-bottom: 8px
     line-height: 1.5
     color: #444
+    white-space: nowrap
 
     strong
       color: #000

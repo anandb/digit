@@ -1,21 +1,21 @@
 <div class="toolbar-dock">
   <div class="toolbar-section">
-    <button (click)="newDiagram()" class="toolbar-item" title="New Diagram">
+    <button (click)="newDiagram()" class="toolbar-item" title="New Diagram" [disabled]="state.viewSvgContent">
       <div class="icon-placeholder">＋</div>
       <span class="item-label">New</span>
     </button>
-    <button (click)="saveDiagram()" class="toolbar-item" title="Save Diagram">
+    <button (click)="saveDiagram()" class="toolbar-item" title="Save Diagram" [disabled]="state.viewSvgContent">
       <div class="icon-placeholder">💾</div>
       <span class="item-label">Save</span>
     </button>
 
-    <label class="toolbar-item file-upload" title="Load Diagram">
-      <input type="file" (change)="loadDiagram($event)" accept=".json" style="display: none;">
+    <label class="toolbar-item file-upload" [class.disabled]="state.viewSvgContent" title="Load Diagram">
+      <input type="file" (change)="loadDiagram($event)" accept=".json" style="display: none;" [disabled]="state.viewSvgContent">
       <div class="icon-placeholder">📂</div>
       <span class="item-label">Load</span>
     </label>
 
-    <button (click)="exportToSvg()" class="toolbar-item" title="Export as SVG">
+    <button (click)="exportToSvg()" class="toolbar-item" title="Export as SVG" [disabled]="state.viewSvgContent">
       <div class="icon-placeholder">⬇️</div>
       <span class="item-label">Export</span>
     </button>
@@ -25,12 +25,12 @@
 
   <div class="toolbar-section">
     <div class="dropdown-container">
-      <button (click)="toggleChaosMode()" class="toolbar-item chaos-toggle" [class.active]="isChaosMode" title="Chaos Mode (Adds multiple copies)">
+      <button (click)="toggleChaosMode()" class="toolbar-item chaos-toggle" [class.active]="isChaosMode" title="Chaos Mode (Adds multiple copies)" [disabled]="state.viewSvgContent">
         <div class="icon-placeholder">{{ isChaosMode ? '💥' : '✨' }}</div>
         <span class="item-label">Chaos</span>
       </button>
 
-      <button (click)="toggleAddDropdown()" class="toolbar-item" [class.active]="isAddDropdownOpen" title="Add Shape">
+      <button (click)="toggleAddDropdown()" class="toolbar-item" [class.active]="isAddDropdownOpen" title="Add Shape" [disabled]="state.viewSvgContent">
         <div class="icon-placeholder">➕</div>
         <span class="item-label">Add</span>
       </button>
@@ -368,40 +368,26 @@
       </div>
     </div>
 
-    <button (click)="addNewBoundingBox()" class="toolbar-item" title="Add Bounding Box">
+    <button (click)="addNewBoundingBox()" class="toolbar-item" title="Add Bounding Box" [disabled]="state.viewSvgContent">
       <div class="icon-placeholder">⬚</div>
       <span class="item-label">Box</span>
     </button>
-    <label class="toolbar-item file-upload" title="Add SVG Image">
-      <input type="file" (change)="loadSvgImage($event)" accept=".svg" style="display: none;">
+    <label class="toolbar-item file-upload" title="Add SVG Image" [class.disabled]="state.viewSvgContent">
+      <input type="file" (change)="loadSvgImage($event)" accept=".svg" style="display: none;" [disabled]="state.viewSvgContent">
       <div class="icon-placeholder">🖼️</div>
-      <span class="item-label">SVG</span>
+      <span class="item-label">Add SVG</span>
+    </label>
+    <label class="toolbar-item file-upload" title="View SVG Image" [class.disabled]="state.viewSvgContent">
+      <input type="file" (change)="viewSvgImage($event)" accept=".svg" style="display: none;" [disabled]="state.viewSvgContent">
+      <div class="icon-placeholder">🔍</div>
+      <span class="item-label">View SVG</span>
     </label>
   </div>
 
   <div class="toolbar-divider"></div>
 
   <div class="toolbar-section">
-    <button (click)="addIncomingTendril()" class="toolbar-item" title="Add Incoming Tendril" [disabled]="!selectedElement || isBoundingBoxSelected">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M4 12 Q8 8 12 12 Q16 16 20 12"/>
-        <path d="M4 12 L7 9 M4 12 L7 15" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span class="item-label">Incoming</span>
-    </button>
-    <button (click)="addOutgoingTendril()" class="toolbar-item" title="Add Outgoing Tendril" [disabled]="!selectedElement || isBoundingBoxSelected">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M20 12 Q16 16 12 12 Q8 8 4 12"/>
-        <path d="M20 12 L17 9 M20 12 L17 15" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span class="item-label">Outgoing</span>
-    </button>
-  </div>
-
-  <div class="toolbar-divider"></div>
-
-  <div class="toolbar-section">
-    <button (click)="rotate90()" class="toolbar-item" title="Rotate 90°" [disabled]="!isSingleElementSelected()">
+    <button (click)="rotate90()" class="toolbar-item" title="Rotate 90°" [disabled]="state.viewSvgContent || !isSingleElementSelected()">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
       </svg>
@@ -422,14 +408,13 @@
       <div class="dropdown-popout instructions-popout" *ngIf="isInstructionsOpen">
         <h4>Keyboard Shortcuts</h4>
         <ul>
-          <li><strong>Shift + Click</strong>: Multi-select elements for group movement</li>
-          <li><strong>Ctrl/Cmd (Hold) + Click</strong>: Hold key down and click start node, then end node to create an edge</li>
+          <li><strong>Shift (Hold) + Click</strong>: Multi-select elements for group movement</li>
           <li><strong>Alt (Hold) + Click</strong>: Hold key down and click start node, then end node to create a connector</li>
-          <li><strong>Ctrl/Cmd + G</strong>: Group selected elements — they move together as one</li>
-          <li><strong>Ctrl/Cmd + Shift + G</strong>: Ungroup selected elements — restore independent movement</li>
-          <li><strong>Ctrl/Cmd + Z</strong>: Undo last action (Supports multi-step operations)</li>
-          <li><strong>Ctrl/Cmd + A</strong>: Select all elements in the current diagram</li>
-          <li><strong>Ctrl/Cmd + C / V</strong>: Copy and Paste selected elements</li>
+          <li><strong>{{ modifierKey }} + G</strong>: Group selected elements — they move together as one</li>
+          <li><strong>{{ modifierKey }} + Shift + G</strong>: Ungroup selected elements — restore independent movement</li>
+          <li><strong>{{ modifierKey }} + Z</strong>: Undo last action (Supports multi-step operations)</li>
+          <li><strong>{{ modifierKey }} + A</strong>: Select all elements in the current diagram</li>
+          <li><strong>{{ modifierKey }} + C / V</strong>: Copy and Paste selected elements</li>
           <li><strong>Delete / Backspace</strong>: Delete all currently selected items. If any selected item belongs to a group, the entire group is deleted</li>
           <li><strong>Double-click Node</strong>: Drill down into nested diagram architecture</li>
         </ul>
@@ -438,14 +423,28 @@
           <li><strong>Right-click</strong>: Open Properties Window for colors, labels, and attributes</li>
           <li><strong>Drag Borders</strong>: Resize Nodes, SVGs (aspect-locked), or Bounding Boxes</li>
           <li><strong>Drag Element</strong>: Move individual elements or synchronized selection groups</li>
-          <li><strong>Drag Tendril Handle</strong>: Manually draw a connection to another element</li>
           <li><strong>Drag Canvas</strong>: Pan the viewport to navigate large diagrams</li>
           <li><strong>Zoom Controls</strong>: Use the floating strip to adjust diagram scale</li>
+        </ul>
+        <h4>Toolbar Actions</h4>
+        <ul>
+          <li><strong>Chaos</strong>: Toggle Chaos Mode to spawn multiple copies of added shapes at random locations</li>
+          <li><strong>Box</strong>: Add a Bounding Box to visually organize and group related elements</li>
+          <li><strong>Add SVG</strong>: Upload and insert custom SVG vector images as diagram elements</li>
+          <li><strong>Load</strong>: Import a saved diagram hierarchy from a local JSON file</li>
+          <li><strong>Export</strong>: Download the active diagram level as a standalone SVG file</li>
+        </ul>
+        <h4>Nested Diagrams</h4>
+        <ul>
+          <li><strong>Navigate Down</strong>: Double-click a shape to enter its nested inner diagram</li>
+          <li><strong>Navigate Up</strong>: Click the Back arrow or breadcrumbs at the top-left of the canvas</li>
+          <li><strong>Identify Nested Diagrams</strong>: Shapes with nested diagrams display a blue folder badge with a white chevron in the bottom-left</li>
+          <li><strong>Delete Nested Diagram</strong>: Click the yellow trash bin icon next to the Back button while inside the nested diagram</li>
         </ul>
       </div>
     </div>
 
-    <button (click)="deleteSelectedElement()" class="toolbar-item error" title="Delete Selected" [disabled]="!selectedElement && !selectedTendril">
+    <button (click)="deleteSelectedElement()" class="toolbar-item error" title="Delete Selected" [disabled]="state.viewSvgContent || !selectedElement">
       <div class="icon-placeholder">🗑️</div>
       <span class="item-label">Delete</span>
     </button>

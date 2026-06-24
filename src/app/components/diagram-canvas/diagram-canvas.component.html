@@ -1,19 +1,26 @@
 <div class="canvas-container">
   <!-- Diagram Title Header -->
   <div class="diagram-header">
-    <input
-      class="diagram-title"
-      [value]="getCurrentDiagramTitle()"
-      (blur)="onDiagramTitleChange($event)"
-      (keydown.enter)="onDiagramTitleEnterKey($event)"
-      placeholder="Diagram Name">
-    <button *ngIf="canGoBack()" (click)="goBack()" class="back-btn" title="Go Back to Parent Diagram">⬆️</button>
-    <button *ngIf="canGoBack()" (click)="deleteCurrentDiagram()" class="delete-diagram-btn" title="Delete This Nested Diagram">🗑️</button>
+    <ng-container *ngIf="!state.viewSvgContent">
+      <input
+        class="diagram-title"
+        [value]="getCurrentDiagramTitle()"
+        (blur)="onDiagramTitleChange($event)"
+        (keydown.enter)="onDiagramTitleEnterKey($event)"
+        placeholder="Diagram Name">
+      <button *ngIf="canGoBack()" (click)="goBack()" class="back-btn" title="Go Back to Parent Diagram">⬆️</button>
+      <button *ngIf="canGoBack()" (click)="deleteCurrentDiagram()" class="delete-diagram-btn" title="Delete This Nested Diagram">🗑️</button>
+    </ng-container>
+    <ng-container *ngIf="state.viewSvgContent">
+      <span class="viewer-mode-title">Viewer: {{ state.viewSvgFileName || 'Unnamed.svg' }}</span>
+      <span class="read-only-badge">Read-Only</span>
+      <button (click)="closeSvgView()" class="close-view-btn" title="Close SVG Viewer">Close View</button>
+    </ng-container>
   </div>
 
   <svg #canvas class="diagram-canvas" width="100%" height="100%"
     [attr.viewBox]="svgViewBox"
-    [style.cursor]="isPanning ? 'grabbing' : 'crosshair'"
+    [style.cursor]="state.viewSvgContent ? (isPanning ? 'grabbing' : 'grab') : (isPanning ? 'grabbing' : 'crosshair')"
     (click)="onCanvasClick($event)"
     (mousedown)="onCanvasMouseDown($event)"
     (mousemove)="onCanvasMouseMove($event)"
@@ -21,10 +28,13 @@
     (mouseleave)="onCanvasMouseUp($event)">
 
     <!-- Grid background -->
-    <rect class="canvas-bg" width="100%" height="100%" fill="url(#grid)">
+    <rect *ngIf="!state.viewSvgContent" class="canvas-bg" width="100%" height="100%" fill="url(#grid)">
+    </rect>
+    <rect *ngIf="state.viewSvgContent" class="canvas-bg-viewer" width="100%" height="100%" fill="#ffffff">
     </rect>
 
-    <!-- Bounding boxes - bottom layer -->
+    <g *ngIf="!state.viewSvgContent">
+      <!-- Bounding boxes - bottom layer -->
     <g class="bounding-boxes">
       <g *ngFor="let box of state.currentDiagram.boundingBoxes" class="bounding-box-group" cdkDrag
         [attr.transform]="getGroupMemberTransform(box)"
@@ -1840,132 +1850,6 @@
                 fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </g>
 
-        <!-- Tendrils for all elements -->
-        <g class="tendrils">
-          <ng-container *ngFor="let tendril of element.tendrils">
-            <!-- Invisible larger click area -->
-            <rect
-              [attr.x]="tendril.type === 'incoming' ? $any(element).position.x + tendril.position.x - 30 : $any(element).position.x + tendril.position.x - 10"
-              [attr.y]="$any(element).position.y + tendril.position.y - 15"
-              [attr.width]="tendril.type === 'incoming' ? 45 : 45" [attr.height]="30" fill="transparent"
-              (mousedown)="onElementTendrilClick($event, element, tendril)"
-              (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" class="tendril-click-area">
-            </rect>
-
-            <!-- Tendril circles -->
-            <circle [attr.cx]="$any(element).position.x + tendril.position.x"
-              [attr.cy]="$any(element).position.y + tendril.position.y" [attr.r]="isSelected('tendril', tendril.id) ? 8 : 5"
-              [attr.fill]="getTendrilColor(tendril, false)" [attr.stroke]="isSelected('tendril', tendril.id) ? '#007bff' : '#ffffff'"
-              [attr.stroke-width]="isSelected('tendril', tendril.id) ? '3' : '1'" class="tendril"
-              cdkDrag [cdkDragDisabled]="!isCtrlEdgeMode" (cdkDragStarted)="onTendrilDragStarted($event, element, tendril)"
-              (cdkDragMoved)="onTendrilDragMoved($event, element, tendril)"
-              (cdkDragEnded)="onTendrilDragEnded($event, element, tendril)"
-              (mousedown)="onElementTendrilClick($event, element, tendril)"
-              (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" style="cursor: pointer; pointer-events: all;">
-              <title>{{ getTendrilTooltip(element.id, tendril.id) }}</title>
-            </circle>
-
-            <!-- Tendril name - only hide when there's an edge name -->
-            <text *ngIf="!hasEdgeName(element.id, tendril.id)"
-              [attr.x]="tendril.position.x < $any(element).size.width / 2 ? $any(element).position.x + tendril.position.x - 25 : $any(element).position.x + tendril.position.x + 25"
-              [attr.y]="$any(element).position.y + tendril.position.y - 8"
-              [attr.text-anchor]="tendril.position.x < $any(element).size.width / 2 ? 'end' : 'start'"
-              dominant-baseline="middle" class="tendril-name" (click)="onElementTendrilClick($event, element, tendril)"
-              (contextmenu)="onElementTendrilContextMenu($event, element, tendril)" style="cursor: pointer;">
-              {{ tendril.name }}
-            </text>
-          </ng-container>
-
-          <!-- Propagated tendrils from inner diagram (only for nodes) -->
-          <ng-container *ngIf="isNode(element)">
-            <ng-container *ngFor="let tendril of getPropagatedTendrils($any(element)); let i = index">
-              <!-- Position propagated tendrils around the node perimeter -->
-              <ng-container *ngIf="getPropagatedTendrilPosition($any(element), i) as pos">
-                <!-- Invisible larger click area -->
-                <rect [attr.x]="tendril.type === 'incoming' ? pos.x - 30 : pos.x - 10" [attr.y]="pos.y - 15"
-                  [attr.width]="tendril.type === 'incoming' ? 45 : 45" [attr.height]="30" fill="transparent"
-                  (mousedown)="onPropagatedTendrilClick($event, $any(element), tendril)"
-                  (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
-                  class="tendril-click-area">
-                </rect>
-
-                <!-- Tendril circles -->
-                <circle [attr.cx]="pos.x" [attr.cy]="pos.y" [attr.r]="isSelected('tendril', tendril.id) ? 8 : 5" [attr.fill]="getTendrilColor(tendril, true)"
-                  [attr.stroke]="isSelected('tendril', tendril.id) ? '#007bff' : '#ffffff'" [attr.stroke-width]="isSelected('tendril', tendril.id) ? '3' : '1'" class="propagated-tendril"
-                  (mousedown)="onPropagatedTendrilClick($event, $any(element), tendril)"
-                  (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
-                  style="cursor: pointer; pointer-events: all;">
-                  <title>{{ getPropagatedTendrilTooltip(element.id, tendril.id) }}</title>
-                </circle>
-
-                <!-- Tendril name - only hide when there's an edge name -->
-                <text *ngIf="!hasPropagatedEdgeName(element.id, tendril.id)"
-                  [attr.x]="pos.x < $any(element).position.x + $any(element).size.width / 2 ? pos.x - 25 : pos.x + 25"
-                  [attr.y]="pos.y - 8"
-                  [attr.text-anchor]="pos.x < $any(element).position.x + $any(element).size.width / 2 ? 'end' : 'start'"
-                  dominant-baseline="middle" class="propagated-tendril-name"
-                  (click)="onPropagatedTendrilClick($event, $any(element), tendril)"
-                  (contextmenu)="onPropagatedTendrilContextMenu($event, $any(element), tendril)"
-                  style="cursor: pointer;">
-                  {{ tendril.name }}
-                </text>
-              </ng-container>
-            </ng-container>
-          </ng-container>
-        </g>
-      </g>
-    </g>
-
-    <!-- Edges -->
-    <g class="edges">
-      <g *ngFor="let edge of getCurrentEdges()" class="edge-group">
-        <!-- If it's a curved edge (has control points), render single continuous path and name -->
-        <ng-container *ngIf="(edge.attributes?.['controlPoints'] || []).length > 0 || !edge.name">
-          <!-- Hit area for easier selection -->
-          <path [attr.d]="getEdgePath(edge)" class="edge-hit-area" fill="none" stroke="transparent" stroke-width="20"
-            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)"
-            (dblclick)="onEdgePathDoubleClick($event, edge)">
-          </path>
-          <path [attr.d]="getEdgePath(edge)" class="edge"
-            [class.selected]="isSelected('edge', edge.id)" [attr.stroke]="edge.borderColor || '#666'"
-            [attr.stroke-width]="isSelected('edge', edge.id) ? (3 + (edge.strokeWidth || 1)) : (edge.strokeWidth || 1)"
-            [attr.stroke-dasharray]="edge.dotted ? '5,5' : null" fill="none" marker-end="url(#arrowhead-v2)"
-            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
-          </path>
-        </ng-container>
-        <!-- For straight labeled edges, keep the two path segments with a gap -->
-        <ng-container *ngIf="edge.name && !(edge.attributes?.['controlPoints'] || []).length && getEdgePathSegments(edge) as segments">
-          <!-- Hit area for easier selection -->
-          <path [attr.d]="segments.first + forceUpdate" class="edge-hit-area" fill="none" stroke="transparent" stroke-width="20"
-            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)"
-            (dblclick)="onEdgePathDoubleClick($event, edge)">
-          </path>
-          <path [attr.d]="segments.second + forceUpdate" class="edge-hit-area" fill="none" stroke="transparent" stroke-width="20"
-            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)"
-            (dblclick)="onEdgePathDoubleClick($event, edge)">
-          </path>
-
-          <path [attr.d]="segments.first + forceUpdate" class="edge" [class.selected]="isSelected('edge', edge.id)"
-            [attr.stroke]="edge.borderColor || '#666'" [attr.stroke-width]="isSelected('edge', edge.id) ? (3 + (edge.strokeWidth || 1)) : (edge.strokeWidth || 1)"
-            [attr.stroke-dasharray]="edge.dotted ? '5,5' : null" fill="none"
-            (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
-          </path>
-          <path [attr.d]="segments.second + forceUpdate" class="edge" [class.selected]="isSelected('edge', edge.id)"
-            [attr.stroke]="edge.borderColor || '#666'" [attr.stroke-width]="isSelected('edge', edge.id) ? (3 + (edge.strokeWidth || 1)) : (edge.strokeWidth || 1)"
-            [attr.stroke-dasharray]="edge.dotted ? '5,5' : null" fill="none"
-            marker-end="url(#arrowhead-v2)" (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
-          </path>
-        </ng-container>
-        <!-- Edge name label -->
-        <text *ngIf="edge.name" [attr.x]="getEdgeLabelPosition(edge).x" [attr.y]="getEdgeLabelPosition(edge).y"
-          [style.font-family]="edge.fontFamily"
-          [style.font-size.px]="edge.fontSize"
-          [style.font-weight]="edge.fontWeight"
-          [style.font-style]="edge.fontStyle"
-          text-anchor="middle" dominant-baseline="middle" class="edge-name"
-          (click)="onEdgeClick($event, edge)" (contextmenu)="onEdgeContextMenu($event, edge)">
-          {{ edge.name }}
-        </text>
       </g>
     </g>
 
@@ -1983,8 +1867,8 @@
           [attr.stroke]="connector.borderColor || '#666'"
           [attr.stroke-width]="isSelected('connector', connector.id) ? (3 + (connector.strokeWidth || 2)) : (connector.strokeWidth || 2)"
           [attr.stroke-dasharray]="connector.dotted ? '5,5' : null"
-          [attr.marker-start]="connector.startArrow ? 'url(#arrow-start)' : null"
-          [attr.marker-end]="connector.endArrow ? 'url(#arrow-end)' : null"
+          [attr.marker-start]="getMarkerStart(connector)"
+          [attr.marker-end]="getMarkerEnd(connector)"
           fill="none"
           (click)="onConnectorClick($event, connector)" (contextmenu)="onConnectorContextMenu($event, connector)">
         </path>
@@ -1997,30 +1881,8 @@
       </g>
     </g>
 
-    <!-- Temporary edge during creation -->
-    <path *ngIf="isCreatingEdge" [attr.d]="getTempEdgePath()" class="temp-edge" stroke="#999" stroke-width="2"
-      stroke-dasharray="5,5" fill="none">
-    </path>
-
-    <!-- Control Point Handles (visible when edge/connector is selected) -->
+    <!-- Control Point Handles (visible when connector is selected) -->
     <g class="control-point-handles" style="pointer-events: all;">
-      <!-- Selected Edge handles -->
-      <ng-container *ngFor="let edge of getCurrentEdges()">
-        <ng-container *ngIf="isSelected('edge', edge.id)">
-          <!-- Real Control Point Handles -->
-          <circle *ngFor="let cp of (edge.attributes?.['controlPoints'] || []); let i = index"
-            [attr.cx]="cp.x" [attr.cy]="cp.y" r="6" fill="#007bff" stroke="#ffffff" stroke-width="1.5"
-            style="cursor: move;" (mousedown)="startDragControlPoint($event, edge.id, i, 'edge')"
-            (dblclick)="deleteControlPoint($event, edge.id, i, 'edge')" title="Double click to delete control point">
-          </circle>
-          <!-- Ghost Mid-segment Handles -->
-          <circle *ngFor="let ghost of getEdgeGhostPoints(edge); let i = index"
-            [attr.cx]="ghost.x" [attr.cy]="ghost.y" r="4.5" fill="#007bff" opacity="0.5" stroke="#ffffff" stroke-width="1"
-            style="cursor: pointer;" (mousedown)="startDragGhostControlPoint($event, edge.id, i, ghost, 'edge')" title="Drag to add curve bend">
-          </circle>
-        </ng-container>
-      </ng-container>
-
       <!-- Selected Connector handles -->
       <ng-container *ngFor="let connector of getCurrentConnectors()">
         <ng-container *ngIf="isSelected('connector', connector.id)">
@@ -2038,6 +1900,10 @@
         </ng-container>
       </ng-container>
     </g>
+  </g>
+
+  <!-- Render the viewer SVG when View SVG mode is active -->
+    <g *ngIf="state.viewSvgContent" [innerHTML]="sanitizeSvgContent(state.viewSvgContent)"></g>
 
     <!-- Arrow marker, grid pattern, and drop shadow filter definitions -->
     <defs>
@@ -2050,6 +1916,12 @@
       </marker>
       <marker id="arrow-end" markerWidth="12" markerHeight="6" refX="12" refY="3" orient="auto">
         <polygon points="0 0, 12 3, 0 6" fill="none" stroke="#666" stroke-width="1" />
+      </marker>
+      <marker id="arrow-start-solid" markerWidth="12" markerHeight="6" refX="0" refY="3" orient="auto">
+        <polygon points="12 0, 0 3, 12 6" fill="#666" stroke="none" />
+      </marker>
+      <marker id="arrow-end-solid" markerWidth="12" markerHeight="6" refX="12" refY="3" orient="auto">
+        <polygon points="0 0, 12 3, 0 6" fill="#666" stroke="none" />
       </marker>
 
       <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">

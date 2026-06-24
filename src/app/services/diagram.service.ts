@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { Diagram, DiagramState, Node, Tendril, Edge, Position, DiagramElement, isNode, isSvgImage, isBoundingBox, Group, BoundingBox, SvgImage } from '../models/diagram.model';
+import { Diagram, DiagramState, Node, Position, DiagramElement, isNode, isSvgImage, isBoundingBox, Group, BoundingBox, SvgImage } from '../models/diagram.model';
 
 @Injectable({
   providedIn: 'root'
@@ -33,10 +33,8 @@ export class DiagramService {
       currentDiagram: this.createEmptyDiagram(),
       diagramStack: [],
       selectedNodeIds: [],
-      selectedTendrilId: undefined,
       selectedBoundingBoxIds: [],
       selectedSvgImageIds: [],
-      selectedEdgeIds: [],
       selectedConnectorIds: [],
       viewportCenter: { x: 500, y: 300 }
     };
@@ -65,7 +63,7 @@ export class DiagramService {
     // currentDiagram object via spread. Selection-only changes reuse the same
     // reference (e.g. selectNode only spreads the top-level state, not currentDiagram).
     // This is O(1) and correctly captures ALL content changes — including those
-    // where selection happens to stay the same (e.g. addEdgeWithAutoTendrils).
+    // where selection happens to stay the same (e.g. direct connector edits).
     const diagramContentChanged = prev?.currentDiagram !== newState?.currentDiagram;
 
     if (!isNavigation && diagramContentChanged && prevDiagramId && !this.nextStateSkipUndo) {
@@ -81,7 +79,7 @@ export class DiagramService {
     this.nextStateSkipUndo = false; // Always reset
 
     // Always keep allDiagrams in sync with the live current diagram so that
-    // prepareDiagramForSave and getExposedTendrils always see the latest state.
+    // prepareDiagramForSave always sees the latest state.
     if (newState?.currentDiagram) {
       this.allDiagrams.set(newState.currentDiagram.id, newState.currentDiagram);
     }
@@ -95,7 +93,6 @@ export class DiagramService {
       id: this.generateId(),
       name: 'New Diagram',
       elements: [],
-      edges: [],
       connectors: [],
       boundingBoxes: [],
       groups: [],
@@ -148,7 +145,6 @@ export class DiagramService {
       id: this.generateId(),
       name: 'Inner Diagram',
       elements: [],
-      edges: [],
       connectors: [],
       boundingBoxes: [],
       groups: [],
@@ -170,7 +166,6 @@ export class DiagramService {
 
       // Check if current diagram is empty
       const isEmpty = current.elements.length === 0 &&
-        current.edges.length === 0 &&
         current.boundingBoxes.length === 0;
 
       const previousDiagramId = this.state.diagramStack[this.state.diagramStack.length - 1].id;
@@ -415,7 +410,6 @@ export class DiagramService {
              (shape === 'numberedCircle' ? '1' : 'New Node'),
       position,
       size,
-      tendrils: [],
       attributes: shape === 'threatTable' ? {
         threatTableData: {
           title: 'Threat Actors',
@@ -477,7 +471,6 @@ export class DiagramService {
       size: { width: 200, height: 150 },
       attributes: {},
       notes: '',
-      tendrils: [],
       fillColor: '#ffff0044',
       borderColor: '#666666',
       rounded: false,
@@ -608,7 +601,6 @@ export class DiagramService {
     svgContent: scaledSvgContent,
     fileName,
     label: fileName.replace('.svg', ''), // Use filename without extension as default label
-    tendrils: [],
     attributes: {},
     notes: ''
   };
@@ -643,14 +635,12 @@ export class DiagramService {
       return element;
     });
 
-    const nextDiagram = this.performAutoRouting({
-      ...currentState.currentDiagram,
-      elements: newElements
-    });
-
     this.state = {
       ...currentState,
-      currentDiagram: nextDiagram
+      currentDiagram: {
+        ...currentState.currentDiagram,
+        elements: newElements
+      }
     };
   }
 
@@ -799,91 +789,19 @@ export class DiagramService {
     }
 
     if (updated) {
-      const nextDiagram = this.performAutoRouting({
-        ...currentState.currentDiagram,
-        elements: newElements,
-        boundingBoxes: newBoundingBoxes
-      });
-
       this.state = {
         ...currentState,
-        currentDiagram: nextDiagram
+        currentDiagram: {
+          ...currentState.currentDiagram,
+          elements: newElements,
+          boundingBoxes: newBoundingBoxes
+        }
       };
     }
   }
 
   updateElementProperty(elementId: string, property: string, value: any): void {
     this.updateElement(elementId, { [property]: value });
-  }
-
-  updateTendrilNotes(tendrilId: string, notes: string): void {
-    const currentState = this.state;
-    const newElements = currentState.currentDiagram.elements.map(element => {
-      if (element.tendrils.some(t => t.id === tendrilId)) {
-        return {
-          ...element,
-          tendrils: element.tendrils.map(t => t.id === tendrilId ? { ...t, notes } : t)
-        };
-      }
-      return element;
-    });
-
-    this.state = {
-      ...currentState,
-      currentDiagram: {
-        ...currentState.currentDiagram,
-        elements: newElements
-      }
-    };
-  }
-
-  updateTendrilExposed(tendrilId: string, exposed: boolean): void {
-    const currentState = this.state;
-    const newElements = currentState.currentDiagram.elements.map(element => {
-      if (element.tendrils.some(t => t.id === tendrilId)) {
-        return {
-          ...element,
-          tendrils: element.tendrils.map(t => t.id === tendrilId ? { ...t, exposed } : t)
-        };
-      }
-      return element;
-    });
-
-    this.state = {
-      ...currentState,
-      currentDiagram: {
-        ...currentState.currentDiagram,
-        elements: newElements
-      }
-    };
-  }
-
-  updateEdgeProperty(edgeId: string, property: string, value: any): void {
-    const currentState = this.state;
-    const newEdges = currentState.currentDiagram.edges.map(edge => {
-        if (edge.id === edgeId) {
-          const topLevelProps = ['notes', 'name', 'borderColor', 'dotted', 'strokeWidth', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle'];
-          if (topLevelProps.includes(property)) {
-            return { ...edge, [property]: value };
-          }
-          return {
-            ...edge,
-            attributes: {
-              ...edge.attributes,
-              [property]: value
-            }
-          };
-        }
-      return edge;
-    });
-
-    this.state = {
-      ...currentState,
-      currentDiagram: {
-        ...currentState.currentDiagram,
-        edges: newEdges
-      }
-    };
   }
 
   updateSvgImage(svgImageId: string, updates: Partial<SvgImage>, recordUndo: boolean = true): void {
@@ -939,9 +857,6 @@ export class DiagramService {
       currentDiagram: {
         ...currentState.currentDiagram,
         elements: currentState.currentDiagram.elements.filter(element => element.id !== nodeId),
-        edges: currentState.currentDiagram.edges.filter(edge =>
-          edge.fromNodeId !== nodeId && edge.toNodeId !== nodeId
-        ),
         connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
           connector.fromNodeId !== nodeId && connector.toNodeId !== nodeId
         ),
@@ -990,9 +905,6 @@ export class DiagramService {
       currentDiagram: {
         ...currentState.currentDiagram,
         elements: currentState.currentDiagram.elements.filter(e => !idSet.has(e.id)),
-        edges: currentState.currentDiagram.edges.filter(edge =>
-          !idSet.has(edge.fromNodeId) && !idSet.has(edge.toNodeId)
-        ),
         connectors: (currentState.currentDiagram.connectors || []).filter(connector =>
           !idSet.has(connector.fromNodeId) && !idSet.has(connector.toNodeId)
         ),
@@ -1003,9 +915,7 @@ export class DiagramService {
       selectedNodeIds: [],
       selectedSvgImageIds: [],
       selectedBoundingBoxIds: [],
-      selectedEdgeIds: [],
-      selectedConnectorIds: [],
-      selectedTendrilId: undefined
+      selectedConnectorIds: []
     };
   }
 
@@ -1017,208 +927,75 @@ export class DiagramService {
       currentDiagram: this.createEmptyDiagram(),
       diagramStack: [],
       selectedNodeIds: [],
-      selectedTendrilId: undefined,
       selectedBoundingBoxIds: [],
       selectedSvgImageIds: [],
-      selectedEdgeIds: [],
       selectedConnectorIds: [],
-      viewportCenter: { x: 500, y: 300 }
+      viewportCenter: { x: 500, y: 300 },
+      viewSvgContent: undefined,
+      viewSvgFileName: undefined
     };
   }
 
-  // Tendril operations
-  addTendril(elementId: string, type: 'incoming' | 'outgoing', position: Position): string {
-    const newTendril: Tendril = {
-      id: this.generateId(),
-      name: type === 'incoming' ? 'In' : 'Out',
-      position,
-      type,
-      exposed: false,
-      exposedOverrides: {},
-      attributes: {},
-      borderColor: '#000000',
-      borderThickness: 2,
-      notes: ''
-    };
+  // View SVG content operations
+  setViewSvgContent(content: string | undefined, fileName?: string): void {
+    let processedContent = content;
+    if (content && typeof DOMParser !== 'undefined') {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(content, 'image/svg+xml');
+        const svgElement = doc.querySelector('svg');
+        if (svgElement) {
+          // Get viewBox values
+          const viewBox = svgElement.getAttribute('viewBox');
+          let width = svgElement.getAttribute('width');
+          let height = svgElement.getAttribute('height');
 
-    const currentState = this.state;
-    const newElements = currentState.currentDiagram.elements.map(element => {
-      if (element.id === elementId) {
-        return {
-          ...element,
-          tendrils: [...element.tendrils, newTendril]
-        };
-      }
-      return element;
-    });
+          let viewBoxWidth = 800;
+          let viewBoxHeight = 600;
 
-    this.state = {
-      ...currentState,
-      currentDiagram: {
-        ...currentState.currentDiagram,
-        elements: newElements
-      }
-    };
+          if (viewBox) {
+            const parts = viewBox.trim().split(/\s+/);
+            if (parts.length === 4) {
+              viewBoxWidth = parseFloat(parts[2]) || 800;
+              viewBoxHeight = parseFloat(parts[3]) || 600;
+            }
+          }
 
-    return newTendril.id;
-  }
+          // If width/height are percentages or not set, override them with viewBox values
+          if (!width || width.includes('%')) {
+            width = viewBoxWidth.toString();
+          }
+          if (!height || height.includes('%')) {
+            height = viewBoxHeight.toString();
+          }
 
-  updateTendril(elementId: string, tendrilId: string, updates: Partial<Tendril>, recordUndo: boolean = true): void {
-    if (!recordUndo) {
-      this.nextStateSkipUndo = true;
-    }
-    const element = this.getElement(elementId);
-    if (element) {
-      this.updateElement(elementId, {
-        tendrils: element.tendrils.map(tendril =>
-          tendril.id === tendrilId ? { ...tendril, ...updates } : tendril
-        )
-      });
-    }
-  }
+          svgElement.setAttribute('width', width);
+          svgElement.setAttribute('height', height);
 
-  deleteTendril(elementId: string, tendrilId: string): void {
-    const element = this.getElement(elementId);
-    if (element) {
-      const newTendrils = element.tendrils.filter(t => t.id !== tendrilId);
-      const newEdges = this.state.currentDiagram.edges.filter(edge =>
-        !(edge.fromNodeId === elementId && edge.fromTendrilId === tendrilId) &&
-        !(edge.toNodeId === elementId && edge.toTendrilId === tendrilId)
-      );
-      const newElements = this.state.currentDiagram.elements.map(el =>
-        el.id === elementId ? { ...el, tendrils: newTendrils } : el
-      );
-      this.state = {
-        ...this.state,
-        currentDiagram: {
-          ...this.state.currentDiagram,
-          elements: newElements,
-          edges: newEdges
+          // Ensure it has a viewBox
+          if (!viewBox) {
+            svgElement.setAttribute('viewBox', `0 0 ${width} ${height}`);
+          }
+
+          // Ensure it's positioned at 0, 0
+          svgElement.setAttribute('x', '0');
+          svgElement.setAttribute('y', '0');
+
+          processedContent = new XMLSerializer().serializeToString(svgElement);
         }
-      };
-    }
-  }
-
-  // Edge operations
-  addEdge(fromNodeId: string, fromTendrilId: string, toNodeId: string, toTendrilId: string): void {
-    const fromTendril = this.getTendrilAny(fromNodeId, fromTendrilId);
-    const toTendril = this.getTendrilAny(toNodeId, toTendrilId);
-
-    if (fromTendril?.type === 'outgoing' && toTendril?.type === 'incoming') {
-      const newEdge: Edge = {
-        id: this.generateId(),
-        fromNodeId,
-        fromTendrilId,
-        toNodeId,
-        toTendrilId,
-        borderColor: '#666666',
-        strokeWidth: 1,
-        dotted: false,
-        name: '',
-        fontFamily: 'Purisa, Chalkboard',
-        fontSize: 12,
-        fontWeight: 'normal',
-        fontStyle: 'normal',
-        attributes: {},
-        notes: ''
-      };
-
-      const currentState = this.state;
-      const nextDiagram = this.performAutoRouting({
-        ...currentState.currentDiagram,
-        edges: [...currentState.currentDiagram.edges, newEdge]
-      });
-
-      this.state = {
-        ...currentState,
-        currentDiagram: nextDiagram
-      };
-    }
-  }
-
-  // Atomically creates an outgoing tendril on `fromElementId`, an incoming tendril
-  // on `toElementId`, and the edge between them — a single state change so that
-  // Ctrl+Z removes the entire connection in one step.
-  addEdgeWithAutoTendrils(
-    fromElementId: string,
-    toElementId: string,
-    outgoingPosition: Position,
-    incomingPosition: Position
-  ): void {
-    const currentState = this.state;
-    const diagram = currentState.currentDiagram;
-
-    const outgoingTendril: Tendril = {
-      id: this.generateId(),
-      name: 'Out',
-      position: outgoingPosition,
-      type: 'outgoing',
-      exposed: false,
-      exposedOverrides: {},
-      attributes: {},
-      borderColor: '#000000',
-      borderThickness: 2,
-      notes: ''
-    };
-
-    const incomingTendril: Tendril = {
-      id: this.generateId(),
-      name: 'In',
-      position: incomingPosition,
-      type: 'incoming',
-      exposed: false,
-      exposedOverrides: {},
-      attributes: {},
-      borderColor: '#000000',
-      borderThickness: 2,
-      notes: ''
-    };
-
-    const newEdge: Edge = {
-      id: this.generateId(),
-      fromNodeId: fromElementId,
-      fromTendrilId: outgoingTendril.id,
-      toNodeId: toElementId,
-      toTendrilId: incomingTendril.id,
-      borderColor: '#666666',
-      strokeWidth: 1,
-      dotted: false,
-      name: '',
-      fontFamily: 'Purisa, Chalkboard',
-      fontSize: 12,
-      fontWeight: 'normal',
-      fontStyle: 'normal',
-      attributes: {},
-      notes: ''
-    };
-
-    const newElements = diagram.elements.map(el => {
-      if (el.id === fromElementId) {
-        return { ...el, tendrils: [...el.tendrils, outgoingTendril] };
+      } catch (e) {
+        console.error('Error processing viewed SVG:', e);
       }
-      if (el.id === toElementId) {
-        return { ...el, tendrils: [...el.tendrils, incomingTendril] };
-      }
-      return el;
-    });
+    }
 
-    const nextDiagram = this.performAutoRouting({
-      ...diagram,
-      elements: newElements,
-      edges: [...diagram.edges, newEdge]
-    });
-
-    this.state = { ...currentState, currentDiagram: nextDiagram };
-  }
-
-  deleteEdge(edgeId: string): void {
-    const currentState = this.state;
     this.state = {
-      ...currentState,
-      currentDiagram: {
-        ...currentState.currentDiagram,
-        edges: currentState.currentDiagram.edges.filter(edge => edge.id !== edgeId)
-      }
+      ...this.state,
+      viewSvgContent: processedContent,
+      viewSvgFileName: fileName,
+      selectedNodeIds: [],
+      selectedBoundingBoxIds: [],
+      selectedSvgImageIds: [],
+      selectedConnectorIds: []
     };
   }
 
@@ -1230,9 +1007,9 @@ export class DiagramService {
       toNodeId,
       borderColor: '#333333',
       strokeWidth: 1,
-      dotted: true,
-      startArrow: false,
-      endArrow: false,
+      dotted: false,
+      startArrow: 'none',
+      endArrow: 'solid',
       name: '',
       fontFamily: 'Purisa, Chalkboard',
       fontSize: 12,
@@ -1298,68 +1075,9 @@ export class DiagramService {
     return element && isNode(element) ? element : undefined;
   }
 
-  getTendril(nodeId: string, tendrilId: string): Tendril | undefined {
-    const node = this.getNode(nodeId);
-    return node?.tendrils?.find(tendril => tendril.id === tendrilId);
-  }
-
-  getTendrilAny(elementId: string, tendrilId: string): Tendril | undefined {
-    // First try to find the element directly in the unified elements array
-    const element = this.getElement(elementId);
-    if (element) {
-      // First check if it's a regular tendril on the element
-      const regularTendril = element.tendrils.find(tendril => tendril.id === tendrilId);
-      if (regularTendril) return regularTendril;
-
-      // Check if it's a propagated tendril (only for nodes)
-      if (isNode(element) && element.innerDiagram && tendrilId.includes('-')) {
-        const propagatedTendrils = this.getExposedTendrilsFromInnerDiagram(elementId);
-        return propagatedTendrils.find(t => t.id === tendrilId);
-      }
-
-      return undefined;
-    }
-
-    // For backward compatibility, check if it's an SVG image with "svg-" prefix
-    if (elementId.startsWith('svg-')) {
-      const svgImageId = elementId.substring(4); // Remove "svg-" prefix
-      const svgImage = this.state.currentDiagram.elements.find(e => e.id === svgImageId && isSvgImage(e));
-      if (svgImage && isSvgImage(svgImage)) {
-        return svgImage.tendrils.find((tendril: Tendril) => tendril.id === tendrilId);
-      }
-    }
-
-    return undefined;
-  }
-
-  getTendrilById(tendrilId: string): Tendril | undefined {
-    for (const element of this.state.currentDiagram.elements) {
-      const regularTendril = element.tendrils.find(t => t.id === tendrilId);
-      if (regularTendril) return regularTendril;
-
-      if (isNode(element) && element.innerDiagram && tendrilId.includes('-')) {
-        const propagatedTendrils = this.getExposedTendrilsFromInnerDiagram(element.id);
-        const propagatedTendril = propagatedTendrils.find(t => t.id === tendrilId);
-        if (propagatedTendril) return propagatedTendril;
-      }
-    }
-    return undefined;
-  }
-
-  isTendrilExposedInDiagram(tendril: Tendril, parentDiagramId: string): boolean {
-    if (tendril.exposedOverrides && tendril.exposedOverrides[parentDiagramId] !== undefined) {
-      return tendril.exposedOverrides[parentDiagramId];
-    }
-    return tendril.exposed;
-  }
-
   getSvgImage(svgImageId: string): import('../models/diagram.model').SvgImage | undefined {
     const element = this.getElement(svgImageId);
     return element && isSvgImage(element) ? element : undefined;
-  }
-
-  getEdge(edgeId: string): Edge | undefined {
-    return this.state.currentDiagram.edges.find(edge => edge.id === edgeId);
   }
 
   getConnector(connectorId: string): import('../models/diagram.model').Connector | undefined {
@@ -1387,7 +1105,9 @@ export class DiagramService {
       this.state = {
         ...this.state,
         currentDiagram: diagram,
-        diagramStack: []
+        diagramStack: [],
+        viewSvgContent: undefined,
+        viewSvgFileName: undefined
       };
     } catch (error) {
       console.error('Failed to load diagram:', error);
@@ -1413,13 +1133,7 @@ export class DiagramService {
 
   // Unified Selection Logic
   private updateSelection(updates: Partial<DiagramState>, multiSelect: boolean): void {
-    const prev = this.state;
-    this.state = {
-      ...prev,
-      ...updates,
-      // Always clear tendril selection when element selection changes, unless explicitly updating it
-      selectedTendrilId: updates.hasOwnProperty('selectedTendrilId') ? updates.selectedTendrilId : undefined
-    };
+    this.state = { ...this.state, ...updates };
   }
 
   selectNode(nodeId: string | undefined, multiSelect: boolean = false): void {
@@ -1436,7 +1150,6 @@ export class DiagramService {
         selectedNodeId: nodeId,
         selectedSvgImageIds: [],
         selectedBoundingBoxIds: [],
-        selectedEdgeIds: [],
         selectedConnectorIds: []
       }, false);
     }
@@ -1456,7 +1169,6 @@ export class DiagramService {
         selectedSvgImageId: svgImageId,
         selectedNodeIds: [],
         selectedBoundingBoxIds: [],
-        selectedEdgeIds: [],
         selectedConnectorIds: []
       }, false);
     }
@@ -1476,7 +1188,6 @@ export class DiagramService {
         selectedBoundingBoxId: boundingBoxId,
         selectedNodeIds: [],
         selectedSvgImageIds: [],
-        selectedEdgeIds: [],
         selectedConnectorIds: []
       }, false);
     }
@@ -1485,36 +1196,6 @@ export class DiagramService {
   private toggleId(list: string[], id: string): string[] {
     const index = list.indexOf(id);
     return index > -1 ? list.filter(i => i !== id) : [...list, id];
-  }
-  selectTendril(nodeId: string, tendrilId: string | undefined): void {
-    this.updateSelection({
-      selectedNodeIds: nodeId ? [nodeId] : [],
-      selectedTendrilId: tendrilId,
-      selectedBoundingBoxIds: [],
-      selectedSvgImageIds: [],
-      selectedEdgeIds: [],
-      selectedConnectorIds: []
-    }, false);
-  }
-
-  selectEdge(edgeId: string | undefined, multiSelect: boolean = false): void {
-    const state = this.state;
-    if (multiSelect && edgeId) {
-      const ids = this.toggleId(state.selectedEdgeIds, edgeId);
-      this.updateSelection({
-        selectedEdgeIds: ids,
-        selectedEdgeId: ids[ids.length - 1]
-      }, true);
-    } else {
-      this.updateSelection({
-        selectedEdgeIds: edgeId ? [edgeId] : [],
-        selectedEdgeId: edgeId,
-        selectedNodeIds: [],
-        selectedSvgImageIds: [],
-        selectedBoundingBoxIds: [],
-        selectedConnectorIds: []
-      }, false);
-    }
   }
 
   selectConnector(connectorId: string | undefined, multiSelect: boolean = false): void {
@@ -1531,8 +1212,7 @@ export class DiagramService {
         selectedConnectorId: connectorId,
         selectedNodeIds: [],
         selectedSvgImageIds: [],
-        selectedBoundingBoxIds: [],
-        selectedEdgeIds: []
+        selectedBoundingBoxIds: []
       }, false);
     }
   }
@@ -1542,10 +1222,9 @@ export class DiagramService {
     this.state = {
       ...this.state,
       selectedNodeIds: [],
-      selectedTendrilId: undefined,
       selectedBoundingBoxIds: [],
       selectedSvgImageIds: [],
-      selectedEdgeIds: []
+      selectedConnectorIds: []
     };
   }
 
@@ -1553,7 +1232,6 @@ export class DiagramService {
     const allNodeIds = this.state.currentDiagram.elements.filter(isNode).map(e => e.id);
     const allSvgImageIds = this.state.currentDiagram.elements.filter(isSvgImage).map(e => e.id);
     const allBoxIds = this.state.currentDiagram.boundingBoxes.map(b => b.id);
-    const allEdgeIds = this.state.currentDiagram.edges.map(e => e.id);
     const allConnectorIds = this.state.currentDiagram.connectors.map(c => c.id);
 
     this.state = {
@@ -1561,23 +1239,7 @@ export class DiagramService {
       selectedNodeIds: allNodeIds,
       selectedSvgImageIds: allSvgImageIds,
       selectedBoundingBoxIds: allBoxIds,
-      selectedEdgeIds: allEdgeIds,
-      selectedConnectorIds: allConnectorIds,
-      selectedTendrilId: undefined
-    };
-  }
-
-  updateEdge(edgeId: string, updates: Partial<Edge>): void {
-    const currentState = this.state;
-    const newEdges = currentState.currentDiagram.edges.map(edge =>
-      edge.id === edgeId ? { ...edge, ...updates } : edge
-    );
-    this.state = {
-      ...currentState,
-      currentDiagram: {
-        ...currentState.currentDiagram,
-        edges: newEdges
-      }
+      selectedConnectorIds: allConnectorIds
     };
   }
 
@@ -1735,44 +1397,14 @@ export class DiagramService {
       diagramStack: updatedStack,
       // Clear selection after undo — avoids dangling references to deleted elements.
       selectedNodeIds: [],
-      selectedTendrilId: undefined,
       selectedBoundingBoxIds: [],
       selectedSvgImageIds: [],
-      selectedEdgeIds: []
+      selectedConnectorIds: []
     };
 
     this.stateSubject.next(restoredState);
     this.saveStateToStorage(restoredState);
     return true;
-  }
-
-  // Get exposed tendrils from an inner diagram
-  getExposedTendrilsFromInnerDiagram(nodeId: string): Tendril[] {
-    const node = this.getNode(nodeId);
-    if (!node?.innerDiagram) return [];
-
-    const innerDiagram = this.allDiagrams.get(node.innerDiagram.id);
-    if (!innerDiagram) return [];
-
-    // Get all tendrils from all elements in the inner diagram
-    const allInnerTendrils: Tendril[] = [];
-
-    // Collect tendrils from all elements
-    innerDiagram.elements.forEach(element => {
-      element.tendrils.forEach(tendril => {
-        if (this.isTendrilExposedInDiagram(tendril, innerDiagram.id)) {
-          const prefix = isNode(element) ? element.id : `svg-${element.id}`;
-          allInnerTendrils.push({
-            ...tendril,
-            id: `${prefix}-${tendril.id}`, // Prefix with element ID to avoid conflicts
-            name: tendril.name, // Use original tendril name without prefix
-            notes: tendril.notes // Preserve notes from original tendril
-          });
-        }
-      });
-    });
-
-    return allInnerTendrils;
   }
 
   // Public getters
@@ -1783,8 +1415,7 @@ export class DiagramService {
       // Computed properties for backward compatibility
       selectedNodeId: state.selectedNodeIds.length > 0 ? state.selectedNodeIds[state.selectedNodeIds.length - 1] : undefined,
       selectedBoundingBoxId: state.selectedBoundingBoxIds.length > 0 ? state.selectedBoundingBoxIds[state.selectedBoundingBoxIds.length - 1] : undefined,
-      selectedSvgImageId: state.selectedSvgImageIds.length > 0 ? state.selectedSvgImageIds[state.selectedSvgImageIds.length - 1] : undefined,
-      selectedEdgeId: state.selectedEdgeIds.length > 0 ? state.selectedEdgeIds[state.selectedEdgeIds.length - 1] : undefined
+      selectedSvgImageId: state.selectedSvgImageIds.length > 0 ? state.selectedSvgImageIds[state.selectedSvgImageIds.length - 1] : undefined
     };
   }
 
@@ -1803,10 +1434,8 @@ export class DiagramService {
         currentDiagramId: state.currentDiagram.id,
         diagramStackIds: state.diagramStack.map(d => d.id),
         selectedNodeIds: state.selectedNodeIds,
-        selectedTendrilId: state.selectedTendrilId,
         selectedBoundingBoxIds: state.selectedBoundingBoxIds,
         selectedSvgImageIds: state.selectedSvgImageIds,
-        selectedEdgeIds: state.selectedEdgeIds,
         selectedConnectorIds: state.selectedConnectorIds
       };
 
@@ -1849,10 +1478,8 @@ export class DiagramService {
         currentDiagram,
         diagramStack,
         selectedNodeIds: serialized.selectedNodeIds || [],
-        selectedTendrilId: serialized.selectedTendrilId,
         selectedBoundingBoxIds: serialized.selectedBoundingBoxIds || [],
         selectedSvgImageIds: serialized.selectedSvgImageIds || [],
-        selectedEdgeIds: serialized.selectedEdgeIds || [],
         selectedConnectorIds: serialized.selectedConnectorIds || [],
         viewportCenter: serialized.viewportCenter || { x: 500, y: 300 }
       };
@@ -1906,8 +1533,6 @@ export class DiagramService {
       if (isNode(newElement)) {
         // Remove inner diagram for pasted nodes
         newElement.innerDiagram = undefined;
-        // Reset tendrils (we don't copy connections)
-        newElement.tendrils = [];
         newSelectedNodeIds.push(newElement.id);
       } else if (isSvgImage(newElement)) {
         newSelectedSvgImageIds.push(newElement.id);
@@ -1927,9 +1552,7 @@ export class DiagramService {
       selectedNodeIds: newSelectedNodeIds,
       selectedSvgImageIds: newSelectedSvgImageIds,
       selectedBoundingBoxIds: [],
-      selectedEdgeIds: [],
       selectedConnectorIds: [],
-      selectedTendrilId: undefined,
       viewportCenter: this.state.viewportCenter
     };
   }
@@ -1970,96 +1593,4 @@ export class DiagramService {
     }
   }
 
-  // Centroid and Auto-routing Helpers
-  private getCentroid(element: any): Position {
-    return {
-      x: element.position.x + (element.size.width / 2),
-      y: element.position.y + (element.size.height / 2)
-    };
-  }
-
-  private getIntersectionPoint(element: any, target: Position): Position {
-    const w = element.size.width;
-    const h = element.size.height;
-    const cx = element.position.x + w / 2;
-    const cy = element.position.y + h / 2;
-
-    const dx = target.x - cx;
-    const dy = target.y - cy;
-
-    if (dx === 0 && dy === 0) return { x: w, y: h / 2 };
-
-    // Circle intersection
-    if ('shape' in element && (element.shape === 'circle' || element.shape === 'interface' || element.shape === 'msgTopic')) {
-       const radius = Math.min(w, h) / 2;
-       const dist = Math.sqrt(dx * dx + dy * dy);
-       return {
-         x: (w / 2) + (dx / dist) * radius,
-         y: (h / 2) + (dy / dist) * radius
-       };
-    }
-
-    // Default: Box intersection (works for most shapes)
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    let scale = 1;
-    if (w * absDy > h * absDx) {
-      scale = (h / 2) / (absDy || 1);
-    } else {
-      scale = (w / 2) / (absDx || 1);
-    }
-
-    return {
-      x: (w / 2) + dx * scale,
-      y: (h / 2) + dy * scale
-    };
-  }
-
-  private performAutoRouting(diagram: Diagram): Diagram {
-    let anyChanged = false;
-
-    // Create shallow copies of elements to avoid mutating state directly
-    const elements = diagram.elements.map(e => ({
-      ...e,
-      tendrils: e.tendrils.map(t => ({ ...t }))
-    }));
-
-    const boxes = diagram.boundingBoxes.map(b => ({
-      ...b,
-      tendrils: b.tendrils.map(t => ({ ...t }))
-    }));
-
-    for (const edge of diagram.edges) {
-      const fromEl = elements.find(e => e.id === edge.fromNodeId) || boxes.find(b => b.id === edge.fromNodeId);
-      const toEl = elements.find(e => e.id === edge.toNodeId) || boxes.find(b => b.id === edge.toNodeId);
-
-      if (!fromEl || !toEl) continue;
-
-      const fromCenter = this.getCentroid(fromEl);
-      const toCenter = this.getCentroid(toEl);
-
-      const fromPos = this.getIntersectionPoint(fromEl, toCenter);
-      const toPos = this.getIntersectionPoint(toEl, fromCenter);
-
-      const updateTendril = (el: any, tid: string, pos: Position) => {
-        const tendril = el.tendrils.find((t: any) => t.id === tid);
-        if (tendril && (Math.abs(tendril.position.x - pos.x) > 0.05 || Math.abs(tendril.position.y - pos.y) > 0.05)) {
-          tendril.position = pos;
-          anyChanged = true;
-        }
-      };
-
-      updateTendril(fromEl, edge.fromTendrilId, fromPos);
-      updateTendril(toEl, edge.toTendrilId, toPos);
-    }
-
-    if (!anyChanged) return diagram;
-
-    return {
-      ...diagram,
-      elements,
-      boundingBoxes: boxes
-    };
-  }
 }

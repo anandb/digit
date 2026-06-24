@@ -15,12 +15,10 @@
       <input type="text"
              [value]="getName()"
              (input)="updateName($event)"
-             [disabled]="isPropagatedTendril()"
-             [class.read-only]="isPropagatedTendril()"
-             [placeholder]="isPropagatedTendril() ? '' : 'Element name'" />
+             placeholder="Element name" />
     </div>
 
-    <ng-container *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg' || type === 'connector'">
+    <ng-container *ngIf="type === 'node' || type === 'boundingBox' || type === 'svg' || type === 'connector'">
       <!-- Main Content Edit (For Note and Text shapes only) -->
       <div class="property-block" *ngIf="isNoteShape || isTextShape">
         <label>Content</label>
@@ -31,14 +29,14 @@
       </div>
 
       <!-- Name/Text editing for other shapes is handled via the toolbar -->
-      <!-- Shared Node/Edge/Box Properties -->
-      <div class="property-row" *ngIf="type === 'node' || type === 'edge' || type === 'boundingBox' || type === 'svg' || type === 'connector'">
+      <!-- Shared Node/Box Properties -->
+      <div class="property-row" *ngIf="type === 'node' || type === 'boundingBox' || type === 'svg' || type === 'connector'">
         <button class="line-style-btn" (click)="toggleDotted()" *ngIf="type !== 'boundingBox' && type !== 'svg'">
           <span class="line-icon" [class.dotted]="getIsDotted()"></span>
           <span class="line-text">{{ getIsDotted() ? 'Dotted' : 'Solid' }}</span>
         </button>
 
-        <div class="select-container" *ngIf="type === 'node' || type === 'edge' || type === 'connector' || type === 'svg'">
+        <div class="select-container" *ngIf="type === 'node' || type === 'connector' || type === 'svg'">
           <select class="custom-select small" [value]="getStrokeWidth()" (change)="updateStrokeWidth($event)">
             <option value="0.5">0.5px</option>
             <option value="1">1px</option>
@@ -50,13 +48,20 @@
       </div>
 
       <!-- Connector Arrows (Connector only) -->
-      <div class="property-row" *ngIf="type === 'connector'">
-        <button class="line-style-btn" (click)="toggleStartArrow()">
-          <span class="line-text">{{ getStartArrow() ? 'Start Arrow' : 'No Start Arrow' }}</span>
-        </button>
-        <button class="line-style-btn" (click)="toggleEndArrow()">
-          <span class="line-text">{{ getEndArrow() ? 'End Arrow' : 'No End Arrow' }}</span>
-        </button>
+      <div class="property-block" *ngIf="type === 'connector'">
+        <label>Connector Arrows</label>
+        <div style="display: flex; gap: 12px; width: 100%;">
+          <select class="custom-select" [value]="getStartArrowType()" (change)="updateStartArrowType($event)" style="flex: 1;">
+            <option value="none">None</option>
+            <option value="arrow">Outline Arrow</option>
+            <option value="solid">Solid Arrow</option>
+          </select>
+          <select class="custom-select" [value]="getEndArrowType()" (change)="updateEndArrowType($event)" style="flex: 1;">
+            <option value="none">None</option>
+            <option value="arrow">Outline Arrow</option>
+            <option value="solid">Solid Arrow</option>
+          </select>
+        </div>
       </div>
 
       <!-- Rounding toggle (Bounding Box and Rectangle) -->
@@ -122,8 +127,8 @@
         </label>
       </div>
 
-      <div class="color-grid single" *ngIf="type === 'edge' || type === 'connector'">
-        <!-- Stroke Button (Edge Only) -->
+      <div class="color-grid single" *ngIf="type === 'connector'">
+        <!-- Stroke Button (Connector Only) -->
         <label class="color-btn stroke-btn" [style.background-color]="getStrokeColor() || '#000000'">
           <input type="color" [value]="getStrokeColor()" (input)="updateStrokeColor($event)">
           <div class="color-content">
@@ -155,13 +160,6 @@
           </div>
         </div>
       </div>
-    </ng-container>
-
-    <ng-container *ngIf="type === 'tendril'">
-      <!-- Tendril Specific Properties -->
-      <button class="line-style-btn" (click)="toggleExposed()">
-        <span class="line-text">{{ getIsExposed() ? 'Exposed' : 'Internal' }}</span>
-      </button>
     </ng-container>
 
     <!-- Shared Notes Section -->

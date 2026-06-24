@@ -25,7 +25,7 @@ export interface DiagramElement extends HasNotes {
   groupId?: string;
 }
 
-export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'envelope' | 'cache' | 'tick' | 'cross' | 'lightning' | 'padlock' | 'dataLake' | 'browser' | 'mobile' | 'bar' | 'crcCard' | 'package' | 'component' | 'interface' | 'queue' | 'serverRack' | 'lambda' | 'star' | 'octagon' | 'user' | 'shield' | 'key' | 'gear' | 'dbCluster' | 'pod' | 'msgTopic' | 'hardDrive' | 'terminal' | 'bell' | 'threatTable' | 'container' | 'hourglass';
+export type NodeShape = 'rectangle' | 'circle' | 'pill' | 'cylinder' | 'diamond' | 'parallelogram' | 'document' | 'roundedRectangle' | 'hexagon' | 'triangle' | 'trapezoid' | 'text' | 'stickman' | 'callout' | 'process' | 'tape' | 'wall' | 'note' | 'verticalLine' | 'horizontalLine' | 'cloud' | 'envelope' | 'cache' | 'tick' | 'cross' | 'lightning' | 'padlock' | 'dataLake' | 'browser' | 'mobile' | 'bar' | 'crcCard' | 'package' | 'component' | 'interface' | 'queue' | 'serverRack' | 'lambda' | 'star' | 'octagon' | 'user' | 'shield' | 'key' | 'gear' | 'dbCluster' | 'pod' | 'msgTopic' | 'hardDrive' | 'terminal' | 'bell' | 'threatTable' | 'container' | 'hourglass' | 'arc';
 
 export interface CrcCardAttribute {
   name: string;

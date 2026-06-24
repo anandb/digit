@@ -206,6 +206,46 @@
             [class.highlighted]="isHighlighted('node', element.id)" class="node">
           </rect>
 
+          <!-- Arc Shape -->
+          <ng-container *ngIf="$any(element).shape === 'arc'">
+            <!-- Invisible click area matching bounding box -->
+            <rect [attr.x]="$any(element).position.x" [attr.y]="$any(element).position.y"
+              [attr.width]="$any(element).size.width" [attr.height]="$any(element).size.height"
+              fill="transparent" stroke="transparent" style="cursor: pointer;">
+            </rect>
+            <!-- Actual Arc Path -->
+            <path [attr.d]="getArcPath(element)"
+              [attr.fill]="$any(element).fillColor || 'none'"
+              [attr.stroke]="$any(element).borderColor"
+              [attr.stroke-width]="isSelected('node', element.id) ? (3 + ($any(element).strokeWidth || 1)) : ($any(element).strokeWidth || 1)"
+              [attr.stroke-dasharray]="$any(element).dotted ? '5,5' : null"
+              [class.highlighted]="isHighlighted('node', element.id)" class="node">
+            </path>
+
+            <!-- Dynamic Drag Handle for Arc Curvature/Orientation (visible when selected) -->
+            <g *ngIf="isSelected('node', element.id)">
+              <!-- Connecting dashed line from center to control point -->
+              <line [attr.x1]="element.position.x + element.size.width / 2"
+                    [attr.y1]="element.position.y + element.size.height / 2"
+                    [attr.x2]="getArcControlPoint(element).x"
+                    [attr.y2]="getArcControlPoint(element).y"
+                    stroke="#007bff" stroke-width="1.5" stroke-dasharray="3,3" pointer-events="none">
+              </line>
+              <!-- Outer larger hit area for easier grabbing -->
+              <circle [attr.cx]="getArcControlPoint(element).x"
+                      [attr.cy]="getArcControlPoint(element).y"
+                      r="15" fill="transparent" style="cursor: move;"
+                      (mousedown)="startDragArcControlPoint($event, element)">
+              </circle>
+              <!-- Visible handle dot -->
+              <circle [attr.cx]="getArcControlPoint(element).x"
+                      [attr.cy]="getArcControlPoint(element).y"
+                      r="6" fill="#ffc107" stroke="#ffffff" stroke-width="1.5"
+                      pointer-events="none">
+              </circle>
+            </g>
+          </ng-container>
+
           <!-- Layered Circle -->
           <circle *ngIf="$any(element).shape === 'circle' && $any(element).layered"
             [attr.cx]="$any(element).position.x + $any(element).size.width / 2 + 10.4"

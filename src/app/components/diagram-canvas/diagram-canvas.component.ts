@@ -65,7 +65,7 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   isDraggingControlPoint = false;
   dragControlPointElementId?: string;
   dragControlPointIndex?: number;
-  dragControlPointType?: 'connector';
+  dragControlPointType?: 'connector' | 'arc';
 
   private currentDiagramId?: string;
   private previousViewSvgContent?: string;
@@ -366,6 +366,8 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
       const pos = this.getCanvasCoordinates(event);
       if (this.dragControlPointType === 'connector') {
         this.updateConnectorControlPoint(this.dragControlPointElementId, this.dragControlPointIndex, pos);
+      } else if (this.dragControlPointType === 'arc') {
+        this.updateArcControlPoint(this.dragControlPointElementId, pos);
       }
     } else if (this.isResizing && this.resizeNodeId) {
       const rect = this.canvas.nativeElement.getBoundingClientRect();
@@ -719,6 +721,104 @@ export class DiagramCanvasComponent implements OnInit, OnDestroy {
   // Get circle radius for circular nodes
   getCircleRadius(node: any): number {
     return Math.min(node.size.width, node.size.height) / 2;
+  }
+
+  getArcControlPoint(element: any): Position {
+    const cx = element.position.x + element.size.width / 2;
+    const cy = element.position.y + element.size.height / 2;
+    const dx = element.attributes?.['arcCtrlX'] !== undefined ? parseFloat(element.attributes['arcCtrlX']) : 0;
+    // Default to pointing up at height / 2 distance
+    const dy = element.attributes?.['arcCtrlY'] !== undefined ? parseFloat(element.attributes['arcCtrlY']) : -element.size.height / 2;
+    return { x: cx + dx, y: cy + dy };
+  }
+
+  getArcPath(element: any): string {
+    const cx = element.position.x + element.size.width / 2;
+    const cy = element.position.y + element.size.height / 2;
+    const w = element.size.width;
+    const h = element.size.height;
+
+    const P = this.getArcControlPoint(element);
+
+    let dx = P.x - cx;
+    let dy = P.y - cy;
+    let d = Math.sqrt(dx * dx + dy * dy);
+
+    if (d < 1) {
+      dx = 0;
+      dy = -h / 2;
+      d = h / 2;
+    }
+
+    const ux = dx / d;
+    const uy = dy / d;
+
+    // Perpendicular vector
+    const vx = -uy;
+    const vy = ux;
+
+    // Start and end points of the chord
+    const A = {
+      x: cx - vx * (w / 2),
+      y: cy - vy * (w / 2)
+    };
+    const B = {
+      x: cx + vx * (w / 2),
+      y: cy + vy * (w / 2)
+    };
+
+    // Calculate arc through A, B, P
+    const L = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2));
+    const M = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+    const MP = { x: P.x - M.x, y: P.y - M.y };
+    const h_peak = Math.sqrt(MP.x * MP.x + MP.y * MP.y);
+
+    if (h_peak < 1) {
+      return `M ${A.x} ${A.y} L ${B.x} ${B.y}`;
+    }
+
+    const R = h_peak / 2 + (L * L) / (8 * h_peak);
+
+    // Determine sweep flag: cross product of AB and AP
+    const crossProduct = (B.x - A.x) * (P.y - A.y) - (B.y - A.y) * (P.x - A.x);
+    const sweep = crossProduct >= 0 ? 1 : 0;
+
+    // Large arc flag is 1 if the peak is past the center of the circle (h_peak > R)
+    const largeArc = h_peak > R ? 1 : 0;
+
+    return `M ${A.x} ${A.y} A ${R} ${R} 0 ${largeArc} ${sweep} ${B.x} ${B.y}`;
+  }
+
+  startDragArcControlPoint(event: MouseEvent, node: any): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.isDraggingControlPoint = true;
+    this.dragControlPointElementId = node.id;
+    this.dragControlPointIndex = 0;
+    this.dragControlPointType = 'arc';
+
+    this.diagramService.recordUndoSnapshot();
+  }
+
+  updateArcControlPoint(nodeId: string, pos: Position): void {
+    const node = this.diagramService.getNode(nodeId);
+    if (!node) return;
+
+    const cx = node.position.x + node.size.width / 2;
+    const cy = node.position.y + node.size.height / 2;
+
+    const dx = pos.x - cx;
+    const dy = pos.y - cy;
+
+    const currentAttributes = node.attributes || {};
+    this.diagramService.updateNode(nodeId, {
+      attributes: {
+        ...currentAttributes,
+        'arcCtrlX': dx.toFixed(1),
+        'arcCtrlY': dy.toFixed(1)
+      }
+    }, false); // don't record undo snapshot on every mouse move
   }
 
   getCrcCardData(element: any): import('../../models/diagram.model').CrcCardData | null {

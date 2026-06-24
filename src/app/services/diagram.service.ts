@@ -402,6 +402,8 @@ export class DiagramService {
       size = { width: 600, height: 800 };
     } else if (shape === 'threatTable') {
       size = { width: 300, height: 200 };
+    } else if (shape === 'arc') {
+      size = { width: 100, height: 80 };
     }
 
     const newNode: Node = {
@@ -422,11 +424,14 @@ export class DiagramService {
             { col1: 'T03', col2: 'Compromised payment partner' }
           ]
         }
-      } : {},
+      } : (shape === 'arc' ? {
+        arcCtrlX: '0',
+        arcCtrlY: '-40'
+      } : {}),
       notes: '',
       shape: shape,
       borderColor: options?.borderColor || '#000000',
-      fillColor: options?.fillColor || (shape === 'note' ? '#fff9c4' : (shape === 'lightning' ? '#fdd835' : (shape === 'threatTable' ? '#ffe0e0' : '#ffffff'))),
+      fillColor: options?.fillColor || (shape === 'note' ? '#fff9c4' : (shape === 'lightning' ? '#fdd835' : (shape === 'threatTable' ? '#ffe0e0' : (shape === 'arc' ? 'none' : '#ffffff')))),
       dotted: options?.dotted || false,
       fontFamily: options?.fontFamily || 'Purisa, Chalkboard',
       fontSize: 14,
